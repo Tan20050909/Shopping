@@ -27,6 +27,7 @@ pnpm-debug.log*
 # Runtime / local data
 uploads/
 logs/
+.run/
 *.log
 *.tmp
 
@@ -39,3 +40,5 @@ debug-*.md
 mysql-shopping.ini
 fix-mysql-shopping-service*.ps1
 run-merchant-frontend.*
+start-all.sh
+stop-all.sh

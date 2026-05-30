@@ -148,9 +148,9 @@ async function addFavorite() {
       </div>
     </router-link>
     <div v-if="props.mode !== 'compact'" class="row actions">
-      <el-button size="small" plain @click="addFavorite">收藏</el-button>
-      <el-button size="small" plain @click="addToCart">加入购物车</el-button>
-      <el-button size="small" type="primary" @click="buyNow">立即购买</el-button>
+      <el-button plain @click="addFavorite">收藏</el-button>
+      <el-button plain @click="addToCart">加入购物车</el-button>
+      <el-button type="primary" @click="buyNow">立即购买</el-button>
     </div>
   </div>
 
@@ -217,8 +217,8 @@ async function addFavorite() {
 <style scoped>
 .product-card {
   display: grid;
-  gap: 12px;
-  min-height: 320px;
+  gap: 16px;
+  min-height: 390px;
   padding: 0;
   background: #ffffff;
   border: 1px solid var(--border-light);
@@ -239,7 +239,7 @@ async function addFavorite() {
 }
 
 .product-image-wrap {
-  padding: 10px;
+  padding: 14px;
   background: var(--bg-soft);
 }
 
@@ -251,8 +251,8 @@ async function addFavorite() {
 
 .product-info {
   display: grid;
-  gap: 8px;
-  padding: 12px 12px 0;
+  gap: 9px;
+  padding: 16px 16px 0;
 }
 
 .product-info strong {
@@ -276,15 +276,11 @@ async function addFavorite() {
 }
 
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  justify-content: flex-start;
   margin-top: auto;
-  padding: 0 12px 12px;
+  padding: 0 16px 18px;
+  flex-wrap: wrap;
   gap: 8px;
-}
-
-.actions :deep(.el-button) {
-  flex: 1 1 120px;
 }
 
 .mode-compact {

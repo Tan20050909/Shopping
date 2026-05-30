@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Goods, Present, Star, TrendCharts, User } from '@element-plus/icons-vue'
+import { Goods, Present, Star, TrendCharts, User, VideoCamera } from '@element-plus/icons-vue'
 import { api, getUserToken } from '../api/client'
 import ProductCard from '../components/ProductCard.vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -51,6 +51,15 @@ const merchantId = computed(() => {
 })
 const displayedGoods = computed(() => (isHome.value ? goods.value.slice(0, 8) : goods.value))
 const hotKeywords = computed(() => homeData.value.hotKeywords || [])
+const visibleHomeSections = computed(() => (homeData.value.sections || []).filter((section) => {
+  const name = String(section.sectionName || '')
+  return !name.includes('热门推荐') && !name.includes('数码专区')
+}))
+const featuredGoods = computed(() => {
+  const sectionGoods = visibleHomeSections.value.flatMap(section => section.goods || [])
+  return sectionGoods.length ? sectionGoods.slice(0, 4) : goods.value.slice(0, 4)
+})
+const topicProduct = computed(() => featuredGoods.value[0] || goods.value[0])
 
 const groupedCategories = computed(() => {
   const list = categories.value || []
@@ -63,10 +72,10 @@ const groupedCategories = computed(() => {
 const topLevelCategories = computed(() => groupedCategories.value.map(({ children, ...category }) => category))
 
 const platformStats = computed(() => [
-  { label: '商品', value: `${total.value || goods.value.length || 0}+`, icon: Goods },
-  { label: '精选专题', value: `${homeData.value.sections?.length || 0}+`, icon: Star },
-  { label: '热搜词', value: `${hotKeywords.value.length || 0}+`, icon: TrendCharts },
-  { label: '优惠券', value: '每日可领', icon: Present },
+  { label: '精选商品', value: `${total.value || goods.value.length || 0}+`, icon: Goods },
+  { label: '内容推荐', value: `${homeData.value.sections?.length || 0}+`, icon: Star },
+  { label: '热门关键词', value: `${hotKeywords.value.length || 0}+`, icon: TrendCharts },
+  { label: '优惠活动', value: '持续上新', icon: Present },
   { label: '活跃用户', value: '持续增长', icon: User }
 ])
 
@@ -151,16 +160,39 @@ async function receivePlatformCoupon() {
 }
 
 function bannerImage(banner) {
+  const title = String(banner?.bannerTitle || '')
+  if (title.includes('数码')) return '/brand-assets/digital-banner.png'
+  if (title.includes('春季') || title.includes('穿搭')) return '/brand-assets/spring-banner.png'
   const presets = [
+    '/brand-assets/digital-banner.png',
+    '/brand-assets/spring-banner.png',
     'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1520975869018-47c0a5da8b35?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=80'
+    'https://images.unsplash.com/photo-1520975869018-47c0a5da8b35?auto=format&fit=crop&w=1600&q=80'
   ]
   if (banner?.imageUrl?.startsWith('http')) return banner.imageUrl
   return presets[Number(banner?.bannerId || 0) % presets.length]
 }
 
+function topicImage() {
+  const id = Number(topicProduct.value?.goodsId || topicProduct.value?.goods_id || 1)
+  const presets = [
+    'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=80'
+  ]
+  return presets[id % presets.length]
+}
+
 function handleBannerClick(banner) {
+  const title = String(banner?.bannerTitle || '')
+  if (title.includes('数码')) {
+    router.push('/products?categoryId=1')
+    return
+  }
+  if (title.includes('春季') || title.includes('穿搭') || title.includes('服装')) {
+    router.push('/products?categoryId=4')
+    return
+  }
   const type = Number(banner?.jumpType || 0)
   const value = banner?.jumpValue
   if (!value) {
@@ -182,6 +214,18 @@ function handleBannerClick(banner) {
   }
   if (type === 4) {
     router.push(`/live/${value}`)
+    return
+  }
+  router.push('/products')
+}
+
+function sectionAction(section) {
+  if (section.sectionType === 4) {
+    router.push('/live')
+    return
+  }
+  if (section.goods?.[0]?.categoryId) {
+    router.push(`/products?categoryId=${section.goods[0].categoryId}`)
     return
   }
   router.push('/products')
@@ -308,11 +352,11 @@ onMounted(async () => {
               <span class="hero-wash"></span>
               <div class="container hero-copy">
                 <span class="hero-kicker">Allmart Select</span>
-                <h1>{{ banner.bannerTitle || 'Allmart 精选好物' }}</h1>
-                <p>{{ banner.bannerIntro || '每日上新，发现更好的生活。' }}</p>
+                <h1>{{ banner.bannerTitle || '精选好物，点亮生活' }}</h1>
+                <p>{{ banner.bannerIntro || '保留真实商品、分类、购物车和订单链路，用更清爽的品牌官网方式呈现。' }}</p>
                 <div class="row">
-                  <el-button type="primary" @click.stop="handleBannerClick(banner)">去看看</el-button>
-                  <el-button plain @click.stop="router.push('/recommend')">推荐</el-button>
+                  <el-button type="primary" @click.stop="handleBannerClick(banner)">立即选购</el-button>
+                  <el-button plain @click.stop="router.push('/recommend')">查看推荐</el-button>
                 </div>
               </div>
             </article>
@@ -321,16 +365,16 @@ onMounted(async () => {
         <div v-else class="hero-slide hero-fallback">
           <div class="container hero-copy">
             <span class="hero-kicker">Allmart Select</span>
-            <h1>Allmart 精选好物</h1>
-            <p>欢迎来到 Allmart，探索更多优质商品。</p>
-            <el-button type="primary" @click="router.push('/products')">去逛逛</el-button>
+            <h1>精选好物，点亮生活</h1>
+            <p>首页 Banner 将优先展示数据库中的活动轮播图。</p>
+            <el-button type="primary" @click="router.push('/products')">立即选购</el-button>
           </div>
         </div>
       </section>
 
       <section class="section stats-section">
         <div class="container">
-          <h2 class="brand-slogan">Allmart 精选好物<span>每天都有新发现</span></h2>
+          <h2 class="brand-slogan">精选好物，从日常开始 <span>Allmart</span></h2>
           <div class="stats-grid">
             <article v-for="stat in platformStats" :key="stat.label" class="stat-card">
               <el-icon><component :is="stat.icon" /></el-icon>
@@ -342,6 +386,34 @@ onMounted(async () => {
       </section>
 
       <section class="section">
+        <div class="container feature-layout">
+          <article class="topic-cover" :style="{ backgroundImage: `url(${topicImage()})` }">
+            <span class="topic-shade"></span>
+            <div class="topic-copy">
+              <span>Featured Story</span>
+              <h2>用真实数据搭起一间干净好逛的生活商店</h2>
+              <p>商品、优惠券、订单和直播入口都来自现有接口，只把页面节奏拉回 Allmart 的轻品牌感。</p>
+              <el-button plain @click="router.push('/products')">浏览全部商品</el-button>
+            </div>
+          </article>
+          <aside class="quick-feature">
+            <router-link to="/coupons">
+              <strong>优惠券</strong>
+              <span>先领券，再下单</span>
+            </router-link>
+            <router-link to="/rankings">
+              <strong>热门榜单</strong>
+              <span>看看大家最近在买什么</span>
+            </router-link>
+            <router-link to="/live">
+              <strong>直播精选</strong>
+              <span>边看边逛，发现实时好物</span>
+            </router-link>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section-gray">
         <div class="container">
           <div class="section-head">
             <div>
@@ -365,7 +437,7 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section class="section-gray">
+      <section class="section">
         <div class="container">
           <div class="section-head">
             <div>
@@ -374,9 +446,36 @@ onMounted(async () => {
             </div>
             <router-link class="panel-link" to="/products">查看更多</router-link>
           </div>
-          <div class="product-grid">
+          <div class="product-grid compact">
             <ProductCard v-for="item in displayedGoods" :key="item.goodsId" :item="item" mode="compact" />
           </div>
+        </div>
+      </section>
+
+      <section v-if="visibleHomeSections.length" class="section-gray">
+        <div class="container home-sections">
+          <article v-for="section in visibleHomeSections" :key="section.sectionId" class="content-section">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title">{{ section.sectionName }}</h2>
+                <p class="muted">{{ section.sectionType === 4 ? '直播、内容和商品联动展示' : '来自首页楼层配置的精选商品' }}</p>
+              </div>
+              <button class="ghost-link panel-link" @click="sectionAction(section)">进入专区</button>
+            </div>
+            <div v-if="section.goods?.length" class="product-grid compact">
+              <ProductCard
+                v-for="item in section.goods.slice(0, 4)"
+                :key="`${section.sectionId}-${item.goodsId}`"
+                :item="item"
+                mode="compact"
+              />
+            </div>
+            <div v-else class="empty-section">
+              <el-icon><VideoCamera /></el-icon>
+              <strong>{{ section.sectionType === 4 ? '直播入口已保留' : '楼层商品待配置' }}</strong>
+              <span class="muted">这里不新增无关功能，只等待后端已有数据驱动展示。</span>
+            </div>
+          </article>
         </div>
       </section>
     </template>
@@ -385,8 +484,8 @@ onMounted(async () => {
       <section class="page-hero">
         <div class="container">
           <span class="page-kicker">Products</span>
-          <h1>商品列表</h1>
-          <p>搜索、筛选并找到你喜欢的商品。</p>
+          <h1>商品分类</h1>
+          <p>发现更多适合你的生活好物。</p>
         </div>
       </section>
 
@@ -394,29 +493,40 @@ onMounted(async () => {
         <div class="container product-list-layout">
           <div class="filter-panel">
             <div class="search-toolbar">
-              <el-input v-model="keyword" placeholder="搜索商品名称/关键词" clearable @keyup.enter="handleSearch" />
-              <el-select v-model="categoryId" placeholder="选择分类" clearable>
+              <el-input v-model="keyword" placeholder="搜商品、品牌、关键词" clearable @keyup.enter="handleSearch" />
+              <el-select v-model="categoryId" placeholder="分类" clearable>
                 <el-option v-for="c in topLevelCategories" :key="c.cateId" :label="c.cateName" :value="c.cateId" />
               </el-select>
               <div class="price-range">
                 <el-input-number v-model="minPrice" :min="0" :precision="2" :controls="false" placeholder="最低价" />
-                <span>~</span>
+                <span>至</span>
                 <el-input-number v-model="maxPrice" :min="0" :precision="2" :controls="false" placeholder="最高价" />
               </div>
               <el-select v-model="sort" placeholder="排序" clearable>
-                <el-option label="默认" value="" />
-                <el-option label="价格升序" value="priceAsc" />
-                <el-option label="价格降序" value="priceDesc" />
-                <el-option label="评分" value="score" />
-                <el-option label="新品" value="new" />
+                <el-option label="销量优先" value="salesDesc" />
+                <el-option label="价格从低到高" value="priceAsc" />
+                <el-option label="价格从高到低" value="priceDesc" />
+                <el-option label="评分优先" value="ratingDesc" />
+                <el-option label="最新上架" value="newest" />
               </el-select>
-              <el-button type="primary" :loading="loading" @click="handleSearch">搜索</el-button>
+              <el-button type="primary" :loading="loading" @click="handleSearch">搜索商品</el-button>
             </div>
-            <span class="result-tip">共 {{ total }} 件商品</span>
+            <div class="category-tabs slim">
+              <button
+                v-for="group in groupedCategories"
+                :key="group.cateId"
+                class="category-tab"
+                :class="{ active: Number(categoryId) === Number(group.cateId) }"
+                @click="goCategory(group.cateId)"
+              >
+                <span>{{ group.cateName }}</span>
+              </button>
+            </div>
+            <span class="result-tip">当前共 {{ total }} 件商品</span>
           </div>
 
           <div class="product-grid list-grid">
-            <ProductCard v-for="item in goods" :key="item.goodsId" :item="item" mode="compact" />
+            <ProductCard v-for="item in goods" :key="item.goodsId" :item="item" />
           </div>
           <el-pagination
             background
@@ -458,6 +568,10 @@ onMounted(async () => {
   background: #fff;
 }
 
+.home-hero :deep(.el-carousel__container) {
+  height: 520px !important;
+}
+
 .hero-slide {
   position: relative;
   display: block;
@@ -472,6 +586,8 @@ onMounted(async () => {
 }
 
 .hero-slide-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -480,124 +596,385 @@ onMounted(async () => {
 .hero-wash {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.15));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.74) 34%, rgba(255, 255, 255, 0.08) 76%);
 }
 
 .hero-copy {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-  color: #fff;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  gap: 20px;
+  height: 100%;
+  color: var(--text-main);
 }
 
 .hero-kicker {
-  letter-spacing: 0.18em;
+  width: fit-content;
+  color: var(--brand-red);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.9;
+}
+
+.hero-copy h1,
+.page-hero h1 {
+  max-width: 560px;
+  margin: 0;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.hero-copy p,
+.page-hero p {
+  max-width: 500px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.hero-fallback {
+  background:
+    radial-gradient(circle at 82% 30%, rgba(230, 0, 18, 0.14), transparent 28%),
+    linear-gradient(135deg, #fff 0%, #fff4f5 100%);
 }
 
 .brand-slogan {
-  margin: 0 0 18px;
-  font-size: 28px;
-  line-height: 1.25;
+  margin: 0 0 42px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
 }
 
 .brand-slogan span {
-  margin-left: 10px;
-  font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--brand-red);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 28px;
 }
 
 .stat-card {
   display: grid;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 14px;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.stat-card :deep(.el-icon) {
+  color: #777;
+  font-size: 34px;
+}
+
+.stat-card span {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.stat-card strong {
+  color: var(--brand-red);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.feature-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+}
+
+.topic-cover {
+  position: relative;
+  min-height: 380px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background-position: center;
+  background-size: cover;
+}
+
+.topic-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.08));
+}
+
+.topic-copy {
+  position: absolute;
+  left: 36px;
+  bottom: 36px;
+  display: grid;
+  gap: 14px;
+  max-width: 460px;
+  color: #fff;
+}
+
+.topic-copy span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.topic-copy h2 {
+  margin: 0;
+  font-size: 38px;
+}
+
+.topic-copy p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.8;
+}
+
+.topic-copy :deep(.el-button) {
+  width: fit-content;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.82);
+  background: transparent;
+}
+
+.quick-feature {
+  display: grid;
+  gap: 16px;
+}
+
+.quick-feature a {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-height: 116px;
+  padding: 24px;
   border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   background: #fff;
+}
+
+.quick-feature a:hover {
+  border-color: var(--brand-red);
+}
+
+.quick-feature strong {
+  font-size: 22px;
+}
+
+.quick-feature span {
+  color: var(--text-muted);
 }
 
 .section-head {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.section-head p {
+  margin: 0;
 }
 
 .category-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 6px;
 }
 
 .category-tab {
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border-light);
-  background: #fff;
-  text-align: left;
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 160px;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
+  text-align: left;
+}
+
+.category-tab span {
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .category-tab small {
-  display: block;
-  margin-top: 6px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+}
+
+.category-tab:hover,
+.category-tab.active {
+  color: var(--brand-red);
+  border-bottom-color: var(--brand-red);
+}
+
+.category-tabs.slim .category-tab {
+  min-width: auto;
+  padding: 8px 0 10px;
+}
+
+.category-tabs.slim .category-tab span {
+  font-size: 14px;
 }
 
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 14px;
+  gap: 26px;
+}
+
+.product-grid.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.home-sections {
+  display: grid;
+  gap: 64px;
+}
+
+.content-section {
+  display: grid;
+  gap: 6px;
+}
+
+.empty-section {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 180px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  text-align: center;
+}
+
+.empty-section :deep(.el-icon) {
+  color: var(--brand-red);
+  font-size: 32px;
+}
+
+.product-list-layout {
+  display: grid;
+  gap: 32px;
 }
 
 .filter-panel {
   display: grid;
-  gap: 10px;
+  gap: 20px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .search-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 160px minmax(260px, 0.8fr) 160px 130px;
+  gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .price-range {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr);
   gap: 8px;
+  align-items: center;
+}
+
+.price-range span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.price-range :deep(.el-input-number) {
+  width: 100%;
 }
 
 .result-tip {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: 14px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1080px) {
+  .hero-copy h1,
+  .page-hero h1 {
+    font-size: 44px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .feature-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-grid,
+  .product-grid.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .search-toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .home-hero :deep(.el-carousel__container) {
+    height: 260px !important;
+  }
+
+  .hero-slide {
+    height: 260px;
+  }
+
+  .hero-copy {
+    gap: 12px;
+  }
+
+  .hero-copy h1,
+  .page-hero h1 {
+    font-size: 32px;
+  }
+
+  .hero-copy p {
+    display: none;
+  }
+
+  .brand-slogan {
+    font-size: 24px;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .category-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  .product-grid {
+
+  .product-grid,
+  .product-grid.compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .search-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .topic-cover {
+    min-height: 300px;
+  }
+
+  .topic-copy {
+    left: 22px;
+    right: 22px;
+    bottom: 22px;
   }
 }
 
-@media (max-width: 560px) {
-  .product-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

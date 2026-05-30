@@ -18,12 +18,6 @@
   --radius-sm: 6px;
   --radius-pill: 999px;
 
-  --el-font-size-extra-large: 18px;
-  --el-font-size-large: 14px;
-  --el-font-size-medium: 13px;
-  --el-font-size-base: 12px;
-  --el-font-size-small: 11px;
-  --el-font-size-extra-small: 10px;
 }
 
 * {
@@ -35,7 +29,6 @@ body {
   color: var(--text-main);
   background: var(--bg-page);
   font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-  font-size: 13px;
 }
 
 button,
@@ -57,14 +50,14 @@ a {
 
 .container {
   width: 100%;
-  max-width: 1320px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
 }
 
 .page {
   width: 100%;
-  max-width: 1320px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 48px 24px 72px;
 }
@@ -84,7 +77,7 @@ a {
 .page-kicker {
   width: fit-content;
   color: var(--brand-red);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -93,7 +86,7 @@ a {
 .page-hero h1 {
   max-width: 560px;
   margin: 0;
-  font-size: 48px;
+  font-size: 56px;
   font-weight: 900;
   line-height: 1.05;
 }
@@ -102,7 +95,7 @@ a {
   max-width: 520px;
   margin: 0;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.8;
 }
 
@@ -159,7 +152,7 @@ a {
 .section-title {
   margin: 0 0 16px;
   color: var(--text-main);
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.16;
 }
@@ -223,7 +216,7 @@ a {
 .site-header-inner {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: 22px;
   align-items: center;
   min-height: 76px;
 }
@@ -250,7 +243,7 @@ a {
 
 .brand-logo-img {
   display: block;
-  width: 140px;
+  width: 158px;
   height: auto;
   object-fit: contain;
 }
@@ -280,7 +273,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(10px, 1.1vw, 18px);
+  gap: clamp(12px, 1.35vw, 22px);
   min-width: 0;
 }
 
@@ -288,7 +281,7 @@ a {
   position: relative;
   padding: 28px 0 24px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -306,7 +299,7 @@ a {
 
 .site-actions {
   display: grid;
-  grid-template-columns: 180px auto minmax(0, 1fr);
+  grid-template-columns: 190px auto minmax(0, 1fr);
   gap: 10px;
   align-items: center;
 }

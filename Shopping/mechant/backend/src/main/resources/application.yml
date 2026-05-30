@@ -1,0 +1,38 @@
+server:
+  port: 8081
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+    include-stacktrace: on_param
+
+app:
+  upload-dir: ${user.home}/shopping-uploads
+
+spring:
+  mvc:
+    static-path-pattern: /uploads/**
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:Shopping}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  web:
+    resources:
+      static-locations: classpath:/static/,file:${app.upload-dir}/
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+ai:
+  openai:
+    base-url: ${AI_BASE_URL:https://open.bigmodel.cn}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:glm-4.5-flash}

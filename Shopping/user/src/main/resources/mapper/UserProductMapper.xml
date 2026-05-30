@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.mapper.UserProductMapper">
+    <!--suppress SqlNoDataSourceInspection, SqlDialectInspection -->
+
+    <sql id="ProductFilter">
+        WHERE g.status = 1
+          AND g.audit_status = 1
+          AND g.is_deleted = 0
+        <if test="query.merchantId != null">
+            AND g.merchant_id = #{query.merchantId}
+        </if>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (g.goods_name LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR g.keywords LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <if test="query.categoryIds != null and query.categoryIds.size() > 0">
+            AND g.cate_id IN
+            <foreach collection="query.categoryIds" item="cateId" open="(" separator="," close=")">
+                #{cateId}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="selectEnabledCategories" resultType="org.example.user.vo.CategoryVO">
+        SELECT
+            cate_id AS cateId,
+            parent_cate_id AS parentCateId,
+            cate_name AS cateName,
+            cate_sort AS cateSort
+        FROM tb_category
+        WHERE status = 1
+          AND is_deleted = 0
+        ORDER BY parent_cate_id, cate_sort, cate_id
+    </select>
+
+    <select id="countProducts" resultType="long">
+        SELECT COUNT(*) FROM (
+            SELECT g.goods_id
+            FROM tb_goods g
+            LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+            <include refid="ProductFilter"/>
+            GROUP BY g.goods_id
+            <if test="query.minPrice != null or query.maxPrice != null">
+                HAVING 1 = 1
+                <if test="query.minPrice != null">
+                    AND MIN(s.price) <![CDATA[ >= ]]> #{query.minPrice}
+                </if>
+                <if test="query.maxPrice != null">
+                    AND MIN(s.price) <![CDATA[ <= ]]> #{query.maxPrice}
+                </if>
+            </if>
+            <if test="query.minPrice == null and query.maxPrice == null">
+                HAVING COUNT(s.sku_id) > 0
+            </if>
+            <if test="query.minPrice != null or query.maxPrice != null">
+                AND COUNT(s.sku_id) > 0
+            </if>
+        ) tmp
+    </select>
+
+    <select id="selectProducts" resultType="org.example.user.vo.ProductListItemVO">
+        SELECT
+            g.goods_id AS goodsId,
+            g.cate_id AS categoryId,
+            c.cate_name AS categoryName,
+            g.merchant_id AS merchantId,
+            m.merchant_name AS merchantName,
+            g.goods_name AS goodsName,
+            g.goods_intro AS goodsIntro,
+            g.goods_pic AS goodsPic,
+            MIN(s.sku_id) AS defaultSkuId,
+            MIN(s.price) AS displayPrice,
+            COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS totalStock,
+            g.sell_count AS sellCount,
+            g.comment_count AS commentCount,
+            g.goods_score AS goodsScore
+        FROM tb_goods g
+        LEFT JOIN tb_category c ON c.cate_id = g.cate_id
+        LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
+        LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+        <include refid="ProductFilter"/>
+        GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
+                 g.goods_name, g.goods_intro, g.goods_pic, g.sell_count, g.comment_count, g.goods_score
+        <if test="query.minPrice != null or query.maxPrice != null">
+            HAVING 1 = 1
+            <if test="query.minPrice != null">
+                AND MIN(s.price) <![CDATA[ >= ]]> #{query.minPrice}
+            </if>
+            <if test="query.maxPrice != null">
+                AND MIN(s.price) <![CDATA[ <= ]]> #{query.maxPrice}
+            </if>
+            AND COUNT(s.sku_id) > 0
+        </if>
+        <if test="query.minPrice == null and query.maxPrice == null">
+            HAVING COUNT(s.sku_id) > 0
+        </if>
+        ORDER BY ${orderBy}
+        LIMIT #{offset}, #{query.pageSize}
+    </select>
+
+    <select id="countMerchantProducts" resultType="long">
+        SELECT COUNT(*) FROM (
+            SELECT g.goods_id
+            FROM tb_goods g
+            LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+            WHERE g.merchant_id = #{merchantId}
+            <if test="keyword != null and keyword != ''">
+              AND (g.goods_name LIKE CONCAT('%', #{keyword}, '%')
+                   OR g.keywords LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+              AND g.status = 1
+              AND g.audit_status = 1
+              AND g.is_deleted = 0
+            GROUP BY g.goods_id
+            HAVING COUNT(s.sku_id) > 0
+        ) tmp
+    </select>
+
+    <select id="selectMerchantProducts" resultType="org.example.user.vo.ProductListItemVO">
+        SELECT
+            g.goods_id AS goodsId,
+            g.cate_id AS categoryId,
+            c.cate_name AS categoryName,
+            g.merchant_id AS merchantId,
+            m.merchant_name AS merchantName,
+            g.goods_name AS goodsName,
+            g.goods_intro AS goodsIntro,
+            g.goods_pic AS goodsPic,
+            MIN(s.sku_id) AS defaultSkuId,
+            MIN(s.price) AS displayPrice,
+            COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS totalStock,
+            g.sell_count AS sellCount,
+            g.comment_count AS commentCount,
+            g.goods_score AS goodsScore
+        FROM tb_goods g
+        LEFT JOIN tb_category c ON c.cate_id = g.cate_id
+        LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
+        LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+        WHERE g.merchant_id = #{merchantId}
+        <if test="keyword != null and keyword != ''">
+          AND (g.goods_name LIKE CONCAT('%', #{keyword}, '%')
+               OR g.keywords LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+          AND g.status = 1
+          AND g.audit_status = 1
+          AND g.is_deleted = 0
+        GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
+                 g.goods_name, g.goods_intro, g.goods_pic, g.sell_count, g.comment_count, g.goods_score
+        HAVING COUNT(s.sku_id) > 0
+        ORDER BY g.sell_count DESC, g.goods_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectProductDetail" resultType="org.example.user.vo.ProductDetailVO">
+        SELECT
+            g.goods_id AS goodsId,
+            g.cate_id AS categoryId,
+            c.cate_name AS categoryName,
+            g.merchant_id AS merchantId,
+            m.merchant_name AS merchantName,
+            m.shop_logo AS merchantLogo,
+            m.shop_intro AS merchantIntro,
+            m.shop_score AS merchantScore,
+            m.shop_score AS merchantServiceScore,
+            m.shop_score AS merchantLogisticsScore,
+            g.goods_name AS goodsName,
+            g.goods_intro AS goodsIntro,
+            g.goods_pic AS goodsPic,
+            g.goods_video AS goodsVideo,
+            g.sell_count AS sellCount,
+            g.comment_count AS commentCount,
+            g.goods_score AS goodsScore,
+            MIN(s.price) AS minPrice,
+            MAX(s.price) AS maxPrice,
+            COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS totalStock
+        FROM tb_goods g
+        LEFT JOIN tb_category c ON c.cate_id = g.cate_id
+        LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
+        LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+        WHERE g.goods_id = #{goodsId}
+          AND g.status = 1
+          AND g.audit_status = 1
+          AND g.is_deleted = 0
+        GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
+                 g.goods_name, g.goods_intro, g.goods_pic, g.goods_video,
+                 m.shop_logo, m.shop_intro, m.shop_score, g.sell_count, g.comment_count, g.goods_score
+        HAVING COUNT(s.sku_id) > 0
+    </select>
+
+    <select id="selectProductSkus" resultType="org.example.user.vo.ProductSkuVO">
+        SELECT
+            sku_id AS skuId,
+            sku_name AS skuName,
+            spec_params AS specParams,
+            price,
+            GREATEST(stock - lock_stock, 0) AS stock
+        FROM tb_goods_sku
+        WHERE goods_id = #{goodsId}
+          AND status = 1
+          AND is_deleted = 0
+        ORDER BY sku_id
+    </select>
+
+    <select id="selectProductImages" resultType="org.example.user.vo.ProductImageVO">
+        SELECT
+            pic_id AS picId,
+            pic_url AS picUrl,
+            pic_sort AS picSort
+        FROM tb_goods_pic
+        WHERE goods_id = #{goodsId}
+        ORDER BY pic_sort, pic_id
+    </select>
+
+    <select id="selectProductComments" resultType="org.example.user.vo.ProductCommentVO">
+        SELECT
+            gc.comment_id AS commentId,
+            gc.user_id AS userId,
+            u.nickname AS nickname,
+            u.avatar AS avatar,
+            gc.goods_score AS goodsScore,
+            gc.service_score AS serviceScore,
+            gc.logistics_score AS logisticsScore,
+            gc.comment_content AS commentContent,
+            gc.comment_pic AS commentPic,
+            gc.comment_time AS commentTime
+        FROM tb_goods_comment gc
+        LEFT JOIN tb_user u ON u.user_id = gc.user_id
+        WHERE gc.goods_id = #{goodsId}
+          AND gc.is_valid = 1
+        ORDER BY gc.is_top DESC, gc.comment_time DESC
+        LIMIT 10
+    </select>
+</mapper>
+
+
+
+
+

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.mapper.UserHomeMapper">
+
+    <select id="selectHomeBanners" resultType="org.example.user.vo.HomeBannerVO">
+        SELECT
+            banner_id AS bannerId,
+            banner_title AS bannerTitle,
+            image_url AS imageUrl,
+            jump_type AS jumpType,
+            jump_value AS jumpValue,
+            display_position AS displayPosition,
+            sort_no AS sortNo
+        FROM tb_banner
+        WHERE status = 1
+          AND is_deleted = 0
+          AND display_position = 1
+          AND NOW() BETWEEN start_time AND end_time
+        ORDER BY sort_no, banner_id
+    </select>
+
+    <select id="selectHomeSections" resultType="org.example.user.vo.HomeSectionVO">
+        SELECT
+            section_id AS sectionId,
+            section_name AS sectionName,
+            section_type AS sectionType,
+            section_sort AS sectionSort
+        FROM tb_home_section
+        WHERE status = 1
+          AND is_deleted = 0
+        ORDER BY section_sort, section_id
+    </select>
+
+    <select id="selectSectionGoods" resultType="org.example.user.vo.ProductListItemVO">
+        SELECT
+            g.goods_id AS goodsId,
+            g.cate_id AS categoryId,
+            c.cate_name AS categoryName,
+            g.merchant_id AS merchantId,
+            g.goods_name AS goodsName,
+            g.goods_intro AS goodsIntro,
+            g.goods_pic AS goodsPic,
+            MIN(s.sku_id) AS defaultSkuId,
+            MIN(s.price) AS displayPrice,
+            COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS totalStock,
+            g.sell_count AS sellCount,
+            g.comment_count AS commentCount,
+            g.goods_score AS goodsScore
+        FROM tb_home_section_goods hsg
+        JOIN tb_goods g ON g.goods_id = hsg.goods_id
+        LEFT JOIN tb_category c ON c.cate_id = g.cate_id
+        LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
+        WHERE hsg.section_id = #{sectionId}
+          AND hsg.status = 1
+          AND g.status = 1
+          AND g.audit_status = 1
+          AND g.is_deleted = 0
+        GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id,
+                 g.goods_name, g.goods_intro, g.goods_pic, g.sell_count, g.comment_count, g.goods_score, hsg.sort_no
+        HAVING COUNT(s.sku_id) > 0
+        ORDER BY hsg.sort_no, g.goods_id DESC
+    </select>
+
+    <select id="selectHotKeywords" resultType="string">
+        SELECT keyword
+        FROM tb_hot_search_keyword
+        WHERE status = 1
+          AND stat_date = (SELECT MAX(stat_date) FROM tb_hot_search_keyword WHERE status = 1)
+        ORDER BY hot_score DESC, search_count DESC, hot_id ASC
+        LIMIT 8
+    </select>
+</mapper>

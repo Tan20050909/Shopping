@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api } from '../api/client'
+import { api, imageOf } from '../api/client'
 import { shopLogo as resolveLogo } from '../utils'
 import { useUserStore } from '../stores/user'
 
@@ -313,8 +313,7 @@ function resolveMedia(src) {
   if (!v0) return ''
   if (v0.startsWith('http://') || v0.startsWith('https://') || v0.startsWith('data:')) return v0
   if (v0.startsWith('/default/') || v0.startsWith('default/')) return ''
-  if (v0.startsWith('/goods/')) return `/uploads${v0}`
-  if (v0.startsWith('goods/')) return `/uploads/${v0}`
+  if (v0.startsWith('/goods/') || v0.startsWith('goods/')) return imageOf({ goodsPic: v0 })
   if (v0.startsWith('/shop/')) return `/uploads${v0}`
   if (v0.startsWith('shop/')) return `/uploads/${v0}`
   if (v0.startsWith('/images/') || v0.startsWith('/videos/')) return `/uploads${v0}`

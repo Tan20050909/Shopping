@@ -278,6 +278,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { categoryApi, goodsApi, goodsCommentApi, goodsSkuApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
+import { resolveProductImage } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -337,13 +338,7 @@ const form = reactive({
 
 const getErrorMessage = (error, fallback) => error?.response?.data?.message || fallback
 
-const resolveImg = (src) => {
-  const v = String(src || '').trim()
-  if (!v) return defaultImage
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('/uploads/')) return v
-  return defaultImage
-}
+const resolveImg = (src) => resolveProductImage(src, defaultImage)
 
 const onImgError = (e) => {
   if (e?.target) e.target.src = defaultImage

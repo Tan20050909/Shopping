@@ -103,6 +103,7 @@ function pictureOf(pic) {
     return imageOf({ ...base, goodsId: pic?.picId || pic?.pic_id })
   }
   if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
+  if (v.startsWith('/goods/') || v.startsWith('goods/')) return imageOf({ ...detail.value, goodsPic: v })
   if (v.startsWith('/')) return v
   if (v.startsWith('uploads/')) return `/${v}`
   return `/${v}`

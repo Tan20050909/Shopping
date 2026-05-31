@@ -262,6 +262,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { afterSaleApi, goodsApi, merchantApi, orderApi } from '@/api'
 import { getMerchantId } from '@/utils/merchant'
+import { resolveProductImage } from '@/utils/image'
 
 const router = useRouter()
 
@@ -426,22 +427,7 @@ const afterSaleGoodsSummary = (a) => {
 
 const defaultImage = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23f3f4f6%22/%3E%3Cpath%20d%3D%22M18%2022h28v20H18z%22%20fill%3D%22%23e5e7eb%22/%3E%3Cpath%20d%3D%22M22%2038l8-8%206%206%208-10%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%223%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3Ccircle%20cx%3D%2226%22%20cy%3D%2228%22%20r%3D%223%22%20fill%3D%22%23cbd5e1%22/%3E%3C/svg%3E'
 
-const resolveImg = (src) => {
-  const raw = String(src || '').trim()
-  if (!raw) return defaultImage
-  const v = raw.replace(/\\/g, '/')
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('/uploads/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
-  if (v.startsWith('/goods/')) return `/uploads${v}`
-  if (v.startsWith('goods/')) return `/uploads/${v}`
-  if (v.startsWith('/images/') || v.startsWith('/videos/')) return `/uploads${v}`
-  if (v.startsWith('images/') || v.startsWith('videos/')) return `/uploads/${v}`
-  const idx = v.indexOf('/uploads/')
-  if (idx > 0) return v.slice(idx)
-  if (v.startsWith('/')) return v
-  return defaultImage
-}
+const resolveImg = (src) => resolveProductImage(src, defaultImage)
 
 const onImgError = (e) => {
   if (e?.target) e.target.src = defaultImage

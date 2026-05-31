@@ -137,6 +137,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { afterSaleApi, orderApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
+import { resolveProductImage } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -159,22 +160,7 @@ const freightVisible = ref(false)
 const freightOrderId = ref(null)
 const freightForm = ref({ freeShipping: true, freight: 0 })
 
-const resolveImg = (src) => {
-  const raw = String(src || '').trim()
-  if (!raw) return defaultImage
-  const v = raw.replace(/\\/g, '/')
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('/uploads/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
-  if (v.startsWith('/goods/')) return `/uploads${v}`
-  if (v.startsWith('goods/')) return `/uploads/${v}`
-  if (v.startsWith('/images/') || v.startsWith('/videos/')) return `/uploads${v}`
-  if (v.startsWith('images/') || v.startsWith('videos/')) return `/uploads/${v}`
-  const idx = v.indexOf('/uploads/')
-  if (idx > 0) return v.slice(idx)
-  if (v.startsWith('/')) return v
-  return defaultImage
-}
+const resolveImg = (src) => resolveProductImage(src, defaultImage)
 
 const onImgError = (e) => {
   if (e?.target) e.target.src = defaultImage

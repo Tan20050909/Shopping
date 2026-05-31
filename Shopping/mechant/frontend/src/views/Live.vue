@@ -143,6 +143,7 @@ import { computed, reactive, ref, onMounted } from 'vue'
 import { goodsApi, goodsSkuApi, liveApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
+import { resolveProductImage } from '@/utils/image'
 
 const list = ref([])
 const goodsList = ref([])
@@ -170,14 +171,7 @@ const goodsForm = reactive({
   sort: 0
 })
 
-const resolveImg = (src) => {
-  const v = String(src || '').trim()
-  if (!v) return defaultImage
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('/uploads/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
-  return defaultImage
-}
+const resolveImg = (src) => resolveProductImage(src, defaultImage)
 
 const originPriceText = computed(() => {
   const skuId = goodsForm.skuId

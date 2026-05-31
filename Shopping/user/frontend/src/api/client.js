@@ -22,59 +22,12 @@ function dbg(hypothesisId, msg, data = {}) {
 }
 // #endregion
 
+import { resolveProductImage } from '../utils/image.js'
+
 export function imageOf(item) {
-  const id = Number(item?.goodsId || item?.goods_id || item?.liveId || item?.live_id || 1)
-  const name = String(item?.goodsName || item?.goods_name || item?.title || '')
-  const rawSrc = item?.goodsPic || item?.goods_pic || item?.liveCover || item?.live_cover
-  const normalized = String(rawSrc || '').trim().replaceAll('\\', '/')
-  const asset = (relativePath) => new URL(`../../public/brand-assets/${relativePath}`, import.meta.url).href
-  const bannerA = asset('digital-banner.png')
-  const bannerB = asset('spring-banner.png')
-  const demoGoodsCovers = {
-    3001: asset('cable.png'),
-    3002: asset('mouse.png'),
-    3003: asset('laptop.png'),
-    3004: asset('dress.png'),
-    3005: asset('canvas-bag.png')
-  }
-  if (normalized && normalized !== '[object Object]') {
-    const looksLikePath = normalized.includes('/') || normalized.includes('.') || normalized.startsWith('uploads/')
-    if (!looksLikePath) {
-      // fall through
-    } else {
-      if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) return normalized
-      if (normalized.startsWith('/uploads/')) return normalized
-      if (normalized.startsWith('uploads/')) return `/${normalized}`
-      if (normalized.startsWith('/goods/')) return `/uploads${normalized}`
-      if (normalized.startsWith('goods/')) return `/uploads/${normalized}`
-      if (normalized.startsWith('/images/') || normalized.startsWith('/videos/')) return `/uploads${normalized}`
-      if (normalized.startsWith('images/') || normalized.startsWith('videos/')) return `/uploads/${normalized}`
-      const idx = normalized.indexOf('/uploads/')
-      if (idx > 0) return normalized.slice(idx)
-      if (normalized.startsWith('/')) return normalized
-      return `/${normalized}`
-    }
-  }
-  const localGoodsImages = {
-    3001: demoGoodsCovers[3001],
-    3002: demoGoodsCovers[3002],
-    3003: demoGoodsCovers[3003],
-    3004: demoGoodsCovers[3004],
-    3005: demoGoodsCovers[3005]
-  }
-  if (localGoodsImages[id]) return localGoodsImages[id]
-  if (name.includes('连衣裙')) return localGoodsImages[3004]
-  if (name.includes('快充线') || name.includes('充电线')) return localGoodsImages[3001]
-  if (name.includes('帆布包')) return localGoodsImages[3005]
-  if (name.includes('鼠标')) return localGoodsImages[3002]
-  if (name.includes('轻薄本') || name.includes('电脑')) return localGoodsImages[3003]
-  const images = [
-    bannerA,
-    bannerB,
-    bannerA,
-    bannerB
-  ]
-  return images[id % images.length]
+  if (!item || typeof item !== 'object') return resolveProductImage(item, '')
+  const rawSrc = item.goodsPic || item.goods_pic || item.liveCover || item.live_cover || ''
+  return resolveProductImage(rawSrc, '')
 }
 
 export function getUserToken() {

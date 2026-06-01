@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -24,28 +25,116 @@ public class UploadController {
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
 
+    // 图片白名单：jpg、jpeg、png、webp、gif
+    private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif"
+    );
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(
+            ".jpg", ".jpeg", ".png", ".webp", ".gif"
+    );
+    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    // 视频白名单：mp4、webm
+    private static final Set<String> VIDEO_CONTENT_TYPES = Set.of(
+            "video/mp4", "video/webm"
+    );
+    private static final Set<String> VIDEO_EXTENSIONS = Set.of(
+            ".mp4", ".webm"
+    );
+    private static final long MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+
+    // 危险类型黑名单
+    private static final Set<String> DANGEROUS_EXTENSIONS = Set.of(
+            ".svg", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx",
+            ".zip", ".rar", ".7z", ".exe", ".sh", ".bat", ".cmd",
+            ".php", ".asp", ".aspx", ".jsp"
+    );
+
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadImage(@RequestParam("file") MultipartFile file, HttpServletRequest request) throws IOException {
+        validateImage(file);
         return saveFile(file, "images", request);
     }
 
     @PostMapping(value = "/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadVideo(@RequestParam("file") MultipartFile file, HttpServletRequest request) throws IOException {
+        validateVideo(file);
         return saveFile(file, "videos", request);
     }
 
     @PostMapping(value = "/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadFile(@RequestParam("file") MultipartFile file, HttpServletRequest request) throws IOException {
+        validateFile(file);
         return saveFile(file, "files", request);
+    }
+
+    private void validateImage(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        if (file.getSize() > MAX_IMAGE_SIZE) {
+            throw new IllegalArgumentException("图片大小不能超过10MB");
+        }
+        String contentType = file.getContentType();
+        String ext = getExtension(file.getOriginalFilename());
+
+        // 检查扩展名是否在危险黑名单中
+        if (DANGEROUS_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("不支持的文件类型：" + ext);
+        }
+
+        // 同时检查 Content-Type 和扩展名
+        if (!IMAGE_CONTENT_TYPES.contains(contentType) || !IMAGE_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("仅支持 jpg/jpeg/png/webp/gif 图片");
+        }
+    }
+
+    private void validateVideo(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        if (file.getSize() > MAX_VIDEO_SIZE) {
+            throw new IllegalArgumentException("视频大小不能超过50MB");
+        }
+        String contentType = file.getContentType();
+        String ext = getExtension(file.getOriginalFilename());
+
+        // 检查扩展名是否在危险黑名单中
+        if (DANGEROUS_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("不支持的文件类型：" + ext);
+        }
+
+        // 同时检查 Content-Type 和扩展名
+        if (!VIDEO_CONTENT_TYPES.contains(contentType) || !VIDEO_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("仅支持 mp4/webm 视频");
+        }
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("文件不能为空");
+        }
+        if (file.getSize() > MAX_IMAGE_SIZE) {
+            throw new IllegalArgumentException("文件大小不能超过10MB");
+        }
+        String ext = getExtension(file.getOriginalFilename());
+
+        // 检查扩展名是否在危险黑名单中
+        if (DANGEROUS_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("不支持的文件类型：" + ext);
+        }
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf(".")).toLowerCase();
     }
 
     private Map<String, Object> saveFile(MultipartFile file, String folder, HttpServletRequest request) throws IOException {
         String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-        String ext = "";
-        int dot = originalName.lastIndexOf('.');
-        if (dot >= 0 && dot < originalName.length() - 1) {
-            ext = originalName.substring(dot);
-        }
+        String ext = getExtension(originalName);
 
         String filename = UUID.randomUUID().toString().replace("-", "") + ext;
         Path dir = Paths.get(uploadDir, folder);

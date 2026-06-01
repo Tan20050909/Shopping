@@ -1,20 +1,19 @@
 <template>
   <div class="banner-page">
     <h2>轮播图管理</h2>
-    
+
     <el-button type="primary" @click="showAddDialog">添加轮播图</el-button>
-    
+
     <el-table :data="banners" style="margin-top: 20px">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="title" label="标题" />
-      <el-table-column prop="description" label="简介" />
+      <el-table-column prop="bannerId" label="ID" width="80" />
+      <el-table-column prop="bannerTitle" label="标题" />
       <el-table-column label="图片" width="120">
         <template #default="{ row }">
-          <img :src="row.image" style="width: 80px; height: 60px; object-fit: cover" />
+          <img :src="row.imageUrl" style="width: 80px; height: 60px; object-fit: cover" />
         </template>
       </el-table-column>
-      <el-table-column prop="bgColor" label="背景色" width="100" />
-      <el-table-column prop="sort" label="排序" width="80" />
+      <el-table-column prop="displayPosition" label="展示位置" width="100" />
+      <el-table-column prop="sortNo" label="排序" width="80" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'danger'">
@@ -25,30 +24,41 @@
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button size="small" @click="editBanner(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteBanner(row.id)">删除</el-button>
+          <el-button size="small" type="danger" @click="deleteBanner(row.bannerId)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑轮播图' : '添加轮播图'" width="600px">
       <el-form :model="form" label-width="100px">
         <el-form-item label="标题">
-          <el-input v-model="form.title" placeholder="请输入标题" />
-        </el-form-item>
-        <el-form-item label="简介">
-          <el-input v-model="form.description" placeholder="请输入简介" type="textarea" />
+          <el-input v-model="form.bannerTitle" placeholder="请输入标题" />
         </el-form-item>
         <el-form-item label="图片URL">
-          <el-input v-model="form.image" placeholder="请输入图片URL" />
+          <el-input v-model="form.imageUrl" placeholder="请输入图片URL" />
         </el-form-item>
-        <el-form-item label="链接">
-          <el-input v-model="form.link" placeholder="请输入跳转链接" />
+        <el-form-item label="跳转类型">
+          <el-select v-model="form.jumpType" placeholder="请选择跳转类型">
+            <el-option :value="0" label="不跳转" />
+            <el-option :value="1" label="商品" />
+            <el-option :value="2" label="分类" />
+            <el-option :value="3" label="活动" />
+            <el-option :value="4" label="直播" />
+            <el-option :value="5" label="外链" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="背景色">
-          <el-input v-model="form.bgColor" placeholder="例如: linear-gradient(135deg, #ff9a3c 0%, #ff6b35 100%)" />
+        <el-form-item label="跳转值">
+          <el-input v-model="form.jumpValue" placeholder="请输入跳转链接或ID" />
+        </el-form-item>
+        <el-form-item label="展示位置">
+          <el-select v-model="form.displayPosition" placeholder="请选择展示位置">
+            <el-option :value="1" label="首页" />
+            <el-option :value="2" label="分类页" />
+            <el-option :value="3" label="直播页" />
+          </el-select>
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="form.sort" :min="0" />
+          <el-input-number v-model="form.sortNo" :min="0" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="form.status">
@@ -74,12 +84,12 @@ const banners = ref([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const form = ref({
-  title: '',
-  description: '',
-  image: '',
-  link: '',
-  bgColor: '',
-  sort: 0,
+  bannerTitle: '',
+  imageUrl: '',
+  jumpType: 0,
+  jumpValue: '',
+  displayPosition: 1,
+  sortNo: 0,
   status: 1
 })
 
@@ -91,12 +101,12 @@ const loadBanners = async () => {
 const showAddDialog = () => {
   isEdit.value = false
   form.value = {
-    title: '',
-    description: '',
-    image: '',
-    link: '',
-    bgColor: '',
-    sort: 0,
+    bannerTitle: '',
+    imageUrl: '',
+    jumpType: 0,
+    jumpValue: '',
+    displayPosition: 1,
+    sortNo: 0,
     status: 1
   }
   dialogVisible.value = true

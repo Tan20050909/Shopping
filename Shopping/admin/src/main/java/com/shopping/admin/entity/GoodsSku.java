@@ -1,9 +1,6 @@
-package com.shopping.entity;
+package com.shopping.admin.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,13 +9,13 @@ import java.time.LocalDateTime;
 @TableName("tb_goods_sku")
 public class GoodsSku {
     @TableId(value = "sku_id", type = IdType.AUTO)
-    private Long id;
+    private Long skuId;
 
     @TableField("goods_id")
     private Long goodsId;
 
     @TableField("sku_name")
-    private String spec;
+    private String skuName;
 
     @TableField("spec_params")
     private String specParams;
@@ -30,15 +27,23 @@ public class GoodsSku {
     @TableField("lock_stock")
     private Integer lockStock;
 
+    @TableField("stock_warn")
+    private Integer stockWarn;
+
     @TableField("sku_code")
     private String skuCode;
 
     private Integer status;
 
-    @TableField("stock_warn")
-    private Integer warningStock;
+    private Integer version;
 
+    @TableLogic
+    @TableField("is_deleted")
+    private Integer isDeleted;
+
+    @TableField("create_time")
     private LocalDateTime createTime;
 
+    @TableField("update_time")
     private LocalDateTime updateTime;
 }

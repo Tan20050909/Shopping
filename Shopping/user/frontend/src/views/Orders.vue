@@ -14,9 +14,12 @@ const loading = ref(false)
 const fallbackOrderCover = new URL('../public/brand-assets/digital-banner.png', import.meta.url).href
 
 // #region debug-point A:report
+// 调试上报默认禁用，需要显式配置 VITE_DEBUG_REPORT_ENABLED=true 才会启用
+const DEBUG_REPORT_ENABLED = import.meta.env.VITE_DEBUG_REPORT_ENABLED === 'true'
 const DEBUG_SERVER_URL = 'http://127.0.0.1:7777/event'
 const DEBUG_SESSION_ID = 'order-items-missing'
 function dbg(hypothesisId, msg, data = {}) {
+  if (!DEBUG_REPORT_ENABLED) return
   fetch(DEBUG_SERVER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

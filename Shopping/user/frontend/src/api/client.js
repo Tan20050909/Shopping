@@ -3,9 +3,12 @@ const USER_TOKEN_KEY = 'shopping_user_token'
 const LOCAL_API_FALLBACK = 'http://localhost:8082'
 
 // #region debug-point A:report
+// 调试上报默认禁用，需要显式配置 VITE_DEBUG_REPORT_ENABLED=true 才会启用
+const DEBUG_REPORT_ENABLED = import.meta.env.VITE_DEBUG_REPORT_ENABLED === 'true'
 const DEBUG_SERVER_URL = 'http://127.0.0.1:7777/event'
 const DEBUG_SESSION_ID = 'order-items-missing'
 function dbg(hypothesisId, msg, data = {}) {
+  if (!DEBUG_REPORT_ENABLED) return
   fetch(DEBUG_SERVER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,7 +28,7 @@ function dbg(hypothesisId, msg, data = {}) {
 export function imageOf(item) {
   const id = Number(item?.goodsId || item?.goods_id || item?.liveId || item?.live_id || 1)
   const name = String(item?.goodsName || item?.goods_name || item?.title || '')
-  const rawSrc = item?.goodsPic || item?.goods_pic || item?.liveCover || item?.live_cover
+  const rawSrc = item?.goodsPic || item?.goods_pic || item?.mainImage || item?.image || item?.liveCover || item?.live_cover
   const normalized = String(rawSrc || '').trim().replaceAll('\\', '/')
   const asset = (relativePath) => new URL(`../../public/brand-assets/${relativePath}`, import.meta.url).href
   const bannerA = asset('digital-banner.png')
@@ -42,17 +45,23 @@ export function imageOf(item) {
     if (!looksLikePath) {
       // fall through
     } else {
+      // http(s) 开头：原样使用
       if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) return normalized
-      if (normalized.startsWith('/uploads/')) return normalized
-      if (normalized.startsWith('uploads/')) return `/${normalized}`
-      if (normalized.startsWith('/goods/')) return `/uploads${normalized}`
-      if (normalized.startsWith('goods/')) return `/uploads/${normalized}`
-      if (normalized.startsWith('/images/') || normalized.startsWith('/videos/')) return `/uploads${normalized}`
-      if (normalized.startsWith('images/') || normalized.startsWith('videos/')) return `/uploads/${normalized}`
+      // 商品图片按商家端静态资源地址解析（默认 http://localhost:8081）
+      const merchantBase = 'http://localhost:8081'
+      // /uploads/...：拼到商家端
+      if (normalized.startsWith('/uploads/')) return `${merchantBase}${normalized}`
+      if (normalized.startsWith('uploads/')) return `${merchantBase}/${normalized}`
+      // /goods/...：历史商品图路径，拼到商家端
+      if (normalized.startsWith('/goods/')) return `${merchantBase}${normalized}`
+      if (normalized.startsWith('goods/')) return `${merchantBase}/${normalized}`
+      // 其他相对路径
+      if (normalized.startsWith('/images/') || normalized.startsWith('/videos/')) return `${merchantBase}/uploads${normalized}`
+      if (normalized.startsWith('images/') || normalized.startsWith('videos/')) return `${merchantBase}/uploads/${normalized}`
       const idx = normalized.indexOf('/uploads/')
-      if (idx > 0) return normalized.slice(idx)
-      if (normalized.startsWith('/')) return normalized
-      return `/${normalized}`
+      if (idx > 0) return `${merchantBase}${normalized.slice(idx)}`
+      if (normalized.startsWith('/')) return `${merchantBase}${normalized}`
+      return `${merchantBase}/${normalized}`
     }
   }
   const localGoodsImages = {

@@ -14,6 +14,6 @@ public class BannerService extends ServiceImpl<BannerMapper, Banner> {
     public List<Banner> getActiveBanners() {
         return list(new LambdaQueryWrapper<Banner>()
                 .eq(Banner::getStatus, 1)
-                .orderByAsc(Banner::getSort));
+                .orderByAsc(Banner::getSortNo));
     }
 }

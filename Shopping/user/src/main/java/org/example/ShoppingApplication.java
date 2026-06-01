@@ -4,6 +4,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,6 +17,7 @@ public class ShoppingApplication {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "demo.password-reset.enabled", havingValue = "true")
     ApplicationRunner demoPasswordFixer(JdbcTemplate jdbc) {
         return args -> {
             String oldHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi6WxPvq6WqZQ3Jk8hH2I1QWvVV7Y8K";

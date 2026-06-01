@@ -202,13 +202,9 @@ public class UserAssetController {
         if (hasColumn("tb_coupon", "grant_type")) {
             return;
         }
-        try {
-            jdbc.execute("""
-                    ALTER TABLE tb_coupon
-                    ADD COLUMN grant_type tinyint NOT NULL DEFAULT 1 COMMENT '发放方式：1-用户自领 2-自动弹窗 3-仅商家发放'
-                    """);
-        } catch (Exception ignored) {
-        }
+        // 字段不存在，禁止运行期自动 DDL
+        // 请使用基准 SQL 初始化数据库，确保 tb_coupon 表包含 grant_type 字段
+        // 依赖 grant_type 的功能将按现有逻辑明确失败
     }
 
     private boolean hasColumn(String tableName, String columnName) {

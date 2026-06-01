@@ -236,18 +236,18 @@ const defaultProductImage = 'https://via.placeholder.com/320x320?text=Goods'
 const resolveProductImage = (src) => {
   const v = String(src || '').trim()
   if (!v) return defaultProductImage
-  if (v.startsWith('/uploads/')) return `http://localhost:8080${v}`
-  if (v.startsWith('http://')) return v.replace('http://', 'https://')
-  if (v.startsWith('https://')) return v
+  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  // 商品图拼到商家端 8081
+  if (v.startsWith('/')) return `http://localhost:8081${v}`
   return v
 }
 
 const resolveMediaUrl = (src) => {
   const v = String(src || '').trim()
   if (!v) return ''
-  if (v.startsWith('/uploads/')) return `http://localhost:8080${v}`
-  if (v.startsWith('http://')) return v.replace('http://', 'https://')
-  if (v.startsWith('https://')) return v
+  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  // Banner 图拼到平台端 8080
+  if (v.startsWith('/')) return `http://localhost:8080${v}`
   return v
 }
 
@@ -274,10 +274,13 @@ const platformStats = computed(() => {
 const heroBanners = computed(() => {
   if (Array.isArray(banners.value) && banners.value.length) {
     return banners.value.map((b, idx) => ({
-      id: b.id ?? idx,
-      title: b.title || '品牌主视觉',
+      // 兼容 bannerId/id
+      id: b.bannerId ?? b.id ?? idx,
+      // 兼容 bannerTitle/title
+      title: b.bannerTitle || b.title || '品牌主视觉',
       description: b.description || '全新系列灵感上新',
-      image: b.image || ''
+      // 兼容 imageUrl/image，使用 resolveMediaUrl 解析
+      image: resolveMediaUrl(b.imageUrl || b.image || '')
     }))
   }
   const fallback = goods.value.slice(0, 3).map((g, idx) => ({
@@ -326,9 +329,18 @@ const loadGoods = async () => {
     if (res.data && res.data.length > 0) {
       goods.value = res.data.map(g => ({
         ...g,
-        image: resolveProductImage(g.goodsPic),
-        price: '99.00',
-        buyCount: Number(g.buyCount ?? 0) || 0,
+        // 兼容 goodsId/id
+        id: g.goodsId ?? g.id,
+        // 兼容 goodsName/name
+        name: g.goodsName || g.name || '',
+        // 兼容 goodsIntro/description
+        description: g.goodsIntro || g.description || '',
+        // 兼容 goodsPic，使用 resolveProductImage 解析
+        image: resolveProductImage(g.goodsPic || g.image || ''),
+        merchantId: g.merchantId,
+        merchantName: g.merchantName || '',
+        price: g.price || '99.00',
+        buyCount: Number(g.sellCount ?? g.buyCount ?? 0) || 0,
         followerCount: Number(g.followerCount ?? 0) || 0,
         favoriteCount: Number(g.favoriteCount ?? 0) || 0,
         followed: Boolean(g.followed),

@@ -16,54 +16,54 @@ public class SchemaInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        initOperationLogTable();
-        initSystemConfigTable();
-        alterCouponTable();
-        alterAbnormalOrderTable();
-        alterAfterSaleTable();
-        initNotificationTable();
+        log.info("========================================");
+        log.info("数据库结构管理策略：禁止运行期自动 DDL");
+        log.info("请使用基准 SQL 文件初始化数据库结构");
+        log.info("========================================");
+
+        // 只做表存在性检查，不做任何 DDL
+        checkTableExists("tb_operation_log", "操作日志表");
+        checkTableExists("tb_system_config", "系统配置表");
+        checkTableExists("tb_coupon", "优惠券表");
+        checkTableExists("tb_abnormal_order", "异常订单表");
+        checkTableExists("tb_after_sale", "售后表");
+        checkTableExists("tb_notification", "通知表");
+        checkTableExists("tb_permission", "权限表");
+        checkTableExists("tb_role_permission", "角色权限表");
+        checkTableExists("tb_chat_bot_log", "AI助手日志表");
+        checkTableExists("tb_banner", "轮播图表");
+
+        // 初始化种子数据（表存在时）
+        initSystemConfigData();
         initRolePermissionData();
-        initChatBotLogTable();
         initBannerData();
     }
 
-    private void initOperationLogTable() {
+    private void checkTableExists(String tableName, String tableDesc) {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_operation_log` (" +
-                    "`log_id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`operator_type` tinyint DEFAULT '1' COMMENT '操作人类型：1-平台管理员 2-商家 3-用户'," +
-                    "`operator_id` bigint DEFAULT NULL COMMENT '操作人ID'," +
-                    "`operation_module` varchar(50) DEFAULT NULL COMMENT '操作模块'," +
-                    "`operation_content` varchar(1000) DEFAULT NULL COMMENT '操作内容'," +
-                    "`operation_ip` varchar(50) DEFAULT NULL COMMENT '操作IP'," +
-                    "`operation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间'," +
-                    "`operation_result` tinyint DEFAULT '1' COMMENT '操作结果：1-成功 0-失败'," +
-                    "PRIMARY KEY (`log_id`)," +
-                    "KEY `idx_operator_id` (`operator_id`)," +
-                    "KEY `idx_operation_module` (`operation_module`)," +
-                    "KEY `idx_operation_time` (`operation_time`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-            log.info("操作日志表初始化完成");
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+                    Integer.class, tableName);
+            if (count != null && count > 0) {
+                log.info("[{}] 表存在", tableName);
+            } else {
+                log.warn("[{}] 表不存在，请使用基准 SQL 初始化数据库", tableName);
+            }
         } catch (Exception e) {
-            log.warn("操作日志表初始化异常: {}", e.getMessage());
+            log.warn("[{}] 表检查异常: {}", tableName, e.getMessage());
         }
     }
 
-    private void initSystemConfigTable() {
+    private void initSystemConfigData() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_system_config` (" +
-                    "`config_id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`config_key` varchar(100) NOT NULL," +
-                    "`config_value` varchar(500) DEFAULT ''," +
-                    "`config_desc` varchar(200) DEFAULT NULL," +
-                    "`config_group` varchar(50) NOT NULL DEFAULT 'basic'," +
-                    "`sort_no` int DEFAULT '0'," +
-                    "`create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "`update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
-                    "PRIMARY KEY (`config_id`)," +
-                    "UNIQUE KEY `uk_config_key` (`config_key`)," +
-                    "KEY `idx_config_group` (`config_group`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
+            // 检查表是否存在
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tb_system_config'",
+                    Integer.class);
+            if (count == null || count == 0) {
+                log.warn("tb_system_config 表不存在，跳过系统配置初始化");
+                return;
+            }
 
             String[][] configs = {
                     {"site_name", "电商管理平台", "站点名称", "basic", "1"},
@@ -85,112 +85,22 @@ public class SchemaInitializer implements ApplicationRunner {
                         "INSERT IGNORE INTO `tb_system_config` (`config_key`, `config_value`, `config_desc`, `config_group`, `sort_no`) VALUES (?,?,?,?,?)",
                         c[0], c[1], c[2], c[3], Integer.parseInt(c[4]));
             }
-            log.info("系统配置表初始化完成");
+            log.info("系统配置种子数据初始化完成");
         } catch (Exception e) {
-            log.warn("系统配置表初始化异常: {}", e.getMessage());
-        }
-    }
-
-    private void alterCouponTable() {
-        try {
-            // 安全添加列（如果不存在）
-            String[][] columns = {
-                    {"scope_type", "tinyint DEFAULT '1' COMMENT '适用范围：1-全场 2-指定分类 3-指定商品'"},
-                    {"scope_ids", "varchar(500) DEFAULT NULL COMMENT '适用范围ID列表'"},
-                    {"per_limit", "int DEFAULT '0' COMMENT '每人限领数量'"},
-                    {"usage_desc", "varchar(500) DEFAULT NULL COMMENT '使用说明'"}
-            };
-            for (String[] col : columns) {
-                try {
-                    jdbcTemplate.execute("ALTER TABLE `tb_coupon` ADD COLUMN `" + col[0] + "` " + col[1]);
-                } catch (Exception ignored) {
-                    // 列已存在则忽略
-                }
-            }
-            log.info("优惠券表字段补全完成");
-        } catch (Exception e) {
-            log.warn("优惠券表字段补全异常: {}", e.getMessage());
-        }
-    }
-
-    private void alterAbnormalOrderTable() {
-        try {
-            try {
-                jdbcTemplate.execute("ALTER TABLE `tb_abnormal_order` ADD COLUMN `handle_remark` varchar(500) DEFAULT NULL COMMENT '处理备注'");
-            } catch (Exception ignored) {}
-            log.info("异常订单表字段补全完成");
-        } catch (Exception e) {
-            log.warn("异常订单表字段补全异常: {}", e.getMessage());
-        }
-    }
-
-    private void alterAfterSaleTable() {
-        try {
-            try {
-                jdbcTemplate.execute("ALTER TABLE `tb_after_sale` ADD COLUMN `handle_admin_id` bigint DEFAULT NULL COMMENT '处理管理员ID'");
-            } catch (Exception ignored) {}
-            log.info("售后表字段补全完成");
-        } catch (Exception e) {
-            log.warn("售后表字段补全异常: {}", e.getMessage());
-        }
-    }
-
-    private void initNotificationTable() {
-        try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_notification` (" +
-                    "`notification_id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`admin_id` bigint DEFAULT NULL COMMENT '管理员ID，null表示全体'," +
-                    "`title` varchar(200) NOT NULL COMMENT '标题'," +
-                    "`content` varchar(1000) DEFAULT NULL COMMENT '内容'," +
-                    "`type` tinyint NOT NULL DEFAULT '1' COMMENT '1-系统通知 2-待办提醒 3-审核通知 4-预警通知 5-订单'," +
-                    "`related_id` bigint DEFAULT NULL COMMENT '关联业务ID'," +
-                    "`related_type` varchar(50) DEFAULT NULL COMMENT '关联业务类型'," +
-                    "`is_read` tinyint NOT NULL DEFAULT '0' COMMENT '0-未读 1-已读'," +
-                    "`create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "PRIMARY KEY (`notification_id`)," +
-                    "KEY `idx_admin_id` (`admin_id`)," +
-                    "KEY `idx_is_read` (`is_read`)," +
-                    "KEY `idx_create_time` (`create_time`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-            try { jdbcTemplate.execute("ALTER TABLE `tb_notification` ADD COLUMN `related_id` bigint DEFAULT NULL COMMENT '关联业务ID'"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("ALTER TABLE `tb_notification` ADD COLUMN `related_type` varchar(50) DEFAULT NULL COMMENT '关联业务类型'"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("UPDATE `tb_notification` SET `related_id` = `biz_id` WHERE `related_id` IS NULL AND `biz_id` IS NOT NULL"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("UPDATE `tb_notification` SET `related_type` = `biz_type` WHERE `related_type` IS NULL AND `biz_type` IS NOT NULL"); } catch (Exception ignored) {}
-            log.info("通知表初始化完成");
-
-        } catch (Exception e) {
-            log.warn("通知表初始化异常: {}", e.getMessage());
+            log.warn("系统配置种子数据初始化异常: {}", e.getMessage());
         }
     }
 
     private void initRolePermissionData() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_permission` (" +
-                    "`permission_id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`permission_name` varchar(50) NOT NULL," +
-                    "`permission_code` varchar(64) NOT NULL," +
-                    "`module` varchar(32) NOT NULL," +
-                    "`permission_type` tinyint NOT NULL," +
-                    "`parent_id` bigint DEFAULT '0'," +
-                    "`sort_no` int DEFAULT '0'," +
-                    "`status` tinyint NOT NULL DEFAULT '1'," +
-                    "`create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "`update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
-                    "`is_deleted` tinyint NOT NULL DEFAULT '0'," +
-                    "PRIMARY KEY (`permission_id`)," +
-                    "UNIQUE KEY `uk_permission_code` (`permission_code`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_role_permission` (" +
-                    "`id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`role_id` bigint NOT NULL," +
-                    "`permission_id` bigint NOT NULL," +
-                    "`create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "PRIMARY KEY (`id`)," +
-                    "KEY `idx_role_id` (`role_id`)," +
-                    "KEY `idx_permission_id` (`permission_id`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-            try { jdbcTemplate.execute("ALTER TABLE `tb_role` ADD COLUMN `data_scope` tinyint DEFAULT 1 COMMENT '数据范围：1-全部 2-本部门 3-本人'"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("ALTER TABLE `tb_role` ADD COLUMN `role_type` tinyint DEFAULT 0 COMMENT '角色类型：0-自定义 1-系统内置'"); } catch (Exception ignored) {}
+            // 检查表是否存在
+            Integer permCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tb_permission'",
+                    Integer.class);
+            if (permCount == null || permCount == 0) {
+                log.warn("tb_permission 表不存在，跳过角色权限初始化");
+                return;
+            }
 
             Object[][] permissions = {
                     {1, "系统配置", "SYSTEM_CONFIG", "SYSTEM", 1, 0, 1}, {2, "角色管理", "SYSTEM_ROLE", "SYSTEM", 1, 0, 2}, {3, "员工管理", "ADMIN_MGMT", "SYSTEM", 1, 0, 3}, {4, "操作日志", "LOG_VIEW", "SYSTEM", 1, 0, 4},
@@ -230,9 +140,9 @@ public class SchemaInitializer implements ApplicationRunner {
             seedRolePermissions(5, "USER_MGMT", "USER_VIEW", "USER_RISK", "MERCHANT_MGMT", "MERCHANT_VIEW", "MERCHANT_FREEZE", "MERCHANT_CREDIT", "GOODS_MGMT", "GOODS_VIEW", "GOODS_RISK", "ORDER_MGMT", "ORDER_VIEW", "ORDER_ABNORMAL", "DISPUTE_MGMT", "DISPUTE_HANDLE", "AFTER_SALE_MGMT", "DASHBOARD_VIEW");
             seedRolePermissions(6, "ORDER_MGMT", "ORDER_VIEW", "ORDER_REFUND", "AFTER_SALE_MGMT", "AFTER_SALE_HANDLE", "FINANCE_MGMT", "FINANCE_VIEW", "FINANCE_RECONCILE", "DATA_MGMT", "DATA_VIEW", "REPORT_VIEW", "DASHBOARD_VIEW");
             seedRolePermissions(7, "GOODS_MGMT", "GOODS_VIEW", "GOODS_AUDIT", "MERCHANT_MGMT", "MERCHANT_VIEW", "CONTENT_MGMT", "CONTENT_BANNER", "REVIEW_MGMT", "DASHBOARD_VIEW");
-            log.info("角色权限基础数据初始化完成");
+            log.info("角色权限种子数据初始化完成");
         } catch (Exception e) {
-            log.warn("角色权限基础数据初始化异常: {}", e.getMessage());
+            log.warn("角色权限种子数据初始化异常: {}", e.getMessage());
         }
     }
 
@@ -244,37 +154,20 @@ public class SchemaInitializer implements ApplicationRunner {
         }
     }
 
-    private void initChatBotLogTable() {
-
-        try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `tb_chat_bot_log` (" +
-                    "`log_id` bigint NOT NULL AUTO_INCREMENT," +
-                    "`admin_id` bigint DEFAULT NULL COMMENT '管理员ID'," +
-                    "`question` varchar(1000) NOT NULL COMMENT '问题'," +
-                    "`answer` text NOT NULL COMMENT '回答'," +
-                    "`category` varchar(50) DEFAULT NULL COMMENT '分类'," +
-                    "`helpful` tinyint DEFAULT NULL COMMENT '是否有帮助 1-是 0-否'," +
-                    "`create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "PRIMARY KEY (`log_id`)," +
-                    "KEY `idx_admin_id` (`admin_id`)," +
-                    "KEY `idx_create_time` (`create_time`)" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-            log.info("AI助手日志表初始化完成");
-        } catch (Exception e) {
-            log.warn("AI助手日志表初始化异常: {}", e.getMessage());
-        }
-    }
-
     private void initBannerData() {
         try {
-            // 确保表结构完整，补全新增字段
-            try { jdbcTemplate.execute("ALTER TABLE `tb_banner` MODIFY COLUMN `display_position` tinyint NOT NULL DEFAULT '1' COMMENT '展示位置：1-首页顶部 2-首页中部 3-活动页 4-分类页'"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("ALTER TABLE `tb_banner` MODIFY COLUMN `jump_type` tinyint DEFAULT NULL COMMENT '跳转类型：1-商品详情 2-分类页面 3-外部链接 4-活动页面 5-无跳转'"); } catch (Exception ignored) {}
-            try { jdbcTemplate.execute("ALTER TABLE `tb_banner` MODIFY COLUMN `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：0-禁用 1-启用 2-待上架'"); } catch (Exception ignored) {}
+            // 检查表是否存在
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tb_banner'",
+                    Integer.class);
+            if (count == null || count == 0) {
+                log.warn("tb_banner 表不存在，跳过轮播图初始化");
+                return;
+            }
 
             // 检查是否已有种子数据
-            Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM `tb_banner`", Integer.class);
-            if (count != null && count > 0) {
+            Integer dataCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM `tb_banner`", Integer.class);
+            if (dataCount != null && dataCount > 0) {
                 log.info("轮播图数据已存在，跳过种子数据初始化");
                 return;
             }

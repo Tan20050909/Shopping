@@ -19,7 +19,7 @@ public class BannerController {
     @GetMapping("/list")
     public List<Banner> list() {
         return bannerService.list(new LambdaQueryWrapper<Banner>()
-                .orderByAsc(Banner::getSort));
+                .orderByAsc(Banner::getSortNo));
     }
     
     @GetMapping("/active")

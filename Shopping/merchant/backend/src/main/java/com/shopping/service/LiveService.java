@@ -69,9 +69,10 @@ public class LiveService extends ServiceImpl<LiveMapper, Live> {
                     "live_url"
             );
             if (count != null && count > 0) return;
-            jdbcTemplate.execute("ALTER TABLE tb_live ADD COLUMN live_url varchar(255) NULL COMMENT '真实直播链接'");
         } catch (Exception ignored) {
         }
+        // 字段不存在，禁止运行期自动 DDL
+        // 请使用基准 SQL 初始化数据库，确保 tb_live 表包含 live_url 字段
     }
 
     public List<Live> listByMerchantId(Long merchantId) {

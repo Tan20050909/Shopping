@@ -70,6 +70,9 @@ public class ShoppingService {
    private static final String DBG_URL = "http://127.0.0.1:7777/event";
    private static final String DBG_SESSION = "order-items-missing";
 
+   @org.springframework.beans.factory.annotation.Value("${debug.report.enabled:false}")
+   private boolean debugReportEnabled;
+
    public ShoppingService(JdbcTemplate jdbc, TokenService tokenService) {
       this.jdbc = jdbc;
       this.tokenService = tokenService;
@@ -3858,16 +3861,15 @@ public class ShoppingService {
 
    private void ensureReviewAnonymousColumn() {
       if (!this.hasReviewAnonymousColumn()) {
-         this.jdbc.execute("ALTER TABLE tb_goods_comment\nADD COLUMN is_anonymous tinyint NOT NULL DEFAULT 0 COMMENT '是否匿名：0-否 1-是'\n");
+         // 字段不存在，跳过匿名评论功能（禁止运行期自动 DDL）
+         // 请使用基准 SQL 初始化数据库，确保 tb_goods_comment 表包含 is_anonymous 字段
       }
    }
 
    private void ensureLiveUrlColumn() {
       if (!this.hasColumn("tb_live", "live_url")) {
-         try {
-            this.jdbc.execute("ALTER TABLE tb_live\nADD COLUMN live_url varchar(255) NULL COMMENT '真实直播链接'\n");
-         } catch (Exception var2) {
-         }
+         // 字段不存在，跳过直播链接功能（禁止运行期自动 DDL）
+         // 请使用基准 SQL 初始化数据库，确保 tb_live 表包含 live_url 字段
       }
    }
 
@@ -3883,17 +3885,13 @@ public class ShoppingService {
 
    private void ensureUserProfileColumns() {
       if (!this.hasColumn("tb_user", "gender")) {
-         try {
-            this.jdbc.execute("ALTER TABLE tb_user\nADD COLUMN gender tinyint NOT NULL DEFAULT 0 COMMENT '性别：0-未知 1-男 2-女'\n");
-         } catch (Exception var3) {
-         }
+         // 字段不存在，跳过性别功能（禁止运行期自动 DDL）
+         // 请使用基准 SQL 初始化数据库，确保 tb_user 表包含 gender 字段
       }
 
       if (!this.hasColumn("tb_user", "birthday")) {
-         try {
-            this.jdbc.execute("ALTER TABLE tb_user\nADD COLUMN birthday date NULL COMMENT '生日'\n");
-         } catch (Exception var2) {
-         }
+         // 字段不存在，跳过生日功能（禁止运行期自动 DDL）
+         // 请使用基准 SQL 初始化数据库，确保 tb_user 表包含 birthday 字段
       }
    }
 
@@ -4218,6 +4216,10 @@ public class ShoppingService {
    }
 
    private void dbg(String hypothesisId, String location, String msg, Map<String, Object> data) {
+      // 调试上报默认禁用，需要显式配置 debug.report.enabled=true 才会启用
+      if (!debugReportEnabled) {
+         return;
+      }
       try {
          String payload = this.toJson(
             Map.of(

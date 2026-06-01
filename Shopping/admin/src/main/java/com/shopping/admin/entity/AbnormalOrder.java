@@ -14,6 +14,7 @@ public class AbnormalOrder {
     private String abnormalDesc;
     private Integer handleStatus;
     private Long handleAdminId;
+    @TableField(exist = false)
     private String handleRemark;
     private LocalDateTime createTime;
     private LocalDateTime handleTime;

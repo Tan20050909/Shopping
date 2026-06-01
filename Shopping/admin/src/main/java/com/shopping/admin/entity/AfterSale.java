@@ -23,6 +23,7 @@ public class AfterSale {
     private Integer handleStatus;
     private String merchantRemark;
     private String platformRemark;
+    @TableField(exist = false)
     private Long handleAdminId;
     private LocalDateTime handleTime;
     private LocalDateTime applyTime;

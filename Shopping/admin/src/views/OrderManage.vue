@@ -59,9 +59,17 @@
       <div v-if="detail.items && detail.items.length" style="margin-top:16px">
         <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">商品明细</h4>
         <el-table :data="detail.items" size="small" border>
-          <el-table-column prop="goodsName" label="商品" />
+          <el-table-column label="商品图片" width="80">
+            <template #default="{ row }">
+              <el-image v-if="row.goodsPic" :src="row.goodsPic" style="width:50px;height:50px;border-radius:4px;object-fit:cover" fit="cover" :preview-src-list="[row.goodsPic]" />
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="goodsName" label="商品名称" />
+          <el-table-column prop="skuName" label="规格" width="120" />
           <el-table-column prop="price" label="单价" width="100" />
           <el-table-column prop="num" label="数量" width="80" />
+          <el-table-column prop="totalPrice" label="小计" width="100" />
         </el-table>
       </div>
     </el-dialog>

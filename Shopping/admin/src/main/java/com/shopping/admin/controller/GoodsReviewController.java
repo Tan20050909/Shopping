@@ -16,8 +16,14 @@ public class GoodsReviewController {
     public Result<?> list(@RequestParam(defaultValue = "1") long current,
                           @RequestParam(defaultValue = "10") long size,
                           @RequestParam(required = false) Long goodsId,
-                          @RequestParam(required = false) Integer isHidden) {
-        return Result.success(goodsReviewService.listReviews(current, size, goodsId, isHidden));
+                          @RequestParam(required = false) Integer isHidden,
+                          @RequestParam(required = false) String keyword) {
+        return Result.success(goodsReviewService.listReviews(current, size, goodsId, isHidden, keyword));
+    }
+
+    @GetMapping("/{id}")
+    public Result<?> detail(@PathVariable Long id) {
+        return Result.success(goodsReviewService.getById(id));
     }
 
     @PostMapping("/reply")

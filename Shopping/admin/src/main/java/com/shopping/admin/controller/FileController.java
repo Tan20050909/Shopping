@@ -28,10 +28,16 @@ public class FileController {
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp",
             ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-            ".zip", ".rar", ".7z",
             ".mp4", ".mp3", ".wav"
+    );
+
+    // 危险类型黑名单（双重校验）
+    private static final Set<String> DANGEROUS_EXTENSIONS = Set.of(
+            ".svg", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx",
+            ".zip", ".rar", ".7z", ".exe", ".sh", ".bat", ".cmd",
+            ".php", ".asp", ".aspx", ".jsp"
     );
 
     @PostMapping("/upload")
@@ -46,6 +52,12 @@ public class FileController {
         String ext = originalFilename != null && originalFilename.contains(".")
                 ? originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase()
                 : "";
+
+        // 双重校验：检查危险类型黑名单
+        if (DANGEROUS_EXTENSIONS.contains(ext)) {
+            throw new BusinessException(400, "不支持的文件类型：" + ext);
+        }
+
         if (ext.isEmpty() || !ALLOWED_EXTENSIONS.contains(ext)) {
             throw new BusinessException(400, "不支持的文件类型，允许的类型：" + String.join(", ", ALLOWED_EXTENSIONS));
         }
@@ -71,6 +83,12 @@ public class FileController {
                 String ext = originalFilename != null && originalFilename.contains(".")
                         ? originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase()
                         : "";
+
+                // 双重校验：检查危险类型黑名单
+                if (DANGEROUS_EXTENSIONS.contains(ext)) {
+                    throw new BusinessException(400, "不支持的文件类型：" + ext);
+                }
+
                 if (ext.isEmpty() || !ALLOWED_EXTENSIONS.contains(ext)) {
                     throw new BusinessException(400, "不支持的文件类型: " + originalFilename);
                 }

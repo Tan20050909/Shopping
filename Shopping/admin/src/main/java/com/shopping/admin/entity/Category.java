@@ -7,16 +7,24 @@ import java.time.LocalDateTime;
 @Data
 @TableName("tb_category")
 public class Category {
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "cate_id", type = IdType.AUTO)
     private Long categoryId;
-    private String categoryName;
+
+    @TableField("parent_cate_id")
     private Long parentId;
-    private Integer level;
-    private String icon;
+
+    @TableField("cate_name")
+    private String categoryName;
+
+    @TableField("cate_sort")
     private Integer sortNo;
+
     private Integer status;
+
     @TableLogic
     private Integer isDeleted;
+
     private LocalDateTime createTime;
+
     private LocalDateTime updateTime;
 }

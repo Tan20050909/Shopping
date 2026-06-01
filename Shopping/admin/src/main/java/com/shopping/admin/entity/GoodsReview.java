@@ -25,6 +25,12 @@ public class GoodsReview {
     @TableField("goods_score")
     private Integer rating;
 
+    @TableField("service_score")
+    private Integer serviceScore;
+
+    @TableField("logistics_score")
+    private Integer logisticsScore;
+
     @TableField("comment_content")
     private String content;
 

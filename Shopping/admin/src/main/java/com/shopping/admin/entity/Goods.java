@@ -38,6 +38,10 @@ public class Goods {
     @TableField(exist = false)
     private String images;
     @TableField(exist = false)
+    private String categoryName;
+    @TableField(exist = false)
+    private String merchantName;
+    @TableField(exist = false)
     private BigDecimal price;
     @TableField(exist = false)
     private BigDecimal originalPrice;

@@ -24,11 +24,14 @@ public class GoodsReviewService extends ServiceImpl<GoodsReviewMapper, GoodsRevi
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public PageResult<GoodsReview> listReviews(long current, long size, Long goodsId, Integer isHidden) {
+    public PageResult<GoodsReview> listReviews(long current, long size, Long goodsId, Integer isHidden, String keyword) {
         LambdaQueryWrapper<GoodsReview> wrapper = new LambdaQueryWrapper<>();
         if (goodsId != null) wrapper.eq(GoodsReview::getGoodsId, goodsId);
         if (isHidden != null) {
             wrapper.eq(GoodsReview::getIsValid, isHidden == 1 ? 0 : 1);
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.like(GoodsReview::getContent, keyword);
         }
         wrapper.orderByDesc(GoodsReview::getCreateTime);
         Page<GoodsReview> page = page(new Page<>(current, size), wrapper);

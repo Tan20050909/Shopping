@@ -51,12 +51,16 @@
         FROM tb_home_section_goods hsg
         JOIN tb_goods g ON g.goods_id = hsg.goods_id
         LEFT JOIN tb_category c ON c.cate_id = g.cate_id
+        LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
         LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
         WHERE hsg.section_id = #{sectionId}
           AND hsg.status = 1
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
+          AND m.audit_status = 1
+          AND m.status = 1
+          AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id,
                  g.goods_name, g.goods_intro, g.goods_pic, g.sell_count, g.comment_count, g.goods_score, hsg.sort_no
         HAVING COUNT(s.sku_id) > 0

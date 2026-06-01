@@ -42,7 +42,7 @@ function statusText(item) {
   if (handleStatus === 4 || refundStatus === 2) return '退款成功'
   if (handleStatus === 2) return '商家已驳回'
   if (refundStatus === 1) return '退款处理中'
-  if (handleStatus === 3) return '售后处理中'
+  if (handleStatus === 3) return '平台介入中'
   if (handleStatus === 1) return '商家已同意'
   if (handleStatus === 5) return '售后关闭'
   return '待审核'
@@ -62,6 +62,43 @@ const canCancel = computed(() => {
   if (refundStatus === 1 || refundStatus === 2) return false
   return handleStatus === 0 || handleStatus === 3
 })
+
+const dispute = computed(() => detail.value?.dispute || null)
+const disputeStatusMap = { 0: '待平台处理', 1: '举证中', 2: '平台处理中', 3: '已裁决', 4: '已关闭' }
+const judgeResultMap = { 1: '支持用户', 2: '支持商家', 3: '部分支持', 4: '协商关闭' }
+
+const canRaiseDispute = computed(() => {
+  const handleStatus = Number(field(detail.value, 'handleStatus', 'handle_status', -1))
+  // 已有任何纠纷（包括已裁决/已关闭）都不可重复创建
+  if (dispute.value && dispute.value.disputeId) return false
+  return handleStatus === 0 || handleStatus === 1 || handleStatus === 2
+})
+
+const raisingDispute = ref(false)
+async function raiseDispute() {
+  if (!canRaiseDispute.value || raisingDispute.value) return
+  try {
+    await ElMessageBox.confirm('确认申请平台介入？平台将介入处理该售后纠纷。', '申请平台介入', {
+      confirmButtonText: '确认申请',
+      cancelButtonText: '我再想想',
+      type: 'warning'
+    })
+  } catch { return }
+  raisingDispute.value = true
+  try {
+    await api('/api/user/disputes', {
+      method: 'POST',
+      body: JSON.stringify({ afterSaleId: Number(route.params.id), reason: '用户申请平台介入' }),
+      headers: { 'Content-Type': 'application/json' }
+    })
+    ElMessage.success('已申请平台介入')
+    await load()
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    raisingDispute.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -111,6 +148,7 @@ onMounted(load)
         <div class="row">
           <span class="status-chip">{{ statusText(detail) }}</span>
           <el-button v-if="canCancel" type="danger" plain :loading="canceling" @click="cancelAfterSale">取消售后</el-button>
+          <el-button v-if="canRaiseDispute" type="warning" plain :loading="raisingDispute" @click="raiseDispute">申请平台介入</el-button>
           <el-button @click="router.push('/after-sales')">返回我的售后</el-button>
         </div>
       </section>
@@ -192,6 +230,18 @@ onMounted(load)
             <strong>{{ field(log, 'operationDesc', 'operation_desc') }}</strong>
           </el-timeline-item>
         </el-timeline>
+      </section>
+
+      <section v-if="dispute" class="band stack">
+        <h2 class="section-title">纠纷信息</h2>
+        <div class="info-lines">
+          <span class="muted">纠纷单号：{{ dispute.disputeNo || '-' }}</span>
+          <span class="muted">纠纷状态：{{ disputeStatusMap[dispute.disputeStatus] || '-' }}</span>
+          <span class="muted" v-if="dispute.judgeResult">判责结果：{{ judgeResultMap[dispute.judgeResult] || '-' }}</span>
+          <span class="muted" v-if="dispute.finalAmount">裁决金额：¥{{ Number(dispute.finalAmount).toFixed(2) }}</span>
+          <span class="muted" v-if="dispute.platformOpinion">平台意见：{{ dispute.platformOpinion }}</span>
+          <span class="muted" v-if="dispute.judgeTime">裁决时间：{{ dispute.judgeTime }}</span>
+        </div>
       </section>
     </template>
   </main>

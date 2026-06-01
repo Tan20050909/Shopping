@@ -70,7 +70,7 @@ public class UserProductService {
                         WHERE g.merchant_id = m.merchant_id AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0
                        ) AS product_count
                 FROM tb_merchant m
-                WHERE m.merchant_id = ? AND m.is_deleted = 0
+                WHERE m.merchant_id = ? AND m.is_deleted = 0 AND m.audit_status = 1 AND m.status = 1
                 """, merchantId);
         if (rows.isEmpty()) {
             throw new BizException(ErrorCode.DATA_NOT_FOUND, "店铺不存在或暂不可访问");

@@ -9,6 +9,9 @@
         WHERE g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
+          AND m.audit_status = 1
+          AND m.status = 1
+          AND m.is_deleted = 0
         <if test="query.merchantId != null">
             AND g.merchant_id = #{query.merchantId}
         </if>
@@ -40,6 +43,7 @@
         SELECT COUNT(*) FROM (
             SELECT g.goods_id
             FROM tb_goods g
+            LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
             LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
             <include refid="ProductFilter"/>
             GROUP BY g.goods_id
@@ -105,8 +109,12 @@
         SELECT COUNT(*) FROM (
             SELECT g.goods_id
             FROM tb_goods g
+            LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
             LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
             WHERE g.merchant_id = #{merchantId}
+              AND m.audit_status = 1
+              AND m.status = 1
+              AND m.is_deleted = 0
             <if test="keyword != null and keyword != ''">
               AND (g.goods_name LIKE CONCAT('%', #{keyword}, '%')
                    OR g.keywords LIKE CONCAT('%', #{keyword}, '%'))
@@ -147,6 +155,9 @@
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
+          AND m.audit_status = 1
+          AND m.status = 1
+          AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
                  g.goods_name, g.goods_intro, g.goods_pic, g.sell_count, g.comment_count, g.goods_score
         HAVING COUNT(s.sku_id) > 0
@@ -184,6 +195,9 @@
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
+          AND m.audit_status = 1
+          AND m.status = 1
+          AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
                  g.goods_name, g.goods_intro, g.goods_pic, g.goods_video,
                  m.shop_logo, m.shop_intro, m.shop_score, g.sell_count, g.comment_count, g.goods_score

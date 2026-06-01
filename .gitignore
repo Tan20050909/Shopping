@@ -6,6 +6,13 @@ Thumbs.db
 *.iws
 *.ipr
 .vscode/
+.run/
+.claude/
+
+# Platform local/generated artifacts
+Shopping/admin/sql/
+Shopping/admin/src/main/resources/static/
+Shopping/admin/src/main/resources/schema.sql
 
 # Java / Maven
 target/

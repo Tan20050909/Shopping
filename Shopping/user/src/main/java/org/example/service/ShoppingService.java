@@ -217,7 +217,7 @@ public class ShoppingService {
    ) {
       page = Math.max(page, 1);
       size = Math.min(Math.max(size, 1), 50);
-      StringBuilder where = new StringBuilder(" WHERE g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0 ");
+      StringBuilder where = new StringBuilder(" WHERE g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0 AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0 ");
       List<Object> params = new ArrayList<>();
       if (merchantId != null) {
          where.append(" AND g.merchant_id = ? ");
@@ -252,7 +252,7 @@ public class ShoppingService {
       }
 
       long total = (Long)Optional.ofNullable(
-            (Long)this.jdbc.queryForObject("SELECT COUNT(DISTINCT g.goods_id) FROM tb_goods g " + where, Long.class, params.toArray())
+            (Long)this.jdbc.queryForObject("SELECT COUNT(DISTINCT g.goods_id) FROM tb_goods g LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id " + where, Long.class, params.toArray())
          )
          .orElse(0L);
       String sortKey = sort == null ? "" : sort;
@@ -281,7 +281,7 @@ public class ShoppingService {
 
    public Map<String, Object> goodsDetail(long goodsId, Integer sourceType) {
       Map<String, Object> detail = this.one(
-         "SELECT g.*, c.cate_name, m.merchant_name\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE g.goods_id = ? AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0\n",
+         "SELECT g.*, c.cate_name, m.merchant_name\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE g.goods_id = ? AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0 AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\n",
          goodsId
       );
       if (detail == null) {
@@ -329,14 +329,14 @@ public class ShoppingService {
    public List<Map<String, Object>> cart(long userId) {
       return this.jdbc
          .queryForList(
-            "SELECT c.cart_id, c.user_id, c.goods_id, c.sku_id, c.buy_num, c.is_selected, c.add_time,\n       g.goods_name, g.goods_pic, g.merchant_id, m.merchant_name,\n       s.sku_name, s.price,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock,\n       s.status AS sku_status,\n       s.is_deleted AS sku_deleted,\n       g.status AS goods_status,\n       g.audit_status,\n       g.is_deleted AS goods_deleted\nFROM tb_user_cart c\nJOIN tb_goods g ON g.goods_id = c.goods_id\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE c.user_id = ?\nORDER BY c.add_time DESC\n",
+            "SELECT c.cart_id, c.user_id, c.goods_id, c.sku_id, c.buy_num, c.is_selected, c.add_time,\n       g.goods_name, g.goods_pic, g.merchant_id, m.merchant_name,\n       s.sku_name, s.price,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock,\n       s.status AS sku_status,\n       s.is_deleted AS sku_deleted,\n       g.status AS goods_status,\n       g.audit_status,\n       g.is_deleted AS goods_deleted,\n       m.audit_status AS merchant_audit_status,\n       m.status AS merchant_status,\n       m.is_deleted AS merchant_deleted\nFROM tb_user_cart c\nJOIN tb_goods g ON g.goods_id = c.goods_id\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE c.user_id = ?\nORDER BY c.add_time DESC\n",
             new Object[]{userId}
          );
    }
 
    public void addCart(long userId, CartItemRequest request) {
       Map<String, Object> sku = this.one(
-         "SELECT s.sku_id, s.goods_id, GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted\nFROM tb_goods_sku s\nJOIN tb_goods g ON g.goods_id = s.goods_id\nWHERE s.sku_id = ?\n",
+         "SELECT s.sku_id, s.goods_id, GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted,\n       m.audit_status AS merchant_audit_status, m.status AS merchant_status, m.is_deleted AS merchant_deleted\nFROM tb_goods_sku s\nJOIN tb_goods g ON g.goods_id = s.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE s.sku_id = ?\n",
          request.skuId()
       );
       if (sku == null) {
@@ -345,7 +345,10 @@ public class ShoppingService {
          && this.number(sku.get("goods_status")).intValue() == 1
          && this.number(sku.get("audit_status")).intValue() == 1
          && this.number(sku.get("sku_deleted")).intValue() == 0
-         && this.number(sku.get("goods_deleted")).intValue() == 0) {
+         && this.number(sku.get("goods_deleted")).intValue() == 0
+         && this.number(sku.get("merchant_audit_status")).intValue() == 1
+         && this.number(sku.get("merchant_status")).intValue() == 1
+         && this.number(sku.get("merchant_deleted")).intValue() == 0) {
          Integer currentNum;
          try {
             currentNum = (Integer)this.jdbc
@@ -375,7 +378,7 @@ public class ShoppingService {
          throw new BizException("PARAM_INVALID", "数量至少为 1");
       } else {
          Map<String, Object> cart = this.one(
-            "SELECT c.cart_id,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted\nFROM tb_user_cart c\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nJOIN tb_goods g ON g.goods_id = c.goods_id\nWHERE c.cart_id = ? AND c.user_id = ?\n",
+            "SELECT c.cart_id,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted,\n       m.audit_status AS merchant_audit_status, m.status AS merchant_status, m.is_deleted AS merchant_deleted\nFROM tb_user_cart c\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nJOIN tb_goods g ON g.goods_id = c.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE c.cart_id = ? AND c.user_id = ?\n",
             cartId,
             userId
          );
@@ -385,7 +388,10 @@ public class ShoppingService {
             || this.number(cart.get("goods_status")).intValue() != 1
             || this.number(cart.get("audit_status")).intValue() != 1
             || this.number(cart.get("sku_deleted")).intValue() != 0
-            || this.number(cart.get("goods_deleted")).intValue() != 0) {
+            || this.number(cart.get("goods_deleted")).intValue() != 0
+            || this.number(cart.get("merchant_audit_status")).intValue() != 1
+            || this.number(cart.get("merchant_status")).intValue() != 1
+            || this.number(cart.get("merchant_deleted")).intValue() != 0) {
             throw new BizException("GOODS_OFF_SHELF", "商品已下架或不可售");
          } else if (this.number(cart.get("available_stock")).intValue() < num) {
             throw new BizException("SKU_STOCK_NOT_ENOUGH", "库存不足");
@@ -398,7 +404,7 @@ public class ShoppingService {
    public void updateCartSelected(long userId, long cartId, boolean selected) {
       if (selected) {
          Map<String, Object> cart = this.one(
-            "SELECT c.cart_id,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status AS sku_status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted\nFROM tb_user_cart c\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nJOIN tb_goods g ON g.goods_id = c.goods_id\nWHERE c.cart_id = ? AND c.user_id = ?\n",
+            "SELECT c.cart_id,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status AS sku_status, s.is_deleted AS sku_deleted,\n       g.status AS goods_status, g.audit_status, g.is_deleted AS goods_deleted,\n       m.audit_status AS merchant_audit_status, m.status AS merchant_status, m.is_deleted AS merchant_deleted\nFROM tb_user_cart c\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nJOIN tb_goods g ON g.goods_id = c.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE c.cart_id = ? AND c.user_id = ?\n",
             cartId,
             userId
          );
@@ -410,7 +416,10 @@ public class ShoppingService {
             || this.number(cart.get("goods_status")).intValue() != 1
             || this.number(cart.get("audit_status")).intValue() != 1
             || this.number(cart.get("sku_deleted")).intValue() != 0
-            || this.number(cart.get("goods_deleted")).intValue() != 0) {
+            || this.number(cart.get("goods_deleted")).intValue() != 0
+            || this.number(cart.get("merchant_audit_status")).intValue() != 1
+            || this.number(cart.get("merchant_status")).intValue() != 1
+            || this.number(cart.get("merchant_deleted")).intValue() != 0) {
             throw new BizException("GOODS_OFF_SHELF", "商品已下架或不可售");
          }
 
@@ -454,7 +463,7 @@ public class ShoppingService {
       } else {
          this.jdbc
             .update(
-               "UPDATE tb_user_cart c\nJOIN tb_goods g ON g.goods_id = c.goods_id\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nSET c.is_selected = CASE\n    WHEN g.status = 1\n     AND g.audit_status = 1\n     AND g.is_deleted = 0\n     AND s.status = 1\n     AND s.is_deleted = 0\n     AND s.stock - s.lock_stock >= c.buy_num\n    THEN 1 ELSE 0 END\nWHERE c.user_id = ?\n",
+               "UPDATE tb_user_cart c\nJOIN tb_goods g ON g.goods_id = c.goods_id\nJOIN tb_goods_sku s ON s.sku_id = c.sku_id\nJOIN tb_merchant m ON m.merchant_id = g.merchant_id\nSET c.is_selected = CASE\n    WHEN g.status = 1\n     AND g.audit_status = 1\n     AND g.is_deleted = 0\n     AND s.status = 1\n     AND s.is_deleted = 0\n     AND s.stock - s.lock_stock >= c.buy_num\n     AND m.audit_status = 1\n     AND m.status = 1\n     AND m.is_deleted = 0\n    THEN 1 ELSE 0 END\nWHERE c.user_id = ?\n",
                new Object[]{userId}
             );
       }
@@ -759,7 +768,7 @@ public class ShoppingService {
    public List<Map<String, Object>> collects(long userId) {
       return this.jdbc
          .queryForList(
-            "SELECT uc.collect_id, uc.collect_time, g.goods_id, g.goods_name, g.goods_pic,\n       g.sell_count, g.goods_score, MIN(s.price) AS price, MIN(s.sku_id) AS default_sku_id\nFROM tb_user_collect uc\nJOIN tb_goods g ON g.goods_id = uc.goods_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1\nWHERE uc.user_id = ? AND uc.is_cancel = 0\nGROUP BY uc.collect_id, uc.collect_time, g.goods_id, g.goods_name, g.goods_pic, g.sell_count, g.goods_score\nORDER BY uc.collect_time DESC\n",
+            "SELECT uc.collect_id, uc.collect_time, g.goods_id, g.goods_name, g.goods_pic,\n       g.sell_count, g.goods_score, MIN(s.price) AS price, MIN(s.sku_id) AS default_sku_id\nFROM tb_user_collect uc\nJOIN tb_goods g ON g.goods_id = uc.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1\nWHERE uc.user_id = ? AND uc.is_cancel = 0\n  AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0\n  AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\nGROUP BY uc.collect_id, uc.collect_time, g.goods_id, g.goods_name, g.goods_pic, g.sell_count, g.goods_score\nORDER BY uc.collect_time DESC\n",
             new Object[]{userId}
          );
    }
@@ -769,7 +778,7 @@ public class ShoppingService {
          ? List.of()
          : this.jdbc
             .queryForList(
-               "SELECT h.history_id, h.goods_id, h.sku_id, h.source_type, h.browse_count, h.last_browse_time,\n       g.goods_name, g.goods_pic, g.goods_score, MIN(s.price) AS price,\n       COALESCE(h.sku_id, MIN(s.sku_id)) AS default_sku_id\nFROM tb_user_browse_history h\nJOIN tb_goods g ON g.goods_id = h.goods_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1\nWHERE h.user_id = ? AND h.is_deleted = 0\nGROUP BY h.history_id, h.goods_id, h.sku_id, h.source_type, h.browse_count, h.last_browse_time,\n         g.goods_name, g.goods_pic, g.goods_score\nORDER BY h.last_browse_time DESC\nLIMIT 100\n",
+               "SELECT h.history_id, h.goods_id, h.sku_id, h.source_type, h.browse_count, h.last_browse_time,\n       g.goods_name, g.goods_pic, g.goods_score, MIN(s.price) AS price,\n       COALESCE(h.sku_id, MIN(s.sku_id)) AS default_sku_id\nFROM tb_user_browse_history h\nJOIN tb_goods g ON g.goods_id = h.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1\nWHERE h.user_id = ? AND h.is_deleted = 0\n  AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0\n  AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\nGROUP BY h.history_id, h.goods_id, h.sku_id, h.source_type, h.browse_count, h.last_browse_time,\n         g.goods_name, g.goods_pic, g.goods_score\nORDER BY h.last_browse_time DESC\nLIMIT 100\n",
                new Object[]{userId}
             );
    }
@@ -820,7 +829,7 @@ public class ShoppingService {
    public List<Map<String, Object>> merchantRecommendations(long merchantId) {
       return this.jdbc
          .queryForList(
-            "SELECT g.goods_id, g.merchant_id, g.cate_id, g.goods_name, g.goods_intro,\n       g.goods_pic, g.sell_count, g.comment_count, g.goods_score,\n       c.cate_name, m.merchant_name,\n       MIN(s.sku_id) AS default_sku_id,\n       COALESCE(MIN(s.price), 0) AS price,\n       COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS stock,\n       COALESCE(COUNT(uc.collect_id), 0) AS collect_count\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0\nLEFT JOIN tb_user_collect uc ON uc.goods_id = g.goods_id AND uc.is_cancel = 0\nWHERE g.merchant_id = ?\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\nGROUP BY g.goods_id, g.merchant_id, g.cate_id, g.goods_name, g.goods_intro,\n         g.goods_pic, g.sell_count, g.comment_count, g.goods_score,\n         c.cate_name, m.merchant_name\nHAVING COUNT(s.sku_id) > 0\nORDER BY collect_count DESC, g.sell_count DESC, g.goods_score DESC, g.goods_id DESC\nLIMIT 8\n",
+            "SELECT g.goods_id, g.merchant_id, g.cate_id, g.goods_name, g.goods_intro,\n       g.goods_pic, g.sell_count, g.comment_count, g.goods_score,\n       c.cate_name, m.merchant_name,\n       MIN(s.sku_id) AS default_sku_id,\n       COALESCE(MIN(s.price), 0) AS price,\n       COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS stock,\n       COALESCE(COUNT(uc.collect_id), 0) AS collect_count\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0\nLEFT JOIN tb_user_collect uc ON uc.goods_id = g.goods_id AND uc.is_cancel = 0\nWHERE g.merchant_id = ?\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND m.audit_status = 1\n  AND m.status = 1\n  AND m.is_deleted = 0\nGROUP BY g.goods_id, g.merchant_id, g.cate_id, g.goods_name, g.goods_intro,\n         g.goods_pic, g.sell_count, g.comment_count, g.goods_score,\n         c.cate_name, m.merchant_name\nHAVING COUNT(s.sku_id) > 0\nORDER BY collect_count DESC, g.sell_count DESC, g.goods_score DESC, g.goods_id DESC\nLIMIT 8\n",
             new Object[]{merchantId}
          );
    }
@@ -848,10 +857,10 @@ public class ShoppingService {
 
          List<Map<String, Object>> snapshots = this.jdbc
             .queryForList(
-               "SELECT r.rank_no, r.rank_score, r.snapshot_date,\n       g.goods_id, g.goods_name, g.goods_pic, g.sell_count, g.goods_score,\n       MIN(s.sku_id) AS default_sku_id,\n       MIN(s.price) AS price,\n       COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS stock\nFROM tb_goods_rank_snapshot r\nJOIN tb_goods g ON g.goods_id = r.goods_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0\nWHERE r.rank_type = ?\n"
+               "SELECT r.rank_no, r.rank_score, r.snapshot_date,\n       g.goods_id, g.goods_name, g.goods_pic, g.sell_count, g.goods_score,\n       MIN(s.sku_id) AS default_sku_id,\n       MIN(s.price) AS price,\n       COALESCE(SUM(GREATEST(s.stock - s.lock_stock, 0)), 0) AS stock\nFROM tb_goods_rank_snapshot r\nJOIN tb_goods g ON g.goods_id = r.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nLEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0\nWHERE r.rank_type = ?\n"
                   + merchantSql
                   + cateSql
-                  + "  AND r.snapshot_date = (SELECT MAX(snapshot_date) FROM tb_goods_rank_snapshot WHERE rank_type = ?)\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\nGROUP BY r.rank_id, r.rank_no, r.rank_score, r.snapshot_date, g.goods_id, g.goods_name, g.goods_pic,\n         g.sell_count, g.goods_score\nORDER BY r.rank_no\nLIMIT 20\n",
+                  + "  AND r.snapshot_date = (SELECT MAX(snapshot_date) FROM tb_goods_rank_snapshot WHERE rank_type = ?)\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND m.audit_status = 1\n  AND m.status = 1\n  AND m.is_deleted = 0\nGROUP BY r.rank_id, r.rank_no, r.rank_score, r.snapshot_date, g.goods_id, g.goods_name, g.goods_pic,\n         g.sell_count, g.goods_score\nORDER BY r.rank_no\nLIMIT 20\n",
                this.append(params, type).toArray()
             );
          if (!snapshots.isEmpty()) {
@@ -2139,47 +2148,7 @@ public class ShoppingService {
 
    @Transactional
    public Map<String, Object> devApproveAfterSale(long afterSaleId) {
-      Map<String, Object> afterSale = this.lockAfterSale(afterSaleId);
-      int handleStatus = this.number(afterSale.get("handle_status")).intValue();
-      if (handleStatus != 0) {
-         throw new BizException("当前售后单不是待审核状态，不能重复审核通过");
-      } else {
-         Map<String, Object> refund = this.one("SELECT refund_id FROM tb_refund WHERE after_sale_id = ? FOR UPDATE", afterSaleId);
-         if (refund != null) {
-            throw new BizException("该售后单已生成退款单，请勿重复审核通过");
-         } else {
-            Map<String, Object> payment = this.one(
-               "SELECT payment_id FROM tb_payment WHERE group_id = ? AND user_id = ?", afterSale.get("group_id"), afterSale.get("user_id")
-            );
-            if (payment == null) {
-               throw new BizException("PAYMENT_STATUS_INVALID", "支付单不存在，不能生成退款单");
-            } else {
-               this.jdbc
-                  .update(
-                     "UPDATE tb_after_sale\nSET handle_status = 1,\n    merchant_remark = ?,\n    handle_time = NOW()\nWHERE after_sale_id = ? AND handle_status = 0\n",
-                     new Object[]{"开发测试接口模拟同意售后", afterSaleId}
-                  );
-               this.insertAfterSaleLog(afterSaleId, 0, 1, 2, afterSale.get("merchant_id"), "商家已同意售后申请");
-               this.jdbc
-                  .update(
-                     "INSERT INTO tb_refund(refund_no, payment_id, group_id, order_id, after_sale_id, user_id, merchant_id, refund_amount,\n                      refund_status, refund_channel, reason)\nVALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 9, ?)\n",
-                     new Object[]{
-                        this.no("R"),
-                        payment.get("payment_id"),
-                        afterSale.get("group_id"),
-                        afterSale.get("order_id"),
-                        afterSaleId,
-                        afterSale.get("user_id"),
-                        afterSale.get("merchant_id"),
-                        afterSale.get("apply_amount"),
-                        afterSale.get("apply_reason")
-                     }
-                  );
-               this.jdbc.update("UPDATE tb_order_item SET after_sale_status = 1 WHERE order_item_id = ?", new Object[]{afterSale.get("order_item_id")});
-               return Map.of("afterSaleId", afterSaleId, "handleStatus", 1, "refundStatus", 1);
-            }
-         }
-      }
+      return this.approveAndCreateRefund(afterSaleId, "开发测试接口模拟同意售后");
    }
 
    @Transactional
@@ -2202,32 +2171,78 @@ public class ShoppingService {
 
    @Transactional
    public Map<String, Object> devRefundSuccess(long afterSaleId) {
+      return this.completeRefund(afterSaleId);
+   }
+
+   /**
+    * 同意售后并创建退款单（可复用内部方法）
+    * 前置条件：handle_status=0（待审核）
+    * 操作：handle_status→1，创建 tb_refund(refund_status=1)
+    */
+   @Transactional
+   public Map<String, Object> approveAndCreateRefund(long afterSaleId, String remark) {
+      Map<String, Object> afterSale = this.lockAfterSale(afterSaleId);
+      int handleStatus = this.number(afterSale.get("handle_status")).intValue();
+      if (handleStatus != 0) {
+         throw new BizException("当前售后单不是待审核状态，不能审核通过");
+      }
+      Map<String, Object> existingRefund = this.one("SELECT refund_id FROM tb_refund WHERE after_sale_id = ? FOR UPDATE", afterSaleId);
+      if (existingRefund != null) {
+         throw new BizException("该售后单已生成退款单，请勿重复操作");
+      }
+      Map<String, Object> payment = this.one(
+         "SELECT payment_id FROM tb_payment WHERE group_id = ? AND user_id = ?", afterSale.get("group_id"), afterSale.get("user_id")
+      );
+      if (payment == null) {
+         throw new BizException("PAYMENT_STATUS_INVALID", "支付单不存在，不能生成退款单");
+      }
+      this.jdbc.update(
+         "UPDATE tb_after_sale SET handle_status = 1, merchant_remark = ?, handle_time = NOW() WHERE after_sale_id = ? AND handle_status = 0",
+         new Object[]{remark, afterSaleId}
+      );
+      this.insertAfterSaleLog(afterSaleId, 0, 1, 2, afterSale.get("merchant_id"), "商家已同意售后申请");
+      this.jdbc.update(
+         "INSERT INTO tb_refund(refund_no, payment_id, group_id, order_id, after_sale_id, user_id, merchant_id, refund_amount, " +
+         "refund_status, refund_channel, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 9, ?)",
+         this.no("R"), payment.get("payment_id"), afterSale.get("group_id"), afterSale.get("order_id"),
+         afterSaleId, afterSale.get("user_id"), afterSale.get("merchant_id"),
+         afterSale.get("apply_amount"), afterSale.get("apply_reason")
+      );
+      this.jdbc.update("UPDATE tb_order_item SET after_sale_status = 1 WHERE order_item_id = ?", new Object[]{afterSale.get("order_item_id")});
+      return Map.of("afterSaleId", afterSaleId, "handleStatus", 1, "refundStatus", 1);
+   }
+
+   /**
+    * 完成退款（可复用内部方法）
+    * 前置条件：handle_status=1 且存在 refund_status=1 的退款单
+    * 操作：refund_status→2，handle_status→4，恢复优惠券，刷新订单状态
+    */
+   @Transactional
+   public Map<String, Object> completeRefund(long afterSaleId) {
       Map<String, Object> afterSale = this.lockAfterSale(afterSaleId);
       Map<String, Object> refund = this.one("SELECT * FROM tb_refund WHERE after_sale_id = ? FOR UPDATE", afterSaleId);
       if (refund == null) {
-         throw new BizException("退款单不存在，请先调用审核通过接口");
-      } else if (this.number(refund.get("refund_status")).intValue() == 2) {
-         throw new BizException("退款单已退款成功，请勿重复退款");
-      } else {
-         int handleStatus = this.number(afterSale.get("handle_status")).intValue();
-         if (handleStatus != 1) {
-            throw new BizException("当前售后单不是已审核通过状态，不能退款成功");
-         } else {
-            String thirdRefundNo = "SIMULATED_REFUND_" + System.currentTimeMillis() + afterSaleId;
-            this.jdbc
-               .update(
-                  "UPDATE tb_refund\nSET refund_status = 2,\n    third_refund_no = ?,\n    success_time = NOW()\nWHERE refund_id = ? AND refund_status <> 2\n",
-                  new Object[]{thirdRefundNo, refund.get("refund_id")}
-               );
-            this.jdbc.update("UPDATE tb_after_sale\nSET handle_status = 4,\n    handle_time = NOW()\nWHERE after_sale_id = ?\n", new Object[]{afterSaleId});
-            this.jdbc.update("UPDATE tb_order_item SET after_sale_status = 2 WHERE order_item_id = ?", new Object[]{afterSale.get("order_item_id")});
-            this.insertAfterSaleLog(afterSaleId, handleStatus, 4, 4, null, "退款成功");
-            this.insertRefundMerchantFlow(afterSale, refund);
-            this.restoreCouponsAfterRefundSuccess(afterSale);
-            this.refreshRefundedOrderStatus(this.number(afterSale.get("group_id")).longValue(), this.number(afterSale.get("order_id")).longValue());
-            return Map.of("afterSaleId", afterSaleId, "handleStatus", 4, "refundStatus", 2, "thirdRefundNo", thirdRefundNo);
-         }
+         throw new BizException("退款单不存在，请先审核通过");
       }
+      if (this.number(refund.get("refund_status")).intValue() == 2) {
+         throw new BizException("退款单已退款成功，请勿重复操作");
+      }
+      int handleStatus = this.number(afterSale.get("handle_status")).intValue();
+      if (handleStatus != 1) {
+         throw new BizException("当前售后单不是已同意状态，不能完成退款");
+      }
+      String thirdRefundNo = "SIMULATED_REFUND_" + System.currentTimeMillis() + afterSaleId;
+      this.jdbc.update(
+         "UPDATE tb_refund SET refund_status = 2, third_refund_no = ?, success_time = NOW() WHERE refund_id = ? AND refund_status <> 2",
+         new Object[]{thirdRefundNo, refund.get("refund_id")}
+      );
+      this.jdbc.update("UPDATE tb_after_sale SET handle_status = 4, handle_time = NOW() WHERE after_sale_id = ?", new Object[]{afterSaleId});
+      this.jdbc.update("UPDATE tb_order_item SET after_sale_status = 2 WHERE order_item_id = ?", new Object[]{afterSale.get("order_item_id")});
+      this.insertAfterSaleLog(afterSaleId, handleStatus, 4, 4, null, "退款成功");
+      this.insertRefundMerchantFlow(afterSale, refund);
+      this.restoreCouponsAfterRefundSuccess(afterSale);
+      this.refreshRefundedOrderStatus(this.number(afterSale.get("group_id")).longValue(), this.number(afterSale.get("order_id")).longValue());
+      return Map.of("afterSaleId", afterSaleId, "handleStatus", 4, "refundStatus", 2, "thirdRefundNo", thirdRefundNo);
    }
 
    private void restoreCouponsAfterRefundSuccess(Map<String, Object> afterSale) {
@@ -2250,7 +2265,7 @@ public class ShoppingService {
 
    public List<Map<String, Object>> lives(Long merchantId) {
       List<Object> params = new ArrayList<>();
-      StringBuilder where = new StringBuilder(" WHERE l.is_deleted = 0 AND l.live_status IN (0, 1) ");
+      StringBuilder where = new StringBuilder(" WHERE l.is_deleted = 0 AND l.live_status IN (0, 1) AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0 ");
       if (merchantId != null) {
          where.append(" AND l.merchant_id = ? ");
          params.add(merchantId);
@@ -2266,7 +2281,7 @@ public class ShoppingService {
 
    public Map<String, Object> liveDetail(long liveId) {
       Map<String, Object> live = this.one(
-         "SELECT l.live_id, l.merchant_id, l.live_title, l.live_cover, l.live_theme,\n       l.start_time, l.end_time, l.live_status, l.watch_num, l.interact_num,\n       l.live_url,\n       m.merchant_name\nFROM tb_live l\nLEFT JOIN tb_merchant m ON m.merchant_id = l.merchant_id\nWHERE l.live_id = ?\n",
+         "SELECT l.live_id, l.merchant_id, l.live_title, l.live_cover, l.live_theme,\n       l.start_time, l.end_time, l.live_status, l.watch_num, l.interact_num,\n       l.live_url,\n       m.merchant_name\nFROM tb_live l\nLEFT JOIN tb_merchant m ON m.merchant_id = l.merchant_id\nWHERE l.live_id = ? AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\n",
          liveId
       );
       if (live == null) {
@@ -2281,7 +2296,7 @@ public class ShoppingService {
    public List<Map<String, Object>> liveGoods(long liveId) {
       return this.jdbc
          .queryForList(
-            "SELECT lg.lg_id, lg.live_id, lg.goods_id, lg.sku_id, lg.live_price, lg.goods_sort,\n       g.goods_name, g.goods_pic, g.goods_score, s.sku_name,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock\nFROM tb_live_goods lg\nJOIN tb_goods g ON g.goods_id = lg.goods_id\nJOIN tb_goods_sku s ON s.sku_id = lg.sku_id\nWHERE lg.live_id = ? AND lg.is_on_shelf = 1\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND s.status = 1\n  AND s.is_deleted = 0\nORDER BY lg.goods_sort, lg.lg_id\n",
+            "SELECT lg.lg_id, lg.live_id, lg.goods_id, lg.sku_id, lg.live_price, lg.goods_sort,\n       g.goods_name, g.goods_pic, g.goods_score, s.sku_name,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock\nFROM tb_live_goods lg\nJOIN tb_goods g ON g.goods_id = lg.goods_id\nJOIN tb_goods_sku s ON s.sku_id = lg.sku_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE lg.live_id = ? AND lg.is_on_shelf = 1\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND s.status = 1\n  AND s.is_deleted = 0\n  AND m.audit_status = 1\n  AND m.status = 1\n  AND m.is_deleted = 0\nORDER BY lg.goods_sort, lg.lg_id\n",
             new Object[]{liveId}
          );
    }
@@ -2845,6 +2860,15 @@ public class ShoppingService {
                   )
             )
          );
+         // 查询关联纠纷信息
+         Map<String, Object> dispute = this.one(
+            "SELECT dispute_id, dispute_no, dispute_status, judge_result, final_amount, platform_opinion, judge_time " +
+            "FROM tb_dispute WHERE after_sale_id = ? ORDER BY create_time DESC LIMIT 1",
+            afterSaleId
+         );
+         if (dispute != null) {
+            result.put("dispute", this.snakeToCamel(dispute));
+         }
          return result;
       }
    }
@@ -2874,6 +2898,14 @@ public class ShoppingService {
          new Object[]{"用户取消售后申请", afterSaleId, userId}
       );
       this.insertAfterSaleLog(afterSaleId, handleStatus, 5, 1, userId, "用户取消售后申请");
+
+      // 平台介入中取消时，同步关闭关联纠纷
+      if (handleStatus == 3) {
+         this.jdbc.update(
+            "UPDATE tb_dispute SET dispute_status = 4, update_time = NOW() WHERE after_sale_id = ? AND dispute_status IN (0, 1, 2)",
+            new Object[]{afterSaleId}
+         );
+      }
 
       Object orderItemIdObj = afterSale.get("order_item_id");
       if (orderItemIdObj != null) {
@@ -2913,6 +2945,56 @@ public class ShoppingService {
       }
 
       return Map.of("afterSaleId", afterSaleId, "handleStatus", 5);
+   }
+
+   @Transactional
+   public Map<String, Object> createDispute(long userId, long afterSaleId, String reason, String desc) {
+      Map<String, Object> afterSale = this.one(
+         "SELECT * FROM tb_after_sale WHERE after_sale_id = ? AND user_id = ? FOR UPDATE", afterSaleId, userId
+      );
+      if (afterSale == null) {
+         throw new BizException("DATA_NOT_FOUND", "售后单不存在");
+      }
+      int handleStatus = this.number(afterSale.get("handle_status")).intValue();
+      if (handleStatus != 0 && handleStatus != 1 && handleStatus != 2) {
+         throw new BizException("当前售后状态不允许申请平台介入");
+      }
+
+      // 防止重复创建纠纷（after_sale_id 为唯一键，任何已有纠纷都拒绝）
+      Map<String, Object> existing = this.one(
+         "SELECT dispute_id FROM tb_dispute WHERE after_sale_id = ? LIMIT 1",
+         afterSaleId
+      );
+      if (existing != null) {
+         throw new BizException("该售后单已有关联纠纷，不能重复创建");
+      }
+
+      String disputeReason = (reason == null || reason.isBlank()) ? "用户申请平台介入" : reason.trim();
+      String disputeDesc = (desc == null) ? "" : desc.trim();
+
+      long disputeId = this.insert(
+         "INSERT INTO tb_dispute(dispute_no, after_sale_id, group_id, order_id, order_item_id, user_id, merchant_id, " +
+         "apply_type, dispute_reason, dispute_desc, dispute_status) " +
+         "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 0)",
+         this.no("DP"),
+         afterSaleId,
+         afterSale.get("group_id"),
+         afterSale.get("order_id"),
+         afterSale.get("order_item_id"),
+         userId,
+         afterSale.get("merchant_id"),
+         disputeReason,
+         disputeDesc
+      );
+
+      // 同步售后单状态为 3（平台介入）
+      this.jdbc.update(
+         "UPDATE tb_after_sale SET handle_status = 3, platform_remark = ?, update_time = NOW() WHERE after_sale_id = ? AND handle_status IN (0, 1, 2)",
+         new Object[]{"用户申请平台介入", afterSaleId}
+      );
+      this.insertAfterSaleLog(afterSaleId, handleStatus, 3, 1, userId, "用户申请平台介入，纠纷单号已生成");
+
+      return Map.of("disputeId", disputeId, "disputeStatus", 0);
    }
 
    @Transactional
@@ -3164,7 +3246,7 @@ public class ShoppingService {
             List<Map<String, Object>> orderItems = new ArrayList<>();
 
             for (OrderSkuRequest item : items) {
-               String skuSql = "SELECT s.sku_id, s.goods_id, s.sku_name, s.price, s.stock, s.lock_stock,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.goods_name, g.goods_pic, g.merchant_id, g.status AS goods_status, g.audit_status,\n       g.is_deleted AS goods_deleted,\n       m.merchant_name\nFROM tb_goods_sku s\nJOIN tb_goods g ON g.goods_id = s.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE s.sku_id = ?\n"
+               String skuSql = "SELECT s.sku_id, s.goods_id, s.sku_name, s.price, s.stock, s.lock_stock,\n       GREATEST(s.stock - s.lock_stock, 0) AS available_stock,\n       s.status, s.is_deleted AS sku_deleted,\n       g.goods_name, g.goods_pic, g.merchant_id, g.status AS goods_status, g.audit_status,\n       g.is_deleted AS goods_deleted,\n       m.merchant_name, m.audit_status AS merchant_audit_status, m.status AS merchant_status, m.is_deleted AS merchant_deleted\nFROM tb_goods_sku s\nJOIN tb_goods g ON g.goods_id = s.goods_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE s.sku_id = ?\n"
                   + (lockSkuRows ? " FOR UPDATE" : "");
                Map<String, Object> sku = this.one(skuSql, item.skuId());
                if (sku == null) {
@@ -3177,6 +3259,12 @@ public class ShoppingService {
                   || this.number(sku.get("sku_deleted")).intValue() != 0
                   || this.number(sku.get("goods_deleted")).intValue() != 0) {
                   throw new BizException("GOODS_OFF_SHELF", "商品已下架或不可售：" + sku.get("sku_name"));
+               }
+
+               if (this.number(sku.get("merchant_audit_status")).intValue() != 1
+                  || this.number(sku.get("merchant_status")).intValue() != 1
+                  || this.number(sku.get("merchant_deleted")).intValue() != 0) {
+                  throw new BizException("MERCHANT_UNAVAILABLE", "商家店铺不可用：" + sku.get("merchant_name"));
                }
 
                if (this.number(sku.get("available_stock")).intValue() < item.num()) {

@@ -2805,7 +2805,7 @@ public class ShoppingService {
                sql.append(" OR ");
             }
 
-            sql.append("goods_name LIKE ? OR goods_desc LIKE ?");
+            sql.append("goods_name LIKE ? OR goods_intro LIKE ?");
             String like = "%" + tokens.get(i) + "%";
             args.add(like);
             args.add(like);

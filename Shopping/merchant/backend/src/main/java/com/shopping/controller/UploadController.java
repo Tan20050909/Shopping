@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -48,6 +49,23 @@ public class UploadController {
             ".svg", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx",
             ".zip", ".rar", ".7z", ".exe", ".sh", ".bat", ".cmd",
             ".php", ".asp", ".aspx", ".jsp"
+    );
+
+    // 普通文件白名单及对应 Content-Type
+    private static final Set<String> FILE_EXTENSIONS = Set.of(
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+            ".mp3", ".wav"
+    );
+    private static final Map<String, List<String>> FILE_CONTENT_TYPES = Map.ofEntries(
+            Map.entry(".pdf", List.of("application/pdf")),
+            Map.entry(".doc", List.of("application/msword")),
+            Map.entry(".docx", List.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
+            Map.entry(".xls", List.of("application/vnd.ms-excel")),
+            Map.entry(".xlsx", List.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+            Map.entry(".ppt", List.of("application/vnd.ms-powerpoint")),
+            Map.entry(".pptx", List.of("application/vnd.openxmlformats-officedocument.presentationml.presentation")),
+            Map.entry(".mp3", List.of("audio/mpeg")),
+            Map.entry(".wav", List.of("audio/wav"))
     );
 
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -122,6 +140,24 @@ public class UploadController {
         // 检查扩展名是否在危险黑名单中
         if (DANGEROUS_EXTENSIONS.contains(ext)) {
             throw new IllegalArgumentException("不支持的文件类型：" + ext);
+        }
+
+        // 检查扩展名是否在白名单中
+        if (ext.isEmpty() || !FILE_EXTENSIONS.contains(ext)) {
+            throw new IllegalArgumentException("不支持的文件类型，允许的类型：" + String.join(", ", FILE_EXTENSIONS));
+        }
+
+        // 校验 Content-Type 与扩展名匹配
+        String contentType = file.getContentType();
+        List<String> allowedTypes = FILE_CONTENT_TYPES.get(ext);
+        if (allowedTypes != null) {
+            if (contentType == null || contentType.isBlank()) {
+                throw new IllegalArgumentException("无法识别文件类型");
+            }
+            String mainType = contentType.contains(";") ? contentType.substring(0, contentType.indexOf(";")).trim() : contentType.trim();
+            if (!allowedTypes.contains(mainType)) {
+                throw new IllegalArgumentException("文件内容类型与扩展名不匹配");
+            }
         }
     }
 

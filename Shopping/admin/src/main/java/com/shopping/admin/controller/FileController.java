@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +41,41 @@ public class FileController {
             ".php", ".asp", ".aspx", ".jsp"
     );
 
+    // 扩展名对应的允许 Content-Type
+    private static final Map<String, List<String>> EXT_CONTENT_TYPES = Map.ofEntries(
+            Map.entry(".jpg", List.of("image/jpeg")),
+            Map.entry(".jpeg", List.of("image/jpeg")),
+            Map.entry(".png", List.of("image/png")),
+            Map.entry(".gif", List.of("image/gif")),
+            Map.entry(".webp", List.of("image/webp")),
+            Map.entry(".bmp", List.of("image/bmp")),
+            Map.entry(".pdf", List.of("application/pdf")),
+            Map.entry(".doc", List.of("application/msword")),
+            Map.entry(".docx", List.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
+            Map.entry(".xls", List.of("application/vnd.ms-excel")),
+            Map.entry(".xlsx", List.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+            Map.entry(".ppt", List.of("application/vnd.ms-powerpoint")),
+            Map.entry(".pptx", List.of("application/vnd.openxmlformats-officedocument.presentationml.presentation")),
+            Map.entry(".mp4", List.of("video/mp4")),
+            Map.entry(".mp3", List.of("audio/mpeg")),
+            Map.entry(".wav", List.of("audio/wav"))
+    );
+
+    private void validateContentType(String ext, String contentType) {
+        List<String> allowedTypes = EXT_CONTENT_TYPES.get(ext);
+        if (allowedTypes == null) {
+            return; // 未知扩展名，由白名单拦截
+        }
+        if (contentType == null || contentType.isBlank()) {
+            throw new BusinessException(400, "无法识别文件类型");
+        }
+        // 取分号前的主体类型（忽略 charset 等参数）
+        String mainType = contentType.contains(";") ? contentType.substring(0, contentType.indexOf(";")).trim() : contentType.trim();
+        if (!allowedTypes.contains(mainType)) {
+            throw new BusinessException(400, "文件内容类型与扩展名不匹配");
+        }
+    }
+
     @PostMapping("/upload")
     public Result<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
@@ -61,6 +97,7 @@ public class FileController {
         if (ext.isEmpty() || !ALLOWED_EXTENSIONS.contains(ext)) {
             throw new BusinessException(400, "不支持的文件类型，允许的类型：" + String.join(", ", ALLOWED_EXTENSIONS));
         }
+        validateContentType(ext, file.getContentType());
         String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
         String datePath = java.time.LocalDate.now().toString().replace("-", "/");
         Path dirPath = Paths.get(uploadPath, datePath);
@@ -92,6 +129,7 @@ public class FileController {
                 if (ext.isEmpty() || !ALLOWED_EXTENSIONS.contains(ext)) {
                     throw new BusinessException(400, "不支持的文件类型: " + originalFilename);
                 }
+                validateContentType(ext, file.getContentType());
                 String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
                 String datePath = java.time.LocalDate.now().toString().replace("-", "/");
                 Path dirPath = Paths.get(uploadPath, datePath);

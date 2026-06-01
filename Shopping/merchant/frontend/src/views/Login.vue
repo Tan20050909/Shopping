@@ -325,7 +325,11 @@ const handleUserLogin = async () => {
     }
     return
   }
-  router.push(resolveRedirect('user', '/'))
+  // 无合法 back 参数，回到用户端 5173
+  const defaultUserUrl = new URL('http://localhost:5173/')
+  if (data.token) defaultUserUrl.searchParams.set('token', String(data.token))
+  defaultUserUrl.searchParams.set('role', 'user')
+  window.location.href = defaultUserUrl.toString()
 }
 
 const handleUserRegister = async () => {
@@ -369,7 +373,11 @@ const handleUserRegister = async () => {
     }
     return
   }
-  router.push(resolveRedirect('user', '/'))
+  // 无合法 back 参数，回到用户端 5173
+  const defaultUserUrl = new URL('http://localhost:5173/')
+  if (data.token) defaultUserUrl.searchParams.set('token', String(data.token))
+  defaultUserUrl.searchParams.set('role', 'user')
+  window.location.href = defaultUserUrl.toString()
 }
 
 const handleMerchantLogin = async () => {
@@ -396,7 +404,7 @@ const handleMerchantLogin = async () => {
     }))
     setAuthRole('merchant')
     ElMessage.success('登录成功')
-    router.push(resolveRedirect('merchant', '/'))
+    router.push(resolveRedirect('merchant', '/dashboard'))
     return
   }
 

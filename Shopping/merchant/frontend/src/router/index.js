@@ -249,7 +249,7 @@ router.beforeEach((to, from, next) => {
     const tab = typeof to.query?.tab === 'string' ? String(to.query.tab) : ''
     const role = getAuthRole()
     if (tab !== 'user' && role === 'merchant' && hasMerchantSession()) {
-      next('/')
+      next('/dashboard')
       return
     }
     if (role === 'user' || hasUserSession()) {

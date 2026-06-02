@@ -643,7 +643,7 @@ const toMoney = (value) => {
   return Number.isFinite(num) ? num.toFixed(2) : '0.00'
 }
 
-const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TEXT = ['待支付', '待发货', '待收货', '已完成', '已取消', '售后中']
 const statusText = (status) => {
   return ORDER_STATUS_TEXT[Number(status)] || '未知'
 }

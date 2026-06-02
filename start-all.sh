@@ -118,6 +118,9 @@ start_service() {
 
 # ---- 启动顺序 ----
 
+# 统一设置 JVM 时区为北京时间
+export MAVEN_OPTS="${MAVEN_OPTS:-} -Duser.timezone=Asia/Shanghai"
+
 prepare_frontend "Shopping/user/frontend"
 prepare_frontend "Shopping/merchant/frontend"
 prepare_frontend "Shopping/admin"

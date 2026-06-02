@@ -699,7 +699,7 @@ const loadTrend = async () => {
         itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         label: { color: '#666', fontSize: 12 },
         data: [
-          { value: cat.pendingPayment, name: '待付款', itemStyle: { color: '#FFB3B3' } },
+          { value: cat.pendingPayment, name: '待支付', itemStyle: { color: '#FFB3B3' } },
           { value: cat.pendingShip, name: '待发货', itemStyle: { color: '#E60012' } },
           { value: cat.pendingReceive, name: '待收货', itemStyle: { color: '#FF5252' } },
           { value: cat.completed, name: '已完成', itemStyle: { color: '#333' } },

@@ -14,7 +14,7 @@ spring:
     static-path-pattern: /uploads/**
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:Shopping}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:Shopping}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
   web:

@@ -7,10 +7,12 @@ import com.shopping.entity.LogisticsTrace;
 import com.shopping.entity.Order;
 import com.shopping.mapper.LogisticsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class LogisticsService extends ServiceImpl<LogisticsMapper, Logistics> {
@@ -24,6 +26,9 @@ public class LogisticsService extends ServiceImpl<LogisticsMapper, Logistics> {
     @Autowired
     private LogisticsTraceService logisticsTraceService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Transactional
     public Logistics create(Logistics logistics) {
         return shipOrder(logistics.getOrderId(), logistics.getMerchantId(), logistics.getCompany(), logistics.getTrackingNo());
@@ -34,12 +39,19 @@ public class LogisticsService extends ServiceImpl<LogisticsMapper, Logistics> {
         UpsertResult upsert = upsertLogisticsOnly(orderId, merchantId, expressCompany, expressNo, BIZ_TYPE_ORDER);
         Logistics logistics = upsert.logistics;
 
+        // 先查询订单获取 groupId
+        Order existingOrder = orderService.getById(orderId);
+        Long groupId = existingOrder != null ? existingOrder.getGroupId() : null;
+
         Order order = new Order();
         order.setId(orderId);
         order.setStatus(2);
         order.setDeliveryTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderService.updateById(order);
+
+        // 同步更新 tb_order_group.group_status
+        refreshGroupStatus(groupId);
 
         String company = normalize(expressCompany);
         String no = normalize(expressNo);
@@ -193,5 +205,32 @@ public class LogisticsService extends ServiceImpl<LogisticsMapper, Logistics> {
             default:
                 return null;
         }
+    }
+
+    private void refreshGroupStatus(Long groupId) {
+        if (groupId == null) return;
+        List<Map<String, Object>> statuses = jdbcTemplate.queryForList(
+                "SELECT order_status FROM tb_order WHERE group_id = ?", groupId);
+        if (statuses.isEmpty()) return;
+
+        boolean allCompleted = true;
+        boolean allShippedOrCompleted = true;
+        for (Map<String, Object> row : statuses) {
+            int s = ((Number) row.get("order_status")).intValue();
+            if (s != 3) allCompleted = false;
+            if (s < 2) allShippedOrCompleted = false;
+        }
+
+        int nextStatus;
+        if (allCompleted) {
+            nextStatus = 3;
+        } else if (allShippedOrCompleted) {
+            nextStatus = 2;
+        } else {
+            return; // 有待发货订单，不更新 group_status
+        }
+
+        jdbcTemplate.update("UPDATE tb_order_group SET group_status = ? WHERE group_id = ? AND group_status <> 4",
+                nextStatus, groupId);
     }
 }

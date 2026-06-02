@@ -11,7 +11,7 @@
 
       <div class="tabs">
         <div class="tab" :class="{ active: tabKey === 'all' }" @click="setTab('all')">所有订单</div>
-        <div class="tab" :class="{ active: tabKey === '0' }" @click="setTab('0')">待付款<span v-if="countPay" class="badge">{{ countPay }}</span></div>
+        <div class="tab" :class="{ active: tabKey === '0' }" @click="setTab('0')">待支付<span v-if="countPay" class="badge">{{ countPay }}</span></div>
         <div class="tab" :class="{ active: tabKey === '1' }" @click="setTab('1')">待发货<span v-if="countShip" class="badge">{{ countShip }}</span></div>
         <div class="tab" :class="{ active: tabKey === '2' }" @click="setTab('2')">待收货</div>
         <div class="tab" :class="{ active: tabKey === '3' }" @click="setTab('3')">已完成</div>
@@ -363,7 +363,7 @@ const confirmShip = async () => {
   }
 }
 
-const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TEXT = ['待支付', '待发货', '待收货', '已完成', '已取消', '售后中']
 const ORDER_STATUS_TYPE = ['info', 'warning', 'primary', 'success', 'info', 'danger']
 
 const getStatusType = (status) => {

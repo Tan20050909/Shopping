@@ -2759,7 +2759,7 @@ public class ShoppingService {
    private String orderStatusText(Integer status) {
       int s = status == null ? -1 : status;
       if (s == 0) {
-         return "待付款";
+         return "待支付";
       } else if (s == 1) {
          return "待发货";
       } else if (s == 2) {

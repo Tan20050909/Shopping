@@ -85,7 +85,7 @@ import { getOrderList, getOrderDetail, remindMerchantShip, refundOrder as refund
 import { hasPermission } from '../utils/permission'
 
 
-const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TEXT = ['待支付', '待发货', '待收货', '已完成', '已取消', '售后中']
 
 const tableData = ref([])
 const loading = ref(false)

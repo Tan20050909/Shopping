@@ -121,7 +121,7 @@ const loadOverview = async () => {
       tooltip: { trigger: 'item' },
       series: [{ type: 'pie', radius: ['35%', '65%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         data: [
-          { value: s.pendingPayment || 0, name: '待付款', itemStyle: { color: '#FFB3B3' } },
+          { value: s.pendingPayment || 0, name: '待支付', itemStyle: { color: '#FFB3B3' } },
           { value: s.pendingShip || 0, name: '待发货', itemStyle: { color: '#E60012' } },
           { value: s.pendingReceive || 0, name: '待收货', itemStyle: { color: '#FF5252' } },
           { value: s.completed || 0, name: '已完成', itemStyle: { color: '#333' } },

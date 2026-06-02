@@ -19,7 +19,7 @@
 
       <div v-else-if="detail?.order" class="content">
         <el-steps :active="stepActive" align-center finish-status="success">
-          <el-step title="待付款" />
+          <el-step title="待支付" />
           <el-step title="待发货" />
           <el-step title="待收货" />
           <el-step title="已完成" />
@@ -202,7 +202,7 @@ const formatTime = (t) => {
   return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
-const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TEXT = ['待支付', '待发货', '待收货', '已完成', '已取消', '售后中']
 const ORDER_STATUS_TYPE = ['info', 'warning', 'primary', 'success', 'info', 'danger']
 
 const getStatusType = (status) => {

@@ -3161,6 +3161,43 @@ public class ShoppingService {
       }
    }
 
+   public Map<String, Object> uploadAfterSaleEvidence(MultipartFile file, HttpServletRequest request) {
+      if (file != null && !file.isEmpty()) {
+         if (file.getSize() > 5242880L) {
+            throw new BizException("PARAM_INVALID", "售后凭证图片不能超过 5MB");
+         } else {
+            String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
+            if (!contentType.startsWith("image/")) {
+               throw new BizException("PARAM_INVALID", "只能上传图片文件");
+            } else {
+               String ext = this.imageExtension(contentType);
+               String day = LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+               String filename = UUID.randomUUID().toString().replace("-", "") + ext;
+               Path dir = Path.of("uploads", "after-sale", day).toAbsolutePath().normalize();
+               Path target = dir.resolve(filename).normalize();
+
+               try {
+                  Files.createDirectories(dir);
+                  file.transferTo(target);
+               } catch (IOException var12) {
+                  throw new BizException("售后凭证图片上传失败，请稍后重试");
+               }
+
+               String path = "/uploads/after-sale/" + day + "/" + filename;
+               String host = request.getServerName();
+               if ("localhost".equalsIgnoreCase(host)) {
+                  host = "127.0.0.1";
+               }
+
+               String baseUrl = request.getScheme() + "://" + host + ":" + request.getServerPort();
+               return Map.of("url", baseUrl + path, "path", path);
+            }
+         }
+      } else {
+         throw new BizException("PARAM_INVALID", "请选择要上传的售后凭证图片");
+      }
+   }
+
    public Map<String, Object> uploadReviewImage(MultipartFile file, HttpServletRequest request) {
       if (file != null && !file.isEmpty()) {
          if (file.getSize() > 5242880L) {

@@ -189,6 +189,12 @@ public class UserTradeController {
         return Result.ok(shoppingService.cancelAfterSale(UserContext.requireCurrentUserId(), afterSaleId));
     }
 
+    @PostMapping("/after-sales/upload-evidence")
+    public Result<Map<String, Object>> uploadAfterSaleEvidence(@RequestParam("file") MultipartFile file,
+                                                               HttpServletRequest request) {
+        return Result.ok(shoppingService.uploadAfterSaleEvidence(file, request));
+    }
+
     @PostMapping("/after-sales/{afterSaleId}/return-logistics")
     public Result<Void> submitReturnLogistics(@PathVariable long afterSaleId, @RequestBody Map<String, String> body) {
         String expressCompany = body.getOrDefault("expressCompany", "").trim();

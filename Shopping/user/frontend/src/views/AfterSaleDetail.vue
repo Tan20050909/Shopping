@@ -64,6 +64,13 @@ const canCancel = computed(() => {
 })
 
 const dispute = computed(() => detail.value?.dispute || null)
+const detailEvidences = computed(() => {
+  const raw = String(field(detail.value, 'applyEvidence', 'apply_evidence', ''))
+  if (!raw) return []
+  return raw.split(',').map(v => v.trim()).filter(Boolean)
+})
+const previewImageUrl = ref('')
+const previewVisible = ref(false)
 const returnLogistics = computed(() => detail.value?.returnLogistics || null)
 const canSubmitReturnLogistics = computed(() => {
   const handleStatus = Number(field(detail.value, 'handleStatus', 'handle_status', -1))
@@ -233,8 +240,20 @@ onMounted(load)
           <div class="info-lines">
             <span class="muted">申请原因：{{ reasonParts.reason }}</span>
             <span class="muted">补充说明：{{ reasonParts.note }}</span>
-            <span class="muted">凭证图片地址：{{ field(detail, 'applyEvidence', 'apply_evidence') || '未填写' }}</span>
           </div>
+          <div v-if="detailEvidences.length" style="margin-top:10px">
+            <span class="muted" style="font-weight:700">凭证图片：</span>
+            <div class="evidence-grid">
+              <img
+                v-for="(url, idx) in detailEvidences"
+                :key="idx"
+                :src="url"
+                class="evidence-thumb"
+                @click="previewImageUrl = url; previewVisible = true"
+              />
+            </div>
+          </div>
+          <span v-else class="muted">凭证图片：未提供</span>
         </div>
 
         <div class="band stack">
@@ -304,6 +323,10 @@ onMounted(load)
       </section>
     </template>
   </main>
+
+  <div v-if="previewVisible" class="image-overlay" @click="previewVisible = false">
+    <img :src="previewImageUrl" class="image-overlay-img" />
+  </div>
 </template>
 
 <style scoped>
@@ -384,5 +407,44 @@ onMounted(load)
   .summary-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.evidence-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: opacity .2s;
+}
+
+.evidence-thumb:hover {
+  opacity: .8;
+}
+
+.image-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.image-overlay-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 8px;
+  object-fit: contain;
 }
 </style>

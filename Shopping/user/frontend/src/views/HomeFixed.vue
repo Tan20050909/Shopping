@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Goods, Present, Star, TrendCharts, VideoCamera, User } from '@element-plus/icons-vue'
-import { api } from '../api/client'
+import { api, imageOf } from '../api/client'
 import ProductCard from '../components/ProductCard.vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -28,6 +28,7 @@ const homeData = ref({
   hotKeywords: [],
   freshProducts: []
 })
+const lives = ref([])
 
 const isHome = computed(() => route.path === '/')
 const hotKeywords = computed(() => homeData.value.hotKeywords || [])
@@ -50,6 +51,13 @@ const groupedCategories = computed(() => {
   }))
 })
 const topLevelCategories = computed(() => groupedCategories.value.map(({ children, ...category }) => category))
+const topLive = computed(() => {
+  const list = Array.isArray(lives.value) ? lives.value : []
+  const sorted = [...list]
+    .filter(r => Number(r.live_status) !== 2 && Number(r.live_status) !== 3)
+    .sort((a, b) => Number(b.watch_num || 0) - Number(a.watch_num || 0))
+  return sorted[0] || null
+})
 const platformStats = computed(() => [
   { label: '精选商品', value: `${total.value || goods.value.length || 0}+`, icon: Goods },
   { label: '内容推荐', value: `${homeData.value.sections?.length || 0}+`, icon: Star },
@@ -130,7 +138,12 @@ async function loadHome() {
   if (!isHome.value) return
   homeLoading.value = true
   try {
-    homeData.value = await api('/api/user/home')
+    const [homeRes, liveRes] = await Promise.all([
+      api('/api/user/home'),
+      api('/api/user/live-rooms').catch(() => [])
+    ])
+    homeData.value = homeRes
+    lives.value = liveRes
   } catch (error) {
     ElMessage.error(error.message)
   } finally {
@@ -168,9 +181,27 @@ async function loadPage() {
   await Promise.all([loadCategories(), loadHome(), loadGoods()])
 }
 
+function goToTopLive() {
+  if (!topLive.value) { router.push('/live'); return }
+  const url = String(topLive.value.live_url || '').trim()
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  } else {
+    router.push(`/live/${topLive.value.live_id}`)
+  }
+}
 function sectionAction(section) {
   if (section.sectionType === 4) {
-    router.push('/live')
+    if (topLive.value) {
+      const url = String(topLive.value.live_url || '').trim()
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        router.push(`/live/${topLive.value.live_id}`)
+      }
+    } else {
+      router.push('/live')
+    }
     return
   }
   if (section.goods?.[0]?.categoryId) {
@@ -360,6 +391,13 @@ onMounted(loadPage)
                 :item="item"
                 mode="compact"
               />
+            </div>
+            <div v-else-if="section.sectionType === 4 && topLive" class="live-card" tabindex="0" role="button" @click="goToTopLive" @keydown.enter="goToTopLive" @keydown.space.prevent="goToTopLive">
+              <img class="live-card-cover" :src="imageOf(topLive)" :alt="topLive.live_title" @error="(e) => { e.target.style.display='none' }" />
+              <div class="live-card-info">
+                <strong>{{ topLive.live_title }}</strong>
+                <span class="muted">观看 {{ topLive.watch_num || 0 }} 人 · {{ topLive.merchant_name || '' }}</span>
+              </div>
             </div>
             <div v-else class="empty-section">
               <el-icon><VideoCamera /></el-icon>
@@ -725,6 +763,38 @@ onMounted(loadPage)
 .empty-section :deep(.el-icon) {
   color: var(--brand-red);
   font-size: 32px;
+}
+
+.live-card {
+  position: relative;
+  min-height: 200px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.live-card-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-card-info {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  padding: 24px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: #fff;
+  min-height: 200px;
+  align-content: end;
+}
+
+.live-card-info .muted {
+  color: rgba(255,255,255,0.7);
 }
 
 .product-list-layout {

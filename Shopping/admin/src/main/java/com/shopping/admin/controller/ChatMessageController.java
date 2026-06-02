@@ -29,6 +29,8 @@ public class ChatMessageController {
         message.setFromId(adminId != null ? adminId : 1L);
         message.setFromType(3);
         message.setIsRead(0);
+        // session_id 字段 NOT NULL 无默认值，admin 无会话概念，填入 0 占位
+        message.setSessionId(0L);
         chatMessageService.save(message);
         return Result.success();
     }

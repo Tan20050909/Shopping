@@ -191,7 +191,7 @@
             start-placeholder="开始时间"
             end-placeholder="结束时间"
             format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
             style="width:100%"
             :shortcuts="dateShortcuts"
             :default-time="[new Date(0,0,0,0,0,0), new Date(0,0,0,23,59,59)]"
@@ -293,6 +293,8 @@ const loadData = async () => {
     const res = await getBannerList(params)
     tableData.value = res.data.records || []
     total.value = res.data.total || 0
+  } catch (e) {
+    ElMessage.error('加载轮播图数据失败')
   } finally { loading.value = false }
 }
 
@@ -354,37 +356,55 @@ const submitForm = async () => {
     ElMessage.success(form.bannerId ? '修改成功' : '新增成功')
     formVisible.value = false
     loadData()
+  } catch (e) {
+    ElMessage.error('操作失败，请重试')
   } finally { submitting.value = false }
 }
 
 const handleStatus = async (row, status) => {
-  await updateBannerStatus(row.bannerId, status)
-  ElMessage.success(status === 1 ? '已启用' : '已禁用')
-  loadData()
+  try {
+    await updateBannerStatus(row.bannerId, status)
+    ElMessage.success(status === 1 ? '已启用' : '已禁用')
+    loadData()
+  } catch (e) {
+    ElMessage.error('操作失败，请重试')
+  }
 }
 
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm('确认删除该轮播图？', '删除确认', { type: 'warning' })
-  await deleteBanner(row.bannerId)
-  ElMessage.success('已删除')
-  loadData()
+  try {
+    await ElMessageBox.confirm('确认删除该轮播图？', '删除确认', { type: 'warning' })
+    await deleteBanner(row.bannerId)
+    ElMessage.success('已删除')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('删除失败，请重试')
+  }
 }
 
 const handleBatchStatus = async (status) => {
   const label = status === 1 ? '启用' : '禁用'
-  await ElMessageBox.confirm(`确认${label}选中的 ${selectedIds.value.length} 项？`, '批量操作', { type: 'warning' })
-  await batchUpdateBannerStatus(selectedIds.value, status)
-  ElMessage.success(`已${label} ${selectedIds.value.length} 项`)
-  selectedIds.value = []
-  loadData()
+  try {
+    await ElMessageBox.confirm(`确认${label}选中的 ${selectedIds.value.length} 项？`, '批量操作', { type: 'warning' })
+    await batchUpdateBannerStatus(selectedIds.value, status)
+    ElMessage.success(`已${label} ${selectedIds.value.length} 项`)
+    selectedIds.value = []
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('批量操作失败，请重试')
+  }
 }
 
 const handleBatchDelete = async () => {
-  await ElMessageBox.confirm(`确认删除选中的 ${selectedIds.value.length} 项？`, '批量删除', { type: 'error' })
-  await batchDeleteBanner(selectedIds.value)
-  ElMessage.success(`已删除 ${selectedIds.value.length} 项`)
-  selectedIds.value = []
-  loadData()
+  try {
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedIds.value.length} 项？`, '批量删除', { type: 'error' })
+    await batchDeleteBanner(selectedIds.value)
+    ElMessage.success(`已删除 ${selectedIds.value.length} 项`)
+    selectedIds.value = []
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('批量删除失败，请重试')
+  }
 }
 
 const openPreview = () => {

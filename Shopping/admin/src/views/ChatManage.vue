@@ -12,6 +12,7 @@
     </div>
     <div class="content-card">
       <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
+        <template #empty><el-empty description="暂无客服消息" /></template>
         <el-table-column prop="messageId" label="ID" width="70" />
         <el-table-column prop="fromId" label="发送者" width="90" />
         <el-table-column label="发送者类型" width="100">
@@ -62,7 +63,9 @@ const loadData = async () => {
     const params = { current: current.value, size: size.value }
     if (fromIdFilter.value) params.fromId = Number(fromIdFilter.value)
     const res = await getChatList(params)
-    tableData.value = res.data.records; total.value = res.data.total
+    tableData.value = res.data?.records ?? []; total.value = res.data?.total ?? 0
+  } catch (e) {
+    ElMessage.error('加载消息失败')
   } finally { loading.value = false }
 }
 
@@ -70,9 +73,12 @@ const handleReply = (row) => { replyTo.value = row; replyContent.value = ''; rep
 
 const submitReply = async () => {
   if (!replyContent.value.trim()) { ElMessage.warning('请输入回复'); return }
-  await sendChatMessage({ toId: replyTo.value.fromId, toType: replyTo.value.fromType, content: replyContent.value, msgType: 1 })
-
-  ElMessage.success('发送成功'); replyVisible.value = false; loadData()
+  try {
+    await sendChatMessage({ toId: replyTo.value.fromId, toType: replyTo.value.fromType, content: replyContent.value, msgType: 1 })
+    ElMessage.success('发送成功'); replyVisible.value = false; loadData()
+  } catch (e) {
+    ElMessage.error('发送失败，请重试')
+  }
 }
 
 onMounted(loadData)

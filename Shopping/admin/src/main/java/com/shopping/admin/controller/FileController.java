@@ -76,6 +76,15 @@ public class FileController {
         }
     }
 
+    /** 将相对路径 uploadPath 转为基于项目根目录的绝对路径 */
+    private Path resolveUploadDir() {
+        Path dir = Paths.get(uploadPath);
+        if (!dir.isAbsolute()) {
+            dir = Paths.get(System.getProperty("user.dir")).resolve(dir).normalize();
+        }
+        return dir;
+    }
+
     @PostMapping("/upload")
     public Result<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
@@ -100,7 +109,8 @@ public class FileController {
         validateContentType(ext, file.getContentType());
         String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
         String datePath = java.time.LocalDate.now().toString().replace("-", "/");
-        Path dirPath = Paths.get(uploadPath, datePath);
+        Path baseDir = resolveUploadDir();
+        Path dirPath = baseDir.resolve(datePath);
         Files.createDirectories(dirPath);
         Path filePath = dirPath.resolve(newFilename);
         file.transferTo(filePath.toFile());
@@ -111,6 +121,7 @@ public class FileController {
     @PostMapping("/upload-batch")
     public Result<?> uploadBatch(@RequestParam("files") MultipartFile[] files) throws IOException {
         java.util.List<Map<String, String>> results = new java.util.ArrayList<>();
+        Path baseDir = resolveUploadDir();
         for (MultipartFile file : files) {
             if (!file.isEmpty()) {
                 if (file.getSize() > MAX_FILE_SIZE) {
@@ -132,7 +143,7 @@ public class FileController {
                 validateContentType(ext, file.getContentType());
                 String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
                 String datePath = java.time.LocalDate.now().toString().replace("-", "/");
-                Path dirPath = Paths.get(uploadPath, datePath);
+                Path dirPath = baseDir.resolve(datePath);
                 Files.createDirectories(dirPath);
                 Path filePath = dirPath.resolve(newFilename);
                 file.transferTo(filePath.toFile());

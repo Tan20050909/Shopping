@@ -17,7 +17,8 @@
         WHERE status = 1
           AND is_deleted = 0
           AND display_position = 1
-          AND NOW() BETWEEN start_time AND end_time
+          AND (start_time IS NULL OR start_time &lt;= NOW())
+          AND (end_time IS NULL OR end_time &gt;= NOW())
         ORDER BY sort_no, banner_id
     </select>
 

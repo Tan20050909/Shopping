@@ -6,8 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@user': path.resolve(__dirname, '../../user/frontend/src')
+      '@': path.resolve(__dirname, 'src')
     }
   },
   build: {
@@ -22,8 +21,7 @@ export default defineConfig({
     port: 3000,
     fs: {
       allow: [
-        path.resolve(__dirname),
-        path.resolve(__dirname, '../../user/frontend')
+        path.resolve(__dirname)
       ]
     },
     proxy: {

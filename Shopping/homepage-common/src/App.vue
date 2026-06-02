@@ -146,7 +146,7 @@ const banners = ref([])
 const goods = ref([])
 
 const readUserFromStorage = () => {
-  const keys = ['buyerUser', 'user', 'currentUser', 'profile', 'merchantUser']
+  const keys = ['buyerUser', 'user', 'currentUser', 'profile']
   for (const k of keys) {
     try {
       const raw = localStorage.getItem(k)
@@ -162,7 +162,7 @@ const readUserFromStorage = () => {
 const currentUserId = computed(() => {
   const u = readUserFromStorage()
   const id = Number(u?.userId ?? u?.id ?? u?.uid ?? u?.accountId ?? 0)
-  return Number.isFinite(id) && id > 0 ? id : 1001
+  return Number.isFinite(id) && id > 0 ? id : 0
 })
 
 const productRef = ref(null)
@@ -246,8 +246,8 @@ const resolveMediaUrl = (src) => {
   const v = String(src || '').trim()
   if (!v) return ''
   if (v.startsWith('http://') || v.startsWith('https://')) return v
-  // Banner 图拼到平台端 8080
-  if (v.startsWith('/')) return `http://localhost:8080${v}`
+  // 媒体资源统一拼到商家后端 8081
+  if (v.startsWith('/')) return `http://localhost:8081${v}`
   return v
 }
 
@@ -353,6 +353,10 @@ const loadGoods = async () => {
 }
 
 const toggleFavorite = async (item) => {
+  if (!currentUserId.value) {
+    toast('请先登录后再操作')
+    return
+  }
   try {
     const res = await goodsApi.toggleFavorite(item.id, currentUserId.value)
     const data = res?.data || {}
@@ -364,6 +368,10 @@ const toggleFavorite = async (item) => {
 }
 
 const toggleFollow = async (item) => {
+  if (!currentUserId.value) {
+    toast('请先登录后再操作')
+    return
+  }
   try {
     const res = await merchantApi.toggleFollow(item.merchantId, currentUserId.value)
     const data = res?.data || {}

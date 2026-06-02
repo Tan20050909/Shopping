@@ -10,7 +10,7 @@
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
         <el-select v-model="statusFilter" placeholder="订单状态" clearable style="width:120px" @change="loadData">
-          <el-option v-for="(s,i) in ['待付款','待发货','待收货','已完成','已取消','已退款']" :key="i" :label="s" :value="i" />
+          <el-option v-for="(s,i) in ORDER_STATUS_TEXT" :key="i" :label="s" :value="i" />
         </el-select>
         <el-button type="primary" @click="loadData">搜索</el-button>
       </div>
@@ -27,7 +27,7 @@
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTypes[row.orderStatus]" size="small" effect="light" style="border-radius:999px">{{ ['待付款','待发货','待收货','已完成','已取消','已退款'][row.orderStatus] }}</el-tag>
+            <el-tag :type="statusTypes[row.orderStatus]" size="small" effect="light" style="border-radius:999px">{{ ORDER_STATUS_TEXT[row.orderStatus] }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="下单时间" width="170" />
@@ -49,7 +49,7 @@
     <el-dialog v-model="detailVisible" title="订单详情" width="700px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="订单号">{{ detail.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态"><el-tag :type="statusTypes[detail.orderStatus]" size="small" style="border-radius:999px">{{ ['待付款','待发货','待收货','已完成','已取消','已退款'][detail.orderStatus] }}</el-tag></el-descriptions-item>
+        <el-descriptions-item label="状态"><el-tag :type="statusTypes[detail.orderStatus]" size="small" style="border-radius:999px">{{ ORDER_STATUS_TEXT[detail.orderStatus] }}</el-tag></el-descriptions-item>
         <el-descriptions-item label="商品金额">¥{{ detail.totalAmount }}</el-descriptions-item>
         <el-descriptions-item label="实付金额"><span style="color:#E60012;font-weight:600">¥{{ detail.payAmount }}</span></el-descriptions-item>
         <el-descriptions-item label="收货地址" :span="2">{{ detail.receiveAddr || '-' }}</el-descriptions-item>
@@ -84,6 +84,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderList, getOrderDetail, remindMerchantShip, refundOrder as refundOrderApi, cancelOrder as cancelOrderApi } from '../api/order'
 import { hasPermission } from '../utils/permission'
 
+
+const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
 
 const tableData = ref([])
 const loading = ref(false)

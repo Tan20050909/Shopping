@@ -213,7 +213,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { merchantUserApi, adminUserApi } from '../api'
 import { ElMessage } from 'element-plus'
@@ -223,6 +223,23 @@ const USER_TOKEN_KEY = 'shopping_user_token'
 
 const route = useRoute()
 const router = useRouter()
+
+// forceLogin=1 时清理 3000 下残留的用户态 token，防止自动登录旧账号
+onMounted(() => {
+  if (route.query?.forceLogin === '1') {
+    const role = sessionStorage.getItem(AUTH_ROLE_KEY)
+    const tab = String(route.query?.tab || '')
+    if (tab === 'merchant' || role === 'merchant') {
+      localStorage.removeItem('merchantUser')
+      if (role === 'merchant') sessionStorage.removeItem(AUTH_ROLE_KEY)
+      return
+    }
+    if (role === 'user' || !role || tab === 'user') {
+      localStorage.removeItem(USER_TOKEN_KEY)
+      if (role === 'user') sessionStorage.removeItem(AUTH_ROLE_KEY)
+    }
+  }
+})
 
 const initTab = route.query?.tab
 const activeRole = ref(initTab === 'merchant' || initTab === 'admin' ? initTab : 'user')

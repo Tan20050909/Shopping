@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
 
@@ -135,7 +135,7 @@ async function addFavorite() {
   <div class="product-card" :class="`mode-${props.mode}`">
     <router-link class="product-main" :to="`/products/${productId}`">
       <div class="product-image-wrap">
-        <img class="cover" :src="imageOf(props.item)" :alt="productName" />
+        <img class="cover" :src="imageOf(props.item)" :alt="productName" @error="(e) => (e.target.src = fallbackImageOf(props.item))" />
       </div>
       <div class="product-info">
         <strong>{{ productName }}</strong>
@@ -163,7 +163,7 @@ async function addFavorite() {
     <div v-if="skuDialogLoading" class="sku-loading">正在加载规格...</div>
     <div v-else class="sku-dialog-body">
       <div class="sku-head">
-        <img class="cover sku-cover" :src="imageOf(dialogProduct)" :alt="productName" />
+        <img class="cover sku-cover" :src="imageOf(dialogProduct)" :alt="productName" @error="(e) => (e.target.src = fallbackImageOf(dialogProduct))" />
         <div>
           <strong>{{ productName }}</strong>
           <p class="muted">总可售库存 {{ dialogProduct.totalStock ?? dialogProduct.total_stock ?? cardStock }}</p>

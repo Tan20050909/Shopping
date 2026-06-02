@@ -1,15 +1,13 @@
 <template>
-  <UserShell v-if="layout === 'user'" />
-
-  <div v-else-if="isStandalonePage">
+  <div v-if="isStandalonePage">
     <router-view></router-view>
   </div>
 
   <div v-else-if="layout === 'merchant'" class="merchant-portal">
     <div class="top-nav">
       <div class="top-nav-left">
-        <a href="#" @click.prevent="goHome">平台首页</a>
-        <a href="#" @click.prevent="goRoute('/products')">分类入口</a>
+        <a href="#" @click.prevent="goHome">商家工作台</a>
+        <a href="#" @click.prevent="goRoute('/goods')">商品入口</a>
         <a href="#" @click.prevent="goRoute('/activity')">活动入口</a>
       </div>
       <div class="top-nav-right">
@@ -79,6 +77,7 @@
     <div class="main-nav">
       <el-menu :key="menuKey" :default-active="activeMenu" mode="horizontal" class="merchant-top-menu" @select="onMenuSelect">
         <el-menu-item index="/dashboard">工作台</el-menu-item>
+        <el-menu-item index="/data-center">数据中心</el-menu-item>
         <el-menu-item index="/goods">商品管理</el-menu-item>
         <el-menu-item index="/stock">库存管理</el-menu-item>
         <el-menu-item index="/comment-appeal">评价申诉</el-menu-item>
@@ -157,7 +156,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { merchantApi, orderApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { ensureMerchantUser, getMerchantId } from '@/utils/merchant'
-import UserShell from '@user/App.vue'
+import { DEFAULT_AVATARS, DEFAULT_USER_AVATAR, resolveAvatar } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -184,7 +183,7 @@ const loadUser = async () => {
     const parsed = raw ? JSON.parse(raw) : {}
     const merged = {
       ...(parsed || {}),
-      ...(shopLogo ? { shopLogo, avatarUrl: shopLogo } : {}),
+      ...(shopLogo ? { shopLogo } : {}),
       ...(Number.isFinite(shopScore) ? { shopScore } : {}),
       ...(Number.isFinite(followerCount) ? { followerCount } : {})
     }
@@ -219,33 +218,11 @@ const shopRatingText = computed(() => {
 })
 const shopAvatar = computed(() => (currentUser.value?.merchantName || currentUser.value?.username || '商')[0])
 const currentAvatar = computed(() => {
-  const v = String(currentUser.value?.avatarUrl || '').trim()
-  return v || ''
+  return resolveAvatar(currentUser.value?.avatarUrl, DEFAULT_USER_AVATAR)
 })
 
 const avatarDialogVisible = ref(false)
-const avatarCandidates = ref([
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-01',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-02',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-03',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-04',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-05',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-06',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-07',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-08',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-09',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-10',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-11',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-12',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-13',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-14',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-15',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-16',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-17',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-18',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-19',
-  'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-20'
-])
+const avatarCandidates = ref(DEFAULT_AVATARS)
 const selectedAvatar = ref('')
 
 const openAvatarDialog = () => {
@@ -268,11 +245,7 @@ const persistMerchantUser = (patch) => {
 const applyAvatar = async () => {
   if (!selectedAvatar.value) return
   const url = selectedAvatar.value
-  try {
-    await merchantApi.updateLogo({ merchantId: getMerchantId(), shopLogo: url })
-  } catch (e) {
-  }
-  persistMerchantUser({ avatarUrl: url, shopLogo: url })
+  persistMerchantUser({ avatarUrl: url })
   avatarDialogVisible.value = false
   ElMessage.success('已保存')
 }
@@ -283,11 +256,7 @@ const uploadAvatar = async (options) => {
     const url = res?.data?.url || ''
     if (url) {
       selectedAvatar.value = url
-      try {
-        await merchantApi.updateLogo({ merchantId: getMerchantId(), shopLogo: url })
-      } catch (e) {
-      }
-      persistMerchantUser({ avatarUrl: url, shopLogo: url })
+      persistMerchantUser({ avatarUrl: url })
       avatarDialogVisible.value = false
       ElMessage.success('上传成功')
     } else {
@@ -303,6 +272,7 @@ const uploadAvatar = async (options) => {
 const loadHeaderCounters = async () => {
   try {
     const merchantId = getMerchantId()
+    if (!merchantId) { pendingOrders.value = 0; return }
     const res = await orderApi.list(merchantId, null)
     const orders = Array.isArray(res.data) ? res.data : []
     pendingOrders.value = orders.filter(o => o.status === 1).length
@@ -312,15 +282,13 @@ const loadHeaderCounters = async () => {
 }
 
 const goHome = () => {
-  router.push('/products')
+  router.push('/dashboard')
 }
 
 const logoutMerchant = () => {
   localStorage.removeItem('merchantUser')
-  localStorage.removeItem('shopping_user_token')
-  window.dispatchEvent(new Event('shopping-user-token'))
   sessionStorage.removeItem('shopping_auth_role')
-  router.push('/')
+  router.push({ path: '/login', query: { tab: 'merchant', forceLogin: '1' } })
 }
 
 const doSearch = () => {

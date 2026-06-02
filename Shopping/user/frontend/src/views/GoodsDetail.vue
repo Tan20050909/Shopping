@@ -3,8 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 import { shopLogo as resolveLogo, scoreOf } from '../utils'
+import { DEFAULT_ANONYMOUS_AVATAR, DEFAULT_USER_AVATAR, resolveAvatar } from '../avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,9 +81,8 @@ function selectSku(sku) {
 }
 
 function avatarOf(comment) {
-  const avatar = comment.avatar || ''
-  if (avatar.startsWith('http') || avatar.startsWith('/')) return avatar
-  return 'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-comment'
+  if (Number(comment?.isAnonymous ?? comment?.is_anonymous) === 1) return DEFAULT_ANONYMOUS_AVATAR
+  return resolveAvatar(comment?.avatar, DEFAULT_USER_AVATAR)
 }
 
 function reviewImage(src) {
@@ -90,9 +90,18 @@ function reviewImage(src) {
   const v = String(src || '').trim().replaceAll('\\', '/')
   if (!v) return ''
   if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
+  if (v.startsWith('/uploads/')) return `http://localhost:8082${v}`
+  if (v.startsWith('uploads/')) return `http://localhost:8082/${v}`
+  if (v.startsWith('/goods/') || v.startsWith('goods/')) return fallbackDetailImage()
   if (v.startsWith('/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
   return `/${v}`
+}
+
+function onReviewPicError(event) {
+  const el = event?.target
+  if (!el || el.dataset.fallbackApplied === '1') return
+  el.dataset.fallbackApplied = '1'
+  el.src = fallbackDetailImage()
 }
 
 function pictureOf(pic) {
@@ -102,14 +111,20 @@ function pictureOf(pic) {
     const base = detail.value ? { ...detail.value } : {}
     return imageOf({ ...base, goodsId: pic?.picId || pic?.pic_id })
   }
-  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
-  if (v.startsWith('/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
-  return `/${v}`
+  return imageOf({
+    ...(detail.value || {}),
+    picUrl: v,
+    goodsId: detail.value?.goodsId,
+    goodsName: detail.value?.goodsName
+  })
 }
 
 function shopLogo() {
   return resolveLogo(detail.value?.merchantLogo || '')
+}
+
+function fallbackDetailImage() {
+  return fallbackImageOf(detail.value || {})
 }
 
 async function contactMerchant() {
@@ -147,11 +162,11 @@ onMounted(load)
   <main v-if="detail" class="page stack detail-page">
     <section class="detail">
       <div class="detail-media">
-        <img class="cover main-cover" :src="imageOf(detail)" :alt="detail.goodsName" />
+        <img class="cover main-cover" :src="imageOf(detail)" :alt="detail.goodsName" @error="(e) => (e.target.src = fallbackDetailImage())" />
       </div>
       <div class="detail-info stack">
         <div class="merchant-strip">
-          <img class="merchant-logo" :src="shopLogo()" :alt="detail.merchantName" />
+          <img class="merchant-logo" :src="shopLogo()" :alt="detail.merchantName" @error="(e) => (e.target.src = resolveLogo(''))" />
           <div class="merchant-meta">
             <el-popover placement="bottom-start" trigger="hover" width="360" popper-class="merchant-popover">
               <template #reference>
@@ -162,7 +177,7 @@ onMounted(load)
               </template>
               <div class="merchant-popover-body">
                 <div class="merchant-popover-head">
-                  <img class="merchant-logo large" :src="shopLogo()" :alt="detail.merchantName" />
+          <img class="merchant-logo large" :src="shopLogo()" :alt="detail.merchantName" @error="(e) => (e.target.src = resolveLogo(''))" />
                   <div>
                     <strong>{{ detail.merchantName }}</strong>
                     <p>{{ detail.merchantIntro || '精选商品持续上新，欢迎咨询商品、订单与售后问题。' }}</p>
@@ -222,7 +237,7 @@ onMounted(load)
     <section class="band stack">
       <h2 class="section-title">商品图片</h2>
       <div class="grid">
-        <img v-for="pic in detail.pictures" :key="pic.picId" class="cover" :src="pictureOf(pic)" :alt="detail.goodsName" />
+        <img v-for="pic in detail.pictures" :key="pic.picId" class="cover" :src="pictureOf(pic)" :alt="detail.goodsName" @error="(e) => (e.target.src = fallbackDetailImage())" />
       </div>
     </section>
 
@@ -248,6 +263,7 @@ onMounted(load)
             class="review-pic"
             :src="reviewImage(comment.commentPic)"
             alt="评价图片"
+            @error="onReviewPicError"
           />
           <div v-if="comment.replyContent" class="reply-box">
             <strong>商家回复</strong>

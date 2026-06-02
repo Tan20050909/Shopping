@@ -9,7 +9,6 @@
         WHERE g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
-          AND m.audit_status = 1
           AND m.status = 1
           AND m.is_deleted = 0
         <if test="query.merchantId != null">
@@ -112,7 +111,6 @@
             LEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id
             LEFT JOIN tb_goods_sku s ON s.goods_id = g.goods_id AND s.status = 1 AND s.is_deleted = 0
             WHERE g.merchant_id = #{merchantId}
-              AND m.audit_status = 1
               AND m.status = 1
               AND m.is_deleted = 0
             <if test="keyword != null and keyword != ''">
@@ -155,7 +153,6 @@
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
-          AND m.audit_status = 1
           AND m.status = 1
           AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
@@ -195,7 +192,6 @@
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
-          AND m.audit_status = 1
           AND m.status = 1
           AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id, m.merchant_name,
@@ -248,7 +244,6 @@
         LIMIT 10
     </select>
 </mapper>
-
 
 
 

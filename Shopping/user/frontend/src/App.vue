@@ -1,16 +1,18 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, ShoppingCart, ArrowUp } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
+import { DEFAULT_USER_AVATAR, resolveAvatar } from './avatar'
+import { getUserToken } from './api/client'
 
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const keyword = ref('')
-const headerAvatar = computed(() => user.profile?.avatar || 'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-user')
+const headerAvatar = computed(() => resolveAvatar(user.profile?.avatar, DEFAULT_USER_AVATAR))
 const standalone = computed(() => route.meta?.standalone || route.query.standalone === '1')
-const brandLogo = new URL('../public/brand-assets/allmart-logo-full.png', import.meta.url).href
+const brandLogo = '/brand-assets/allmart-logo-full.png'
 const authRole = ref('')
 const isUserRole = computed(() => authRole.value === 'user')
 const isMerchantRole = computed(() => authRole.value === 'merchant')
@@ -25,8 +27,9 @@ const merchantProfile = computed(() => {
   }
 })
 const merchantName = computed(() => String(merchantProfile.value?.merchantName || merchantProfile.value?.username || '商家').trim())
-const merchantAvatar = computed(() => String(merchantProfile.value?.avatarUrl || merchantProfile.value?.shopLogo || '').trim())
-const showUserAccount = computed(() => isUserRole.value && user.isLoggedIn)
+const merchantAvatar = computed(() => resolveAvatar(merchantProfile.value?.avatarUrl || merchantProfile.value?.shopLogo, DEFAULT_USER_AVATAR))
+const hasUserToken = computed(() => Boolean(user.token || getUserToken()))
+const showUserAccount = computed(() => isUserRole.value && hasUserToken.value)
 const showMerchantAccount = computed(() => isMerchantRole.value && Boolean(merchantProfile.value))
 const showLoginLink = computed(() => !showUserAccount.value && !showMerchantAccount.value)
 
@@ -55,7 +58,19 @@ function syncKeyword() {
 }
 
 function syncAuthRole() {
-  authRole.value = String(sessionStorage.getItem('shopping_auth_role') || '')
+  const token = getUserToken()
+  const role = String(sessionStorage.getItem('shopping_auth_role') || '')
+  if (role === 'user' && !token) {
+    sessionStorage.removeItem('shopping_auth_role')
+    authRole.value = ''
+    return
+  }
+  if (!role && token) {
+    sessionStorage.setItem('shopping_auth_role', 'user')
+    authRole.value = 'user'
+    return
+  }
+  authRole.value = role
 }
 
 function goSearch() {
@@ -84,26 +99,50 @@ function logoutMerchant() {
   router.push('/')
 }
 
-watch(() => route.fullPath, syncKeyword, { immediate: true })
-watch(() => route.fullPath, syncAuthRole, { immediate: true })
-onMounted(() => {
-  if (!sessionStorage.getItem('shopping_auth_role') && localStorage.getItem('shopping_user_token')) {
-    sessionStorage.setItem('shopping_auth_role', 'user')
-  }
-  syncAuthRole()
+function handleUserLogout() {
+  user.logout()
+  const redirect = route.meta?.requiresUserAuth ? route.fullPath : '/'
+  router.push({ path: '/login', query: { redirect } })
+}
+
+async function refreshUserSession() {
   user.syncToken()
-  if (isUserRole.value && user.isLoggedIn) {
-    user.loadMe().catch(() => {})
-  }
-  window.addEventListener('shopping-user-token', () => {
-    user.syncToken()
-    syncAuthRole()
-    if (isUserRole.value && user.isLoggedIn) {
-      user.loadMe().catch(() => {})
-    } else {
-      user.profile = null
+  syncAuthRole()
+  if (isUserRole.value && hasUserToken.value) {
+    try {
+      await user.loadMe()
+    } catch (e) {
+      user.logout()
+      syncAuthRole()
+      if (route.meta?.requiresUserAuth) {
+        router.replace({ path: '/login', query: { redirect: route.fullPath } })
+      }
     }
-  })
+  } else {
+    user.profile = null
+  }
+}
+
+function onUserTokenChanged() {
+  refreshUserSession()
+}
+
+function onStorageChanged(event) {
+  if (!event || ['shopping_user_token', 'shopping_auth_role'].includes(event.key)) {
+    refreshUserSession()
+  }
+}
+
+watch(() => route.fullPath, syncKeyword, { immediate: true })
+watch(() => route.fullPath, refreshUserSession, { immediate: true })
+onMounted(() => {
+  refreshUserSession()
+  window.addEventListener('shopping-user-token', onUserTokenChanged)
+  window.addEventListener('storage', onStorageChanged)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('shopping-user-token', onUserTokenChanged)
+  window.removeEventListener('storage', onStorageChanged)
 })
 </script>
 
@@ -160,11 +199,10 @@ onMounted(() => {
               />
               <span>{{ user.profile?.nickname || '我的' }}</span>
             </router-link>
-            <button v-if="showUserAccount" class="ghost-link header-logout-link" @click="user.logout()">退出</button>
+            <button v-if="showUserAccount" class="ghost-link header-logout-link" @click="handleUserLogout">退出</button>
 
             <router-link v-if="showMerchantAccount" class="user-chip" to="/dashboard">
               <img
-                v-if="merchantAvatar"
                 :src="merchantAvatar"
                 alt="商家头像"
               />

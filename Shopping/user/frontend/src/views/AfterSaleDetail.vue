@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -148,7 +148,7 @@ onMounted(load)
         <div class="row">
           <span class="status-chip">{{ statusText(detail) }}</span>
           <el-button v-if="canCancel" type="danger" plain :loading="canceling" @click="cancelAfterSale">取消售后</el-button>
-          <el-button v-if="canRaiseDispute" type="warning" plain :loading="raisingDispute" @click="raiseDispute">申请平台介入</el-button>
+          <el-button v-if="canRaiseDispute" class="dispute-action-btn" plain :loading="raisingDispute" @click="raiseDispute">申请平台介入</el-button>
           <el-button @click="router.push('/after-sales')">返回我的售后</el-button>
         </div>
       </section>
@@ -176,7 +176,7 @@ onMounted(load)
         <div class="band stack">
           <h2 class="section-title">商品信息</h2>
           <div class="list-item product-line">
-            <img class="cover" :src="imageOf(detail)" :alt="field(detail, 'goodsName', 'goods_name')" />
+            <img class="cover" :src="imageOf(detail)" :alt="field(detail, 'goodsName', 'goods_name')" @error="(e) => (e.target.src = fallbackImageOf(detail))" />
             <div class="stack">
               <strong>{{ field(detail, 'goodsName', 'goods_name') }}</strong>
               <span class="muted">SKU：{{ field(detail, 'skuName', 'sku_name') || '默认规格' }}</span>
@@ -286,6 +286,13 @@ onMounted(load)
   background: var(--brand-red-light);
   color: var(--brand-red);
   font-weight: 700;
+}
+
+.dispute-action-btn {
+  min-width: 120px;
+  color: var(--brand-red) !important;
+  border-color: var(--brand-red) !important;
+  background: #fff !important;
 }
 
 .product-line {

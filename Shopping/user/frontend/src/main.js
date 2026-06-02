@@ -49,6 +49,10 @@ try {
 } catch (e) {
 }
 
+if (sessionStorage.getItem(AUTH_ROLE_KEY) === 'user' && !localStorage.getItem(USER_TOKEN_KEY)) {
+  sessionStorage.removeItem(AUTH_ROLE_KEY)
+}
+
 if (!sessionStorage.getItem(AUTH_ROLE_KEY) && localStorage.getItem(USER_TOKEN_KEY)) {
   sessionStorage.setItem(AUTH_ROLE_KEY, 'user')
 }
@@ -64,6 +68,7 @@ const LoginRedirect = {
       const target = new URL('http://localhost:3000/login')
       target.searchParams.set('tab', 'user')
       target.searchParams.set('back', back)
+      target.searchParams.set('forceLogin', '1')
       window.location.href = target.toString()
     })
     return () => null
@@ -76,24 +81,24 @@ const routes = [
   { path: '/products', component: Home },
   { path: '/products/:id', component: GoodsDetail },
   { path: '/shops/:id', component: Shop },
-  { path: '/messages', component: Chat },
-  { path: '/chat/:id', component: Chat },
-  { path: '/cart', component: Cart },
+  { path: '/messages', component: Chat, meta: { requiresUserAuth: true } },
+  { path: '/chat/:id', component: Chat, meta: { requiresUserAuth: true } },
+  { path: '/cart', component: Cart, meta: { requiresUserAuth: true } },
   { path: '/coupons', component: CouponCenter },
-  { path: '/profile', component: Profile },
-  { path: '/profile/addresses', component: Addresses },
-  { path: '/profile/coupons', component: Profile },
-  { path: '/profile/favorites', component: Profile },
-  { path: '/profile/history', component: Profile },
-  { path: '/profile/reviews', component: Profile },
-  { path: '/order/confirm', component: OrderConfirm },
-  { path: '/orders', component: Orders },
-  { path: '/orders/:id', component: OrderDetail },
-  { path: '/orders/:id/logistics', component: OrderLogistics },
-  { path: '/after-sales', component: AfterSales },
-  { path: '/after-sales/apply', component: AfterSaleApply },
-  { path: '/after-sales/:id', component: AfterSaleDetail },
-  { path: '/reviews/create', component: ReviewCreate },
+  { path: '/profile', component: Profile, meta: { requiresUserAuth: true } },
+  { path: '/profile/addresses', component: Addresses, meta: { requiresUserAuth: true } },
+  { path: '/profile/coupons', component: Profile, meta: { requiresUserAuth: true } },
+  { path: '/profile/favorites', component: Profile, meta: { requiresUserAuth: true } },
+  { path: '/profile/history', component: Profile, meta: { requiresUserAuth: true } },
+  { path: '/profile/reviews', component: Profile, meta: { requiresUserAuth: true } },
+  { path: '/order/confirm', component: OrderConfirm, meta: { requiresUserAuth: true } },
+  { path: '/orders', component: Orders, meta: { requiresUserAuth: true } },
+  { path: '/orders/:id', component: OrderDetail, meta: { requiresUserAuth: true } },
+  { path: '/orders/:id/logistics', component: OrderLogistics, meta: { requiresUserAuth: true } },
+  { path: '/after-sales', component: AfterSales, meta: { requiresUserAuth: true } },
+  { path: '/after-sales/apply', component: AfterSaleApply, meta: { requiresUserAuth: true } },
+  { path: '/after-sales/:id', component: AfterSaleDetail, meta: { requiresUserAuth: true } },
+  { path: '/reviews/create', component: ReviewCreate, meta: { requiresUserAuth: true } },
   { path: '/recommend', component: Recommend },
   { path: '/rankings', component: Rankings },
   { path: '/live', component: LiveList },
@@ -104,6 +109,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta?.requiresUserAuth && !localStorage.getItem(USER_TOKEN_KEY)) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+  next()
 })
 
 createApp(App).use(createPinia()).use(router).use(ElementPlus).mount('#app')

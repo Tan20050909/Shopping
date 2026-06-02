@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { api } from '../api/client'
 import { shopLogo as resolveLogo } from '../utils'
 import { useUserStore } from '../stores/user'
+import { DEFAULT_USER_AVATAR } from '../avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,7 +25,7 @@ const confirmedAddrCards = ref({})
 const activeActionMessageId = ref(null)
 const quoted = ref(null)
 const localHidden = ref({})
-const defaultUserAvatar = 'https://api.dicebear.com/9.x/notionists/svg?seed=allmart-user'
+const defaultUserAvatar = DEFAULT_USER_AVATAR
 const defaultShopAvatar = resolveLogo('')
 const emojis = [
   '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎', '🤔', '😅',

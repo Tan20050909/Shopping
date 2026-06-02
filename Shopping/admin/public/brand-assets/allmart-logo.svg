@@ -1,0 +1,10 @@
+<svg width="430" height="116" viewBox="0 0 430 116" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AllMart">
+  <path d="M26 40C26 35.5817 29.5817 32 34 32H87C91.4183 32 95 35.5817 95 40V77C95 81.4183 91.4183 85 87 85H34C29.5817 85 26 81.4183 26 77V40Z" fill="#E60012"/>
+  <path d="M42 31C42 20.5066 50.5066 12 61 12C71.4934 12 80 20.5066 80 31" stroke="#E60012" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="42" cy="95" r="6" fill="#1D1D1F"/>
+  <circle cx="81" cy="95" r="6" fill="#1D1D1F"/>
+  <path d="M61 44L42 76H54.2L61 63.9L67.9 76H80.4L61 44Z" fill="white"/>
+  <path d="M61 58L55.2 68.5H67.1L61 58Z" fill="#E60012"/>
+  <text x="116" y="79" fill="#1D1D1F" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="62" font-weight="900" letter-spacing="-2">All</text>
+  <text x="222" y="79" fill="#E60012" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="62" font-weight="900" letter-spacing="-2">Mart</text>
+</svg>

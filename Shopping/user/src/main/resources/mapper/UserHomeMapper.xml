@@ -58,7 +58,6 @@
           AND g.status = 1
           AND g.audit_status = 1
           AND g.is_deleted = 0
-          AND m.audit_status = 1
           AND m.status = 1
           AND m.is_deleted = 0
         GROUP BY g.goods_id, g.cate_id, c.cate_name, g.merchant_id,

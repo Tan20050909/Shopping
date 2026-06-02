@@ -25,65 +25,62 @@ function dbg(hypothesisId, msg, data = {}) {
 }
 // #endregion
 
-export function imageOf(item) {
+function brandAsset(relativePath) {
+  return `/brand-assets/${relativePath}`
+}
+
+export function fallbackImageOf(item) {
   const id = Number(item?.goodsId || item?.goods_id || item?.liveId || item?.live_id || 1)
-  const name = String(item?.goodsName || item?.goods_name || item?.title || '')
-  const rawSrc = item?.goodsPic || item?.goods_pic || item?.mainImage || item?.image || item?.liveCover || item?.live_cover
-  const normalized = String(rawSrc || '').trim().replaceAll('\\', '/')
-  const asset = (relativePath) => new URL(`../../public/brand-assets/${relativePath}`, import.meta.url).href
-  const bannerA = asset('digital-banner.png')
-  const bannerB = asset('spring-banner.png')
+  const name = String(item?.goodsName || item?.goods_name || item?.liveTitle || item?.live_title || item?.liveTheme || item?.live_theme || item?.title || '')
+  const bannerA = brandAsset('digital-banner.png')
+  const bannerB = brandAsset('spring-banner.png')
   const demoGoodsCovers = {
-    3001: asset('cable.png'),
-    3002: asset('mouse.png'),
-    3003: asset('laptop.png'),
-    3004: asset('dress.png'),
-    3005: asset('canvas-bag.png')
+    3001: brandAsset('cable.png'),
+    3002: brandAsset('mouse.png'),
+    3003: brandAsset('laptop.png'),
+    3004: brandAsset('dress.png'),
+    3005: brandAsset('canvas-bag.png'),
+    3006: brandAsset('earphone.webp')
   }
-  if (normalized && normalized !== '[object Object]') {
-    const looksLikePath = normalized.includes('/') || normalized.includes('.') || normalized.startsWith('uploads/')
-    if (!looksLikePath) {
-      // fall through
-    } else {
-      // http(s) 开头：原样使用
-      if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) return normalized
-      // 商品图片按商家端静态资源地址解析（默认 http://localhost:8081）
-      const merchantBase = 'http://localhost:8081'
-      // /uploads/...：拼到商家端
-      if (normalized.startsWith('/uploads/')) return `${merchantBase}${normalized}`
-      if (normalized.startsWith('uploads/')) return `${merchantBase}/${normalized}`
-      // /goods/...：历史商品图路径，拼到商家端
-      if (normalized.startsWith('/goods/')) return `${merchantBase}${normalized}`
-      if (normalized.startsWith('goods/')) return `${merchantBase}/${normalized}`
-      // 其他相对路径
-      if (normalized.startsWith('/images/') || normalized.startsWith('/videos/')) return `${merchantBase}/uploads${normalized}`
-      if (normalized.startsWith('images/') || normalized.startsWith('videos/')) return `${merchantBase}/uploads/${normalized}`
-      const idx = normalized.indexOf('/uploads/')
-      if (idx > 0) return `${merchantBase}${normalized.slice(idx)}`
-      if (normalized.startsWith('/')) return `${merchantBase}${normalized}`
-      return `${merchantBase}/${normalized}`
-    }
-  }
-  const localGoodsImages = {
-    3001: demoGoodsCovers[3001],
-    3002: demoGoodsCovers[3002],
-    3003: demoGoodsCovers[3003],
-    3004: demoGoodsCovers[3004],
-    3005: demoGoodsCovers[3005]
-  }
-  if (localGoodsImages[id]) return localGoodsImages[id]
-  if (name.includes('连衣裙')) return localGoodsImages[3004]
-  if (name.includes('快充线') || name.includes('充电线')) return localGoodsImages[3001]
-  if (name.includes('帆布包')) return localGoodsImages[3005]
-  if (name.includes('鼠标')) return localGoodsImages[3002]
-  if (name.includes('轻薄本') || name.includes('电脑')) return localGoodsImages[3003]
+  if (demoGoodsCovers[id]) return demoGoodsCovers[id]
+  if (name.includes('耳机')) return demoGoodsCovers[3006]
+  if (name.includes('连衣裙') || name.includes('春季') || name.includes('穿搭') || name.includes('服饰')) return demoGoodsCovers[3004]
+  if (name.includes('快充线') || name.includes('充电线') || name.includes('数据线')) return demoGoodsCovers[3001]
+  if (name.includes('帆布包')) return demoGoodsCovers[3005]
+  if (name.includes('鼠标')) return demoGoodsCovers[3002]
+  if (name.includes('轻薄本') || name.includes('电脑')) return demoGoodsCovers[3003]
   const images = [
     bannerA,
     bannerB,
     bannerA,
     bannerB
   ]
-  return images[id % images.length]
+  return images[Math.abs(id) % images.length]
+}
+
+export function imageOf(item) {
+  const rawSrc = item?.goodsPic || item?.goods_pic || item?.picUrl || item?.pic_url || item?.mainImage || item?.main_image || item?.imageUrl || item?.image_url || item?.image || item?.goodsImage || item?.goods_image || item?.productPic || item?.product_pic || item?.cover || item?.thumbnail || item?.liveCover || item?.live_cover
+  const normalized = String(rawSrc || '').trim().replaceAll('\\', '/')
+  if (normalized && normalized !== '[object Object]') {
+    // http(s) 开头：原样使用
+    if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) return normalized
+    // SQL 历史样例里的 /goods/... 未由当前商家端静态目录托管，优先用同商品本地兜底图。
+    if (normalized.startsWith('/goods/') || normalized.startsWith('goods/')) return fallbackImageOf(item)
+    // 商品图片按商家端静态资源地址解析（默认 http://localhost:8081）
+    const merchantBase = 'http://localhost:8081'
+    // /uploads/...：拼到商家端
+    if (normalized.startsWith('/uploads/')) return `${merchantBase}${normalized}`
+    if (normalized.startsWith('uploads/')) return `${merchantBase}/${normalized}`
+    // 其他相对路径
+    if (normalized.startsWith('/images/') || normalized.startsWith('/videos/')) return `${merchantBase}/uploads${normalized}`
+    if (normalized.startsWith('images/') || normalized.startsWith('videos/')) return `${merchantBase}/uploads/${normalized}`
+    const idx = normalized.indexOf('/uploads/')
+    if (idx > 0) return `${merchantBase}${normalized.slice(idx)}`
+    // 裸文件名（如 abc.jpg）或普通路径，统一拼到商家端
+    if (normalized.startsWith('/')) return `${merchantBase}${normalized}`
+    return `${merchantBase}/${normalized}`
+  }
+  return fallbackImageOf(item)
 }
 
 export function getUserToken() {

@@ -6,15 +6,13 @@ export default defineConfig({
   server: {
     port: 3001,
     proxy: {
-      '/admin-api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/admin-api/, '/api')
-      },
-      '/merchant-api': {
+      '/api': {
         target: 'http://localhost:8081',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/merchant-api/, '/api')
+        changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://localhost:8081',
+        changeOrigin: true
       }
     }
   }

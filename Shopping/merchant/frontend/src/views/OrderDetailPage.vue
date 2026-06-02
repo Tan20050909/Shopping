@@ -21,7 +21,7 @@
         <el-steps :active="stepActive" align-center finish-status="success">
           <el-step title="待付款" />
           <el-step title="待发货" />
-          <el-step title="已发货" />
+          <el-step title="待收货" />
           <el-step title="已完成" />
         </el-steps>
 
@@ -202,17 +202,24 @@ const formatTime = (t) => {
   return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
+const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TYPE = ['info', 'warning', 'primary', 'success', 'info', 'danger']
+
 const getStatusType = (status) => {
-  const types = ['info', 'warning', 'primary', 'success']
-  return types[Number(status)] || 'info'
+  return ORDER_STATUS_TYPE[Number(status)] || 'info'
 }
 
 const getStatusText = (status) => {
-  const texts = ['待付款', '待发货', '已发货', '已完成']
-  return texts[Number(status)] || '未知'
+  return ORDER_STATUS_TEXT[Number(status)] || '未知'
 }
 
-const stepActive = computed(() => Math.min(Math.max(Number(detail.value?.order?.status ?? 0), 0), 3) + 1)
+// 步骤条：0-3 正常推进；4（已取消）和 5（售后中）停在最后一步
+const stepActive = computed(() => {
+  const s = Number(detail.value?.order?.status ?? 0)
+  if (s === 4) return 0  // 已取消：不推进
+  if (s === 5) return 3  // 售后中：显示到待收货
+  return Math.min(Math.max(s, 0), 3) + 1
+})
 const orderStatus = computed(() => Number(detail.value?.order?.status))
 const isShippedOrDone = computed(() => Number.isFinite(orderStatus.value) && orderStatus.value >= 2)
 const hasLogistics = computed(() => Boolean(detail.value?.logistics?.id))

@@ -19,7 +19,7 @@
         <el-table-column label="用户" min-width="200">
           <template #default="{ row }">
             <div style="display:flex;align-items:center;gap:12px">
-              <el-avatar :size="36" :src="row.avatar" style="background:#E60012;font-weight:600">{{ (row.nickname||row.username||'U')[0] }}</el-avatar>
+              <el-avatar :size="36" :src="avatarSrc(row.avatar)" style="background:#E60012;font-weight:600">{{ (row.nickname||row.username||'U')[0] }}</el-avatar>
               <div>
                 <div style="font-weight:500">{{ row.nickname || row.username }}</div>
                 <div style="font-size:12px;color:var(--text-muted)">{{ row.phone || '-' }}</div>
@@ -68,6 +68,13 @@ const loading = ref(false)
 const current = ref(1), size = ref(10), total = ref(0)
 const keyword = ref('')
 const detailVisible = ref(false), detail = ref({})
+const defaultAvatar = '/brand-assets/avatars/default-avatar-01.png'
+
+const avatarSrc = (src) => {
+  const v = String(src || '').trim()
+  if (!v || v.startsWith('https://api.dicebear.com/')) return defaultAvatar
+  return v
+}
 
 const loadData = async () => {
   loading.value = true

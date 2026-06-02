@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
 const cart = ref([])
@@ -203,7 +203,7 @@ onMounted(load)
         </div>
 
         <div v-for="item in group.items" :key="item.cart_id" class="list-item">
-          <img class="cover cart-cover" :src="imageOf(item)" :alt="item.goods_name" />
+          <img class="cover cart-cover" :src="imageOf(item)" :alt="item.goods_name" @error="(e) => (e.target.src = fallbackImageOf(item))" />
           <div class="stack">
             <div class="row">
               <el-checkbox

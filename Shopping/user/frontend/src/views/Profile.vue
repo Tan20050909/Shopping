@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api, imageOf } from '../api/client'
 import { useUserStore } from '../stores/user'
+import { DEFAULT_AVATARS, DEFAULT_USER_AVATAR, resolveAvatar } from '../avatar'
 
 const user = useUserStore()
 const route = useRoute()
@@ -35,11 +36,8 @@ const profileForm = ref({
 })
 const avatarUploading = ref(false)
 const avatarFileInput = ref(null)
-const defaultAvatars = Array.from(
-  { length: 20 },
-  (_, index) => `https://api.dicebear.com/9.x/notionists/svg?seed=allmart-avatar-${String(index + 1).padStart(2, '0')}`
-)
-const currentAvatar = computed(() => profileForm.value.avatar || user.profile?.avatar || defaultAvatars[0])
+const defaultAvatars = DEFAULT_AVATARS
+const currentAvatar = computed(() => resolveAvatar(profileForm.value.avatar || user.profile?.avatar, DEFAULT_USER_AVATAR))
 const couponStatusText = computed(() => ({
   0: '未使用',
   1: '已使用',
@@ -234,14 +232,38 @@ async function deleteHistory(historyId) {
   await load()
 }
 
-function reviewImage(src) {
+function reviewOrderId(item) {
+  const raw = item?.orderId ?? item?.order_id ?? item?.orderID
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? String(Math.trunc(id)) : ''
+}
+
+function goReviewOrder(item) {
+  const orderId = reviewOrderId(item)
+  if (!orderId) {
+    ElMessage.warning('这条评价缺少订单关联，不能跳转订单详情')
+    return
+  }
+  router.push(`/orders/${orderId}`)
+}
+
+function reviewImage(src, item = null) {
   if (!src) return ''
   const v = String(src || '').trim().replaceAll('\\', '/')
   if (!v) return ''
   if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
+  if (v.startsWith('/uploads/')) return `http://localhost:8082${v}`
+  if (v.startsWith('uploads/')) return `http://localhost:8082/${v}`
+  if (v.startsWith('/goods/') || v.startsWith('goods/')) return imageOf(item || {})
   if (v.startsWith('/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
   return `/${v}`
+}
+
+function onReviewImageError(event, item) {
+  const el = event?.target
+  if (!el || el.dataset.fallbackApplied === '1') return
+  el.dataset.fallbackApplied = '1'
+  el.src = imageOf(item || {})
 }
 
 function couponUseStatus(coupon) {
@@ -437,9 +459,15 @@ onMounted(load)
             <span class="muted">SKU：{{ item.skuName || item.sku_name || '默认规格' }} · {{ item.commentTime || item.comment_time }}</span>
             <p>{{ item.commentContent || item.comment_content }}</p>
             <span class="muted">商品 {{ item.goodsScore || item.goods_score }} 星 / 服务 {{ item.serviceScore || item.service_score }} 星 / 物流 {{ item.logisticsScore || item.logistics_score }} 星</span>
-            <img v-if="item.commentPic || item.comment_pic" class="review-thumb" :src="reviewImage(item.commentPic || item.comment_pic)" alt="评价图片" />
+            <img
+              v-if="item.commentPic || item.comment_pic"
+              class="review-thumb"
+              :src="reviewImage(item.commentPic || item.comment_pic, item)"
+              alt="评价图片"
+              @error="(e) => onReviewImageError(e, item)"
+            />
             <div class="row">
-              <el-button size="small" @click="router.push(`/orders/${item.orderId || item.order_id}`)">查看订单</el-button>
+              <el-button size="small" :disabled="!reviewOrderId(item)" @click="goReviewOrder(item)">查看订单</el-button>
               <el-button size="small" type="danger" plain @click="deleteReview(item.commentId || item.comment_id)">删除评价</el-button>
             </div>
           </div>

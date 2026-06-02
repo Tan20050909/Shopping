@@ -13,8 +13,10 @@
         <div class="tab" :class="{ active: tabKey === 'all' }" @click="setTab('all')">所有订单</div>
         <div class="tab" :class="{ active: tabKey === '0' }" @click="setTab('0')">待付款<span v-if="countPay" class="badge">{{ countPay }}</span></div>
         <div class="tab" :class="{ active: tabKey === '1' }" @click="setTab('1')">待发货<span v-if="countShip" class="badge">{{ countShip }}</span></div>
-        <div class="tab" :class="{ active: tabKey === '2' }" @click="setTab('2')">已发货</div>
+        <div class="tab" :class="{ active: tabKey === '2' }" @click="setTab('2')">待收货</div>
         <div class="tab" :class="{ active: tabKey === '3' }" @click="setTab('3')">已完成</div>
+        <div class="tab" :class="{ active: tabKey === '4' }" @click="setTab('4')">已取消<span v-if="countCancel" class="badge">{{ countCancel }}</span></div>
+        <div class="tab" :class="{ active: tabKey === '5' }" @click="setTab('5')">售后中<span v-if="countAfterSale" class="badge">{{ countAfterSale }}</span></div>
         <div class="tab" :class="{ active: tabKey === 'after' }" @click="setTab('after')">售后<span v-if="countAfter" class="badge">{{ countAfter }}</span></div>
       </div>
 
@@ -361,14 +363,15 @@ const confirmShip = async () => {
   }
 }
 
+const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
+const ORDER_STATUS_TYPE = ['info', 'warning', 'primary', 'success', 'info', 'danger']
+
 const getStatusType = (status) => {
-  const types = ['info', 'warning', 'primary', 'success']
-  return types[status] || 'info'
+  return ORDER_STATUS_TYPE[status] || 'info'
 }
 
 const getStatusText = (status) => {
-  const texts = ['待付款', '待发货', '已发货', '已完成']
-  return texts[status] || '未知'
+  return ORDER_STATUS_TEXT[status] || '未知'
 }
 
 const statusClass = (status) => {
@@ -377,11 +380,15 @@ const statusClass = (status) => {
   if (s === 1) return 'ship'
   if (s === 2) return 'deliver'
   if (s === 3) return 'done'
+  if (s === 4) return 'cancel'
+  if (s === 5) return 'aftersale'
   return 'other'
 }
 
 const countPay = computed(() => orderList.value.filter(o => Number(o.status) === 0).length)
 const countShip = computed(() => orderList.value.filter(o => Number(o.status) === 1).length)
+const countCancel = computed(() => orderList.value.filter(o => Number(o.status) === 4).length)
+const countAfterSale = computed(() => orderList.value.filter(o => Number(o.status) === 5).length)
 const countAfter = computed(() => afterSaleList.value.filter(a => Number(a?.status) === 0).length)
 
 const afterSaleIndex = computed(() => {
@@ -452,6 +459,16 @@ watch(
   (v) => {
     keyword.value = String(v || '').trim()
     tabKey.value = 'all'
+  },
+  { immediate: true }
+)
+
+watch(
+  () => route.query?.tab,
+  (v) => {
+    if (v != null && v !== '') {
+      tabKey.value = String(v)
+    }
   },
   { immediate: true }
 )
@@ -590,6 +607,8 @@ watch(
 .status-tag.deliver { background: #eef2ff; color: #4338ca; }
 .status-tag.done { background: #ecfdf5; color: #047857; }
 .status-tag.after { background: #fee2e2; color: #b91c1c; }
+.status-tag.cancel { background: #f5f5f5; color: #737373; }
+.status-tag.aftersale { background: #fef3c7; color: #92400e; }
 
 .card-body {
   display: grid;

@@ -704,7 +704,7 @@ const loadTrend = async () => {
           { value: cat.pendingReceive, name: '待收货', itemStyle: { color: '#FF5252' } },
           { value: cat.completed, name: '已完成', itemStyle: { color: '#333' } },
           { value: cat.cancelled, name: '已取消', itemStyle: { color: '#bbb' } },
-          { value: cat.refunded, name: '已退款', itemStyle: { color: '#FF8A80' } },
+          { value: cat.refunded, name: '售后中', itemStyle: { color: '#FF8A80' } },
         ].filter(d => d.value > 0)
       }]
     })

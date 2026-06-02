@@ -14,7 +14,7 @@
         <el-table-column label="员工" min-width="170">
           <template #default="{ row }">
             <div style="display:flex;align-items:center;gap:10px">
-              <el-avatar :size="32" style="background:#E60012;font-weight:600;font-size:13px">{{ (row.realName||row.username||'A')[0] }}</el-avatar>
+              <el-avatar :size="32" src="/brand-assets/avatars/default-avatar-01.png" style="background:#E60012;font-weight:600;font-size:13px">{{ (row.realName||row.username||'A')[0] }}</el-avatar>
               <div>
                 <div style="font-weight:500">{{ row.realName || row.username }}</div>
                 <div style="font-size:12px;color:var(--text-muted)">{{ row.username }}</div>

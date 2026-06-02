@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 import ProductCard from '../components/ProductCard.vue'
 
 const route = useRoute()
@@ -72,6 +72,13 @@ async function send() {
   }
 }
 
+function onLiveCoverError(event) {
+  const el = event?.target
+  if (!el || el.dataset.fallbackApplied === '1') return
+  el.dataset.fallbackApplied = '1'
+  el.src = fallbackImageOf(live.value || {})
+}
+
 onMounted(load)
 </script>
 
@@ -86,7 +93,7 @@ onMounted(load)
           <el-button @click="router.push('/live')">返回直播广场</el-button>
         </div>
       </div>
-      <img v-if="!redirecting" class="cover" :src="imageOf(live)" :alt="live.live_title" />
+      <img v-if="!redirecting" class="cover" :src="imageOf(live)" :alt="live.live_title" @error="onLiveCoverError" />
       <div v-if="!redirecting" class="stack">
         <div>
           <div class="row room-head">

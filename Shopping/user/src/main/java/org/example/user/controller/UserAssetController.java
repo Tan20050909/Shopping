@@ -46,9 +46,12 @@ public class UserAssetController {
     public Result<List<Map<String, Object>>> couponCenter() {
         ensureCouponGrantTypeColumn();
         long userId = UserContext.requireCurrentUserId();
-        List<Map<String, Object>> coupons = jdbc.queryForList("""
+        boolean hasGrantType = hasColumn("tb_coupon", "grant_type");
+        String grantTypeSelect = hasGrantType ? "c.grant_type" : "1";
+        String grantTypeGroupBy = hasGrantType ? "c.grant_type," : "";
+        String couponCenterSql = """
                 SELECT c.coupon_id, c.coupon_name, c.coupon_type, c.merchant_id, m.merchant_name,
-                       c.grant_type,
+                       %s AS grant_type,
                        c.discount_type, c.denomination, c.discount_rate, c.min_amount,
                        c.start_time, c.end_time, c.surplus_num, c.per_limit, c.status,
                        COALESCE(uc.received_count, 0) AS received_count,
@@ -75,11 +78,12 @@ public class UserAssetController {
                 WHERE c.audit_status = 1
                   AND c.is_deleted = 0
                   AND c.end_time >= NOW()
-                GROUP BY c.coupon_id, c.coupon_name, c.coupon_type, c.merchant_id, m.merchant_name, c.grant_type,
+                GROUP BY c.coupon_id, c.coupon_name, c.coupon_type, c.merchant_id, m.merchant_name, %s
                          c.discount_type, c.denomination, c.discount_rate, c.min_amount,
                          c.start_time, c.end_time, c.surplus_num, c.per_limit, c.status, uc.received_count
                 ORDER BY c.start_time, c.end_time, c.coupon_id
-                """, userId);
+                """.formatted(grantTypeSelect, grantTypeGroupBy);
+        List<Map<String, Object>> coupons = jdbc.queryForList(couponCenterSql, userId);
 
         LocalDateTime now = LocalDateTime.now();
         for (Map<String, Object> coupon : coupons) {
@@ -116,13 +120,15 @@ public class UserAssetController {
     public Result<Void> receiveCoupon(@PathVariable long couponId) {
         ensureCouponGrantTypeColumn();
         long userId = UserContext.requireCurrentUserId();
-        Map<String, Object> coupon = one("""
-                SELECT coupon_id, coupon_type, merchant_id, grant_type, surplus_num, status, audit_status, is_deleted,
+        String grantTypeSelect = hasColumn("tb_coupon", "grant_type") ? "grant_type" : "1 AS grant_type";
+        String receiveSql = """
+                SELECT coupon_id, coupon_type, merchant_id, %s, surplus_num, status, audit_status, is_deleted,
                        start_time, end_time, per_limit
                 FROM tb_coupon
                 WHERE coupon_id = ?
                 FOR UPDATE
-                """, couponId);
+                """.formatted(grantTypeSelect);
+        Map<String, Object> coupon = one(receiveSql, couponId);
         if (coupon == null) {
             throw new BizException("优惠券不存在");
         }
@@ -202,9 +208,7 @@ public class UserAssetController {
         if (hasColumn("tb_coupon", "grant_type")) {
             return;
         }
-        // 字段不存在，禁止运行期自动 DDL
-        // 请使用基准 SQL 初始化数据库，确保 tb_coupon 表包含 grant_type 字段
-        // 依赖 grant_type 的功能将按现有逻辑明确失败
+        // 字段不存在时禁止运行期自动 DDL，领券逻辑按普通可领取券降级处理。
     }
 
     private boolean hasColumn(String tableName, String columnName) {

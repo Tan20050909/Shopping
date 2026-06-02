@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
 const lives = ref([])
@@ -44,6 +44,13 @@ async function load() {
   }
 }
 
+function onLiveCoverError(event, live) {
+  const el = event?.target
+  if (!el || el.dataset.fallbackApplied === '1') return
+  el.dataset.fallbackApplied = '1'
+  el.src = fallbackImageOf(live)
+}
+
 onMounted(load)
 </script>
 
@@ -63,7 +70,7 @@ onMounted(load)
     <section class="page stack">
       <div v-if="visibleLives.length" class="grid live-grid">
         <router-link v-for="live in visibleLives" :key="live.live_id" class="live-card" :to="`/live/${live.live_id}`">
-          <img class="cover" :src="imageOf(live)" :alt="live.live_title" />
+          <img class="cover" :src="imageOf(live)" :alt="live.live_title" @error="(e) => onLiveCoverError(e, live)" />
           <div class="stack">
             <strong>{{ live.live_title }}</strong>
             <span class="muted">{{ live.merchant_name }} / {{ live.live_theme }}</span>

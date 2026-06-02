@@ -126,7 +126,7 @@ const loadOverview = async () => {
           { value: s.pendingReceive || 0, name: '待收货', itemStyle: { color: '#FF5252' } },
           { value: s.completed || 0, name: '已完成', itemStyle: { color: '#333' } },
           { value: s.cancelled || 0, name: '已取消', itemStyle: { color: '#bbb' } },
-          { value: s.refunded || 0, name: '已退款', itemStyle: { color: '#FF8A80' } },
+          { value: s.refunded || 0, name: '售后中', itemStyle: { color: '#FF8A80' } },
         ].filter(d => d.value > 0)
       }]
     })

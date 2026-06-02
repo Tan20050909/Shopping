@@ -359,9 +359,9 @@ const typeText = (t) => {
   if (v === 4) return '退货退款'
   return '售后'
 }
+const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
 const orderStatusText = (s) => {
-  const texts = ['待付款', '待发货', '已发货', '已完成']
-  return texts[Number(s)] || '-'
+  return ORDER_STATUS_TEXT[Number(s)] || '-'
 }
 
 const orderGoodsSummary = (o) => {

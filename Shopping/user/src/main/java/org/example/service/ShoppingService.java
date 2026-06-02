@@ -2268,7 +2268,7 @@ public class ShoppingService {
 
    public List<Map<String, Object>> lives(Long merchantId) {
       List<Object> params = new ArrayList<>();
-      StringBuilder where = new StringBuilder(" WHERE l.is_deleted = 0 AND l.live_status IN (0, 1) AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0 ");
+      StringBuilder where = new StringBuilder(" WHERE l.is_deleted = 0 AND l.live_status IN (0, 1) AND m.status = 1 AND m.is_deleted = 0 ");
       if (merchantId != null) {
          where.append(" AND l.merchant_id = ? ");
          params.add(merchantId);
@@ -2284,7 +2284,7 @@ public class ShoppingService {
 
    public Map<String, Object> liveDetail(long liveId) {
       Map<String, Object> live = this.one(
-         "SELECT l.live_id, l.merchant_id, l.live_title, l.live_cover, l.live_theme,\n       l.start_time, l.end_time, l.live_status, l.watch_num, l.interact_num,\n       l.live_url,\n       m.merchant_name\nFROM tb_live l\nLEFT JOIN tb_merchant m ON m.merchant_id = l.merchant_id\nWHERE l.live_id = ? AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\n",
+         "SELECT l.live_id, l.merchant_id, l.live_title, l.live_cover, l.live_theme,\n       l.start_time, l.end_time, l.live_status, l.watch_num, l.interact_num,\n       l.live_url,\n       m.merchant_name\nFROM tb_live l\nLEFT JOIN tb_merchant m ON m.merchant_id = l.merchant_id\nWHERE l.live_id = ? AND m.status = 1 AND m.is_deleted = 0\n",
          liveId
       );
       if (live == null) {
@@ -2299,7 +2299,7 @@ public class ShoppingService {
    public List<Map<String, Object>> liveGoods(long liveId) {
       return this.jdbc
          .queryForList(
-            "SELECT lg.lg_id, lg.live_id, lg.goods_id, lg.sku_id, lg.live_price, lg.goods_sort,\n       g.goods_name, g.goods_pic, g.goods_score, s.sku_name,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock\nFROM tb_live_goods lg\nJOIN tb_goods g ON g.goods_id = lg.goods_id\nJOIN tb_goods_sku s ON s.sku_id = lg.sku_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE lg.live_id = ? AND lg.is_on_shelf = 1\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND s.status = 1\n  AND s.is_deleted = 0\n  AND m.audit_status = 1\n  AND m.status = 1\n  AND m.is_deleted = 0\nORDER BY lg.goods_sort, lg.lg_id\n",
+            "SELECT lg.lg_id, lg.live_id, lg.goods_id, lg.sku_id, lg.live_price, lg.goods_sort,\n       g.goods_name, g.goods_pic, g.goods_score, s.sku_name,\n       GREATEST(s.stock - s.lock_stock, 0) AS stock\nFROM tb_live_goods lg\nJOIN tb_goods g ON g.goods_id = lg.goods_id\nJOIN tb_goods_sku s ON s.sku_id = lg.sku_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE lg.live_id = ? AND lg.is_on_shelf = 1\n  AND g.status = 1\n  AND g.audit_status = 1\n  AND g.is_deleted = 0\n  AND s.status = 1\n  AND s.is_deleted = 0\n  AND m.status = 1\n  AND m.is_deleted = 0\nORDER BY lg.goods_sort, lg.lg_id\n",
             new Object[]{liveId}
          );
    }
@@ -2763,11 +2763,15 @@ public class ShoppingService {
       } else if (s == 1) {
          return "待发货";
       } else if (s == 2) {
-         return "已发货";
+         return "待收货";
       } else if (s == 3) {
          return "已完成";
+      } else if (s == 4) {
+         return "已取消";
+      } else if (s == 5) {
+         return "售后中";
       } else {
-         return s == 4 ? "已取消" : "处理中";
+         return "未知";
       }
    }
 

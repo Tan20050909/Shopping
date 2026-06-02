@@ -294,6 +294,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { chatApi, couponApi, orderApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
+import { DEFAULT_USER_AVATAR, defaultAvatarByIndex, resolveAvatar as resolveUserAvatar } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -642,10 +643,9 @@ const toMoney = (value) => {
   return Number.isFinite(num) ? num.toFixed(2) : '0.00'
 }
 
+const ORDER_STATUS_TEXT = ['待付款', '待发货', '待收货', '已完成', '已取消', '售后中']
 const statusText = (status) => {
-  const s = Number(status)
-  const texts = ['待付款', '待发货', '已发货', '已完成']
-  return texts[s] || '未知'
+  return ORDER_STATUS_TEXT[Number(status)] || '未知'
 }
 
 const loadContacts = async () => {
@@ -939,12 +939,10 @@ const avatarText = (c) => {
 }
 
 const avatarUrl = (c) => {
+  const fallback = defaultAvatarByIndex(c?.userId)
   const raw = String(c?.avatar || '').trim()
-  if (!raw) return ''
-  if (brokenAvatars.value.has(raw)) return ''
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw
-  if (raw.startsWith('/')) return raw
-  return `/${raw}`
+  if (!raw || brokenAvatars.value.has(raw)) return fallback
+  return resolveUserAvatar(raw, fallback)
 }
 
 const resolveAvatar = (src) => {
@@ -972,8 +970,8 @@ const merchantAvatarRaw = computed(() => {
 
 const merchantAvatarUrl = computed(() => {
   const raw = merchantAvatarRaw.value
-  if (!raw || brokenAvatars.value.has(raw)) return ''
-  return resolveAvatar(raw)
+  if (!raw || brokenAvatars.value.has(raw)) return DEFAULT_USER_AVATAR
+  return resolveUserAvatar(raw, DEFAULT_USER_AVATAR)
 })
 
 const orderThumb = (o) => {

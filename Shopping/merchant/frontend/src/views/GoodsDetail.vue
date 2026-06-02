@@ -285,6 +285,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { categoryApi, goodsApi, goodsCommentApi, goodsSkuApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
+import { DEFAULT_ANONYMOUS_AVATAR, DEFAULT_USER_AVATAR, resolveAvatar } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -863,8 +864,8 @@ const displayName = (c) => {
 }
 
 const commentAvatar = (c) => {
-  if (Number(c?.isAnonymous) === 1) return ''
-  return resolveMedia(c?.userAvatar)
+  if (Number(c?.isAnonymous) === 1) return DEFAULT_ANONYMOUS_AVATAR
+  return resolveAvatar(c?.userAvatar, DEFAULT_USER_AVATAR)
 }
 
 const avatarText = (name) => {

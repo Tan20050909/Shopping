@@ -60,7 +60,7 @@
           </el-badge>
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="header-user">
-              <el-avatar :size="32" style="background:#E60012;font-weight:700;font-size:14px">
+              <el-avatar :size="32" :src="adminAvatar" style="background:#E60012;font-weight:700;font-size:14px">
                 {{ (adminInfo.realName || adminInfo.username || 'A')[0] }}
               </el-avatar>
             </div>
@@ -176,6 +176,7 @@ import { hasPermission } from '../utils/permission'
 const route = useRoute()
 const router = useRouter()
 const adminInfo = JSON.parse(localStorage.getItem('admin_info') || '{}')
+const adminAvatar = adminInfo.avatar || '/brand-assets/avatars/default-avatar-01.png'
 const isSticky = ref(false)
 const unreadCount = ref(0)
 const searchExpanded = ref(false)

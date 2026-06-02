@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
 const afterSales = ref([])
@@ -92,7 +92,7 @@ onMounted(load)
       <el-empty v-if="!loading && !hasRecords" description="目前还没有售后记录" />
 
       <article v-for="item in afterSales" :key="field(item, 'afterSaleId', 'after_sale_id')" class="after-sale-card">
-        <img class="cover item-cover" :src="imageOf(item)" :alt="field(item, 'goodsName', 'goods_name')" />
+        <img class="cover item-cover" :src="imageOf(item)" :alt="field(item, 'goodsName', 'goods_name')" @error="(e) => (e.target.src = fallbackImageOf(item))" />
         <div class="stack item-info">
           <div class="row title-row">
             <strong>{{ field(item, 'goodsName', 'goods_name') }}</strong>

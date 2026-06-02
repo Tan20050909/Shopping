@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { api, imageOf } from '../api/client'
+import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
 const orders = ref([])
@@ -11,7 +11,7 @@ const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
-const fallbackOrderCover = new URL('../public/brand-assets/digital-banner.png', import.meta.url).href
+const fallbackOrderCover = '/brand-assets/digital-banner.png'
 
 // #region debug-point A:report
 // 调试上报默认禁用，需要显式配置 VITE_DEBUG_REPORT_ENABLED=true 才会启用
@@ -289,7 +289,7 @@ onMounted(load)
               class="cover mini-cover"
               :src="imageOf(item)"
               :alt="field(item, 'goodsName', 'goods_name')"
-              @error="(e) => (e.target.src = fallbackOrderCover)"
+              @error="(e) => (e.target.src = fallbackImageOf(item) || fallbackOrderCover)"
             />
             <div class="mini-info">
               <strong>{{ field(item, 'goodsName', 'goods_name') }}</strong>

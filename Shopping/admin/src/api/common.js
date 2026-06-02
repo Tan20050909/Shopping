@@ -23,6 +23,7 @@ export const updateCouponStatus = (id, status) => request.put(`/coupon/${id}/sta
 
 export const getAfterSaleList = (params) => request.get('/after-sale/list', { params })
 export const getAfterSaleDetail = (id) => request.get(`/after-sale/${id}`)
+export const getAfterSaleLogistics = (id) => request.get(`/after-sale/${id}/logistics`)
 export const handleAfterSale = (data) => request.post('/after-sale/handle', data)
 
 export const getDisputeList = (params) => request.get('/dispute/list', { params })

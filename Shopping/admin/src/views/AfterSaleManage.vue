@@ -82,6 +82,27 @@
           <el-image v-for="(img, i) in detail.applyEvidence.split(',')" :key="i" :src="img.trim()" style="width:80px;height:80px;border-radius:4px;object-fit:cover" fit="cover" :preview-src-list="detail.applyEvidence.split(',')" />
         </div>
       </div>
+      <div v-if="detailLogistics" style="margin-top:16px">
+        <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">退货物流</h4>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="快递公司">{{ detailLogistics.express_company || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="快递单号">{{ detailLogistics.express_no || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="detailLogistics.traces && detailLogistics.traces.length" style="margin-top:12px">
+          <h5 style="margin-bottom:8px;font-size:13px;font-weight:600">物流轨迹</h5>
+          <el-timeline>
+            <el-timeline-item
+              v-for="t in detailLogistics.traces"
+              :key="t.trace_id"
+              :timestamp="t.trace_time"
+              placement="top"
+            >
+              {{ t.trace_content }}
+              <div v-if="t.trace_location" style="font-size:12px;color:#6b7280">{{ t.trace_location }}</div>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -89,16 +110,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAfterSaleList, getAfterSaleDetail, handleAfterSale as handleAfterSaleApi } from '../api/common'
+import { getAfterSaleList, getAfterSaleDetail, getAfterSaleLogistics, handleAfterSale as handleAfterSaleApi } from '../api/common'
 
 const tableData = ref([])
 const loading = ref(false)
 const current = ref(1), size = ref(10), total = ref(0)
 const keyword = ref(''), statusFilter = ref(null)
-const detailVisible = ref(false), detail = ref({})
+const detailVisible = ref(false), detail = ref({}), detailLogistics = ref(null)
 
 const afterSaleTypeMap = { 1: '仅退款', 2: '换货', 3: '补发', 4: '退货退款' }
-const statusTextMap = { 0: '待商家处理', 1: '商家同意', 2: '商家拒绝', 3: '平台介入', 4: '退款成功', 5: '已撤销' }
+const statusTextMap = { 0: '待商家处理', 1: '商家同意', 2: '商家拒绝', 3: '售后完成', 4: '退款成功', 5: '已撤销' }
 const statusTagMap = { 0: 'warning', 1: 'success', 2: 'danger', 3: '', 4: 'success', 5: 'info' }
 
 const loadData = async () => {
@@ -117,9 +138,15 @@ const showDetail = async (row) => {
   try {
     const res = await getAfterSaleDetail(row.afterSaleId)
     detail.value = res.data || row
+    // 尝试获取退货物流信息
+    try {
+      const logisticsRes = await getAfterSaleLogistics(row.afterSaleId)
+      detailLogistics.value = logisticsRes.data || null
+    } catch { detailLogistics.value = null }
     detailVisible.value = true
   } catch (e) {
     detail.value = row
+    detailLogistics.value = null
     detailVisible.value = true
   }
 }

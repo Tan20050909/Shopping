@@ -91,20 +91,10 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
 
         int nextStatus;
         if (status == 2) {
-            nextStatus = 2;
+            nextStatus = 2;  // 拒绝
         } else {
-            if (type != null && type == 1) {
-                nextStatus = 3;
-            } else if (type != null && type == 4) {
-                Logistics buyer = logisticsService.getByOrderIdAndBizType(existed.getOrderId(), LogisticsService.BIZ_TYPE_AFTER_SALE_BUYER_RETURN);
-                String no = buyer == null ? "" : String.valueOf(buyer.getTrackingNo() == null ? "" : buyer.getTrackingNo()).trim();
-                if (no.isBlank()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先等待买家填写退货单号");
-                }
-                nextStatus = 3;
-            } else {
-                nextStatus = 1;
-            }
+            // 同意：商家同意后买家自行填写退货单号，故此处不再拦截
+            nextStatus = 1;  // 商家已同意
         }
 
         String merchantRemark = mergeMerchantRemark(existed.getMerchantRemark(), remark, evidence);
@@ -127,6 +117,14 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
             String no = merchant == null ? "" : String.valueOf(merchant.getTrackingNo() == null ? "" : merchant.getTrackingNo()).trim();
             if (no.isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先填写售后发货单号");
+            }
+        }
+        // 退货退款：完成前需要买家已填写退货单号
+        if (existed.getType() != null && existed.getType() == 4) {
+            Logistics buyer = logisticsService.getByOrderIdAndBizType(existed.getOrderId(), LogisticsService.BIZ_TYPE_AFTER_SALE_BUYER_RETURN);
+            String no = buyer == null ? "" : String.valueOf(buyer.getTrackingNo() == null ? "" : buyer.getTrackingNo()).trim();
+            if (no.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先等待买家填写退货单号");
             }
         }
         AfterSale patch = new AfterSale();

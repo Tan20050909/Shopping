@@ -42,7 +42,7 @@ function statusText(item) {
   if (handleStatus === 4 || refundStatus === 2) return '退款成功'
   if (handleStatus === 2) return '商家已驳回'
   if (refundStatus === 1) return '退款处理中'
-  if (handleStatus === 3) return '平台介入中'
+  if (handleStatus === 3) return '售后已完成'
   if (handleStatus === 1) return '商家已同意'
   if (handleStatus === 5) return '售后关闭'
   return '待审核'
@@ -64,6 +64,36 @@ const canCancel = computed(() => {
 })
 
 const dispute = computed(() => detail.value?.dispute || null)
+const returnLogistics = computed(() => detail.value?.returnLogistics || null)
+const canSubmitReturnLogistics = computed(() => {
+  const handleStatus = Number(field(detail.value, 'handleStatus', 'handle_status', -1))
+  const afterSaleType = Number(field(detail.value, 'afterSaleType', 'after_sale_type', -1))
+  return afterSaleType === 4 && handleStatus === 1 && !returnLogistics.value
+})
+const returnLogisticsForm = ref({ expressCompany: '', expressNo: '' })
+const submittingLogistics = ref(false)
+async function submitReturnLogistics() {
+  if (!returnLogisticsForm.value.expressCompany.trim() || !returnLogisticsForm.value.expressNo.trim()) {
+    ElMessage.warning('请填写快递公司和快递单号')
+    return
+  }
+  submittingLogistics.value = true
+  try {
+    await api(`/api/user/after-sales/${route.params.id}/return-logistics`, {
+      method: 'POST',
+      body: {
+        expressCompany: returnLogisticsForm.value.expressCompany.trim(),
+        expressNo: returnLogisticsForm.value.expressNo.trim()
+      }
+    })
+    ElMessage.success('退货物流信息已提交')
+    await load()
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    submittingLogistics.value = false
+  }
+}
 const disputeStatusMap = { 0: '待平台处理', 1: '举证中', 2: '平台处理中', 3: '已裁决', 4: '已关闭' }
 const judgeResultMap = { 1: '支持用户', 2: '支持商家', 3: '部分支持', 4: '协商关闭' }
 
@@ -218,6 +248,35 @@ onMounted(load)
         </div>
       </section>
 
+      <section v-if="returnLogistics || canSubmitReturnLogistics" class="band stack">
+        <h2 class="section-title">退货物流</h2>
+        <div v-if="returnLogistics" class="info-lines">
+          <span class="muted">快递公司：{{ returnLogistics.expressCompany || returnLogistics.express_company || '-' }}</span>
+          <span class="muted">快递单号：{{ returnLogistics.expressNo || returnLogistics.express_no || '-' }}</span>
+          <span class="muted">物流状态：{{ ['待发货', '待揽收', '运输中', '派送中', '已签收', '拒收'][returnLogistics.logisticsStatus || returnLogistics.logistics_status] || '未知' }}</span>
+          <div v-if="returnLogistics.traces && returnLogistics.traces.length" class="stack" style="margin-top: 8px;">
+            <span class="muted" style="font-weight: 700;">物流轨迹：</span>
+            <span v-for="trace in returnLogistics.traces" :key="trace.traceId || trace.trace_id" class="muted">
+              {{ trace.traceTime || trace.trace_time }} — {{ trace.traceContent || trace.trace_content }}
+            </span>
+          </div>
+        </div>
+        <div v-else-if="canSubmitReturnLogistics" class="info-lines">
+          <span class="muted">商家已同意退货退款，请填写退货快递信息：</span>
+          <div class="grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+            <label class="field-block">
+              <span>快递公司</span>
+              <el-input v-model="returnLogisticsForm.expressCompany" placeholder="如：顺丰速运、中通快递" />
+            </label>
+            <label class="field-block">
+              <span>快递单号</span>
+              <el-input v-model="returnLogisticsForm.expressNo" placeholder="填写快递单号" />
+            </label>
+          </div>
+          <el-button type="primary" :loading="submittingLogistics" @click="submitReturnLogistics">提交退货物流</el-button>
+        </div>
+      </section>
+
       <section class="band stack">
         <h2 class="section-title">售后进度</h2>
         <el-timeline>
@@ -275,6 +334,17 @@ onMounted(load)
 .info-lines {
   display: grid;
   gap: 10px;
+}
+
+.field-block {
+  display: grid;
+  gap: 8px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.field-block :deep(.el-input) {
+  width: 100%;
 }
 
 .status-chip {

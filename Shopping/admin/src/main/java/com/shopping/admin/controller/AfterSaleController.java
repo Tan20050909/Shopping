@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/after-sale")
 @RequiredArgsConstructor
@@ -26,6 +28,12 @@ public class AfterSaleController {
     @GetMapping("/{id}")
     public Result<AfterSale> detail(@PathVariable Long id) {
         return Result.success(afterSaleService.getById(id));
+    }
+
+    @GetMapping("/{id}/logistics")
+    public Result<Map<String, Object>> logistics(@PathVariable Long id) {
+        Map<String, Object> logistics = afterSaleService.getReturnLogistics(id);
+        return Result.success(logistics);
     }
 
     @PostMapping("/handle")

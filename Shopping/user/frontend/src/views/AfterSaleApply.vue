@@ -16,7 +16,9 @@ const form = ref({
   applyReason: '',
   applyNote: '',
   applyEvidence: '',
-  applyAmount: null
+  applyAmount: null,
+  returnExpressCompany: '',
+  returnExpressNo: ''
 })
 
 const currentItem = computed(() =>
@@ -72,6 +74,20 @@ async function submit() {
         applyEvidence: form.value.applyEvidence
       }
     })
+    // 退货退款：如填写了退货物流信息，一并提交
+    if (form.value.afterSaleType === 4 && form.value.returnExpressCompany.trim() && form.value.returnExpressNo.trim()) {
+      try {
+        await api(`/api/user/after-sales/${result.afterSaleId}/return-logistics`, {
+          method: 'POST',
+          body: {
+            expressCompany: form.value.returnExpressCompany.trim(),
+            expressNo: form.value.returnExpressNo.trim()
+          }
+        })
+      } catch (logisticsErr) {
+        ElMessage.warning('售后申请已提交，但退货物流信息提交失败，请稍后在售后详情页补充：' + logisticsErr.message)
+      }
+    }
     ElMessage.success('售后申请已提交')
     router.push(`/after-sales/${result.afterSaleId}`)
   } catch (error) {
@@ -147,6 +163,17 @@ onMounted(loadOrder)
             <label class="field-block">
               <span>凭证图片地址</span>
               <el-input v-model="form.applyEvidence" placeholder="选填，填写图片 URL" />
+            </label>
+          </div>
+
+          <div v-if="form.afterSaleType === 4" class="grid form-grid">
+            <label class="field-block">
+              <span>退货快递公司</span>
+              <el-input v-model="form.returnExpressCompany" placeholder="如：顺丰速运、中通快递" />
+            </label>
+            <label class="field-block">
+              <span>退货快递单号</span>
+              <el-input v-model="form.returnExpressNo" placeholder="填写快递单号" />
             </label>
           </div>
 

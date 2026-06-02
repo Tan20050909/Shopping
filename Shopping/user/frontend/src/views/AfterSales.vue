@@ -25,7 +25,7 @@ function statusText(item) {
   if (handleStatus === 4 || refundStatus === 2) return '退款成功'
   if (handleStatus === 2) return '商家已驳回'
   if (refundStatus === 1) return '退款处理中'
-  if (handleStatus === 3) return '售后处理中'
+  if (handleStatus === 3) return '售后已完成'
   if (handleStatus === 1) return '商家已同意'
   if (handleStatus === 5) return '售后关闭'
   return '待审核'

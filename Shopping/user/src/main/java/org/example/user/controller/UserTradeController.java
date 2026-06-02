@@ -189,6 +189,14 @@ public class UserTradeController {
         return Result.ok(shoppingService.cancelAfterSale(UserContext.requireCurrentUserId(), afterSaleId));
     }
 
+    @PostMapping("/after-sales/{afterSaleId}/return-logistics")
+    public Result<Void> submitReturnLogistics(@PathVariable long afterSaleId, @RequestBody Map<String, String> body) {
+        String expressCompany = body.getOrDefault("expressCompany", "").trim();
+        String expressNo = body.getOrDefault("expressNo", "").trim();
+        shoppingService.submitReturnLogistics(UserContext.requireCurrentUserId(), afterSaleId, expressCompany, expressNo);
+        return Result.ok();
+    }
+
     @PostMapping("/disputes")
     public Result<Map<String, Object>> createDispute(@RequestBody Map<String, Object> body) {
         long afterSaleId = Long.parseLong(String.valueOf(body.get("afterSaleId")));

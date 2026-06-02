@@ -82,6 +82,36 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
     }
 
     /**
+     * 查询售后关联的买家退货物流信息
+     */
+    public Map<String, Object> getReturnLogistics(Long afterSaleId) {
+        AfterSale afterSale = getById(afterSaleId);
+        if (afterSale == null || afterSale.getOrderId() == null) {
+            return null;
+        }
+        try {
+            Map<String, Object> logistics = jdbcTemplate.queryForMap(
+                    "SELECT logistics_id, express_company, express_no, logistics_status, create_time, update_time " +
+                    "FROM tb_logistics WHERE order_id = ? AND biz_type = 1 LIMIT 1",
+                    afterSale.getOrderId());
+            if (logistics != null) {
+                // 查询物流轨迹
+                Object logisticsId = logistics.get("logistics_id");
+                if (logisticsId != null) {
+                    var traces = jdbcTemplate.queryForList(
+                            "SELECT trace_id, trace_content, trace_time, trace_location " +
+                            "FROM tb_logistics_trace WHERE logistics_id = ? ORDER BY trace_time ASC",
+                            logisticsId);
+                    logistics.put("traces", traces);
+                }
+            }
+            return logistics;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 确保退款单已创建并标记成功。
      * @param afterSale 售后单实体
      * @param overrideAmount 裁决金额（非null时按此金额退款，否则按售后申请金额）

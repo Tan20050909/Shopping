@@ -2876,7 +2876,61 @@ public class ShoppingService {
          if (dispute != null) {
             result.put("dispute", this.snakeToCamel(dispute));
          }
+         // 查询退货物流信息（biz_type=1 表示售后买家寄回）
+         long orderId = this.number(detail.get("order_id")).longValue();
+         Map<String, Object> returnLogistics = this.one(
+            "SELECT * FROM tb_logistics WHERE order_id = ? AND biz_type = 1", orderId
+         );
+         if (returnLogistics != null) {
+            Map<String, Object> rl = this.snakeToCamel(returnLogistics);
+            rl.put(
+               "traces",
+               this.convertKeys(
+                  this.jdbc.queryForList(
+                     "SELECT trace_id, trace_content, trace_time, trace_location FROM tb_logistics_trace WHERE logistics_id = ? ORDER BY trace_time ASC",
+                     new Object[]{rl.get("logisticsId")}
+                  )
+               )
+            );
+            result.put("returnLogistics", rl);
+         }
          return result;
+      }
+   }
+
+   /**
+    * 用户提交退货物流信息（退货退款场景，商家同意后用户填写寄回快递信息）
+    */
+   @Transactional
+   public void submitReturnLogistics(long userId, long afterSaleId, String expressCompany, String expressNo) {
+      Map<String, Object> afterSale = this.one(
+         "SELECT * FROM tb_after_sale WHERE after_sale_id = ? AND user_id = ?", afterSaleId, userId
+      );
+      if (afterSale == null) {
+         throw new BizException("DATA_NOT_FOUND", "售后单不存在");
+      }
+      if (this.number(afterSale.get("after_sale_type")).intValue() != 4) {
+         throw new BizException("PARAM_INVALID", "仅退货退款售后可填写退货物流");
+      }
+      long orderId = this.number(afterSale.get("order_id")).longValue();
+      long merchantId = this.number(afterSale.get("merchant_id")).longValue();
+      this.upsertReturnLogistics(orderId, merchantId, expressCompany, expressNo);
+   }
+
+   private void upsertReturnLogistics(long orderId, long merchantId, String expressCompany, String expressNo) {
+      Map<String, Object> existed = this.one(
+         "SELECT * FROM tb_logistics WHERE order_id = ? AND biz_type = 1", orderId
+      );
+      if (existed == null) {
+         this.jdbc.update(
+            "INSERT INTO tb_logistics(order_id, merchant_id, biz_type, express_company, express_no, logistics_status, create_time, update_time) VALUES (?, ?, 1, ?, ?, 1, NOW(), NOW())",
+            new Object[]{orderId, merchantId, expressCompany, expressNo}
+         );
+      } else {
+         this.jdbc.update(
+            "UPDATE tb_logistics SET express_company = ?, express_no = ?, update_time = NOW() WHERE order_id = ? AND biz_type = 1",
+            new Object[]{expressCompany, expressNo, orderId}
+         );
       }
    }
 

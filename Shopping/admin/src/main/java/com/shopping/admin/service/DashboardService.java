@@ -156,10 +156,15 @@ public class DashboardService {
 
     /** 获取智能洞察列表 */
     public List<Insight> getInsights(Integer handleStatus) {
-        LambdaQueryWrapper<Insight> wrapper = new LambdaQueryWrapper<>();
-        if (handleStatus != null) wrapper.eq(Insight::getHandleStatus, handleStatus);
-        wrapper.orderByDesc(Insight::getSeverity).orderByDesc(Insight::getCreateTime);
-        return insightMapper.selectList(wrapper);
+        try {
+            LambdaQueryWrapper<Insight> wrapper = new LambdaQueryWrapper<>();
+            if (handleStatus != null) wrapper.eq(Insight::getHandleStatus, handleStatus);
+            wrapper.orderByDesc(Insight::getSeverity).orderByDesc(Insight::getCreateTime);
+            return insightMapper.selectList(wrapper);
+        } catch (Exception e) {
+            // tb_insight 表可能不存在，返回空列表避免 Dashboard 报错
+            return new ArrayList<>();
+        }
     }
 
     /** 处理洞察 */

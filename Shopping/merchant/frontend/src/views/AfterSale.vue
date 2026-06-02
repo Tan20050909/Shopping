@@ -34,7 +34,7 @@
           <div class="card-body">
             <div class="thumbs">
               <div v-if="firstEvidence(a)" class="thumb">
-                <img class="thumb-img" :src="firstEvidence(a)" alt="" @error="onImgError" />
+                <img class="thumb-img" :src="resolveImg(firstEvidence(a))" alt="" @error="onImgError" />
               </div>
               <div v-else class="thumb"></div>
             </div>
@@ -194,8 +194,29 @@ const typeText = (t) => {
 
 const defaultImage = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2280%22%20height%3D%2280%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2214%22%20fill%3D%22%23f3f4f6%22/%3E%3Cpath%20d%3D%22M22%2028h36v24H22z%22%20fill%3D%22%23e5e7eb%22/%3E%3Cpath%20d%3D%22M26%2048l10-10%208%208%2010-12%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%223%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2236%22%20r%3D%223.5%22%20fill%3D%22%23cbd5e1%22/%3E%3C/svg%3E'
 
+const resolveImg = (src) => {
+  const raw = String(src || '').trim()
+  if (!raw) return defaultImage
+  const v = raw.replace(/\\/g, '/')
+  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  if (v.startsWith('/uploads/')) return v
+  if (v.startsWith('uploads/')) return `/${v}`
+  if (v.startsWith('/goods/')) return `/uploads${v}`
+  if (v.startsWith('goods/')) return `/uploads/${v}`
+  const idx = v.indexOf('/uploads/')
+  if (idx > 0) return v.slice(idx)
+  if (v.startsWith('/')) return v
+  return defaultImage
+}
+
+/** 从对象中按优先级读取证据字段 */
+const pickEvidenceField = (obj) => {
+  if (!obj) return ''
+  return String(obj.applyEvidence ?? obj.apply_evidence ?? obj.evidence ?? '').trim()
+}
+
 const firstEvidence = (a) => {
-  const raw = String(a?.evidence || '').trim()
+  const raw = pickEvidenceField(a)
   if (!raw) return ''
   const u = raw.split(',').map(v => String(v || '').trim()).filter(Boolean)[0] || ''
   return u || ''

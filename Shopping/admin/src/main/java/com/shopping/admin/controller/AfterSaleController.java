@@ -36,6 +36,11 @@ public class AfterSaleController {
         return Result.success(logistics);
     }
 
+    @GetMapping("/{id}/detail")
+    public Result<Map<String, Object>> detailView(@PathVariable Long id) {
+        return Result.success(afterSaleService.getDetail(id));
+    }
+
     @PostMapping("/handle")
     public Result<Void> handle(@RequestBody HandleRequest request, HttpServletRequest httpRequest) {
         Long adminId = (Long) httpRequest.getAttribute("adminId");

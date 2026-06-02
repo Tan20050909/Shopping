@@ -148,6 +148,15 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
         Order order = afterSale.getOrderId() == null ? null : orderMapper.selectById(afterSale.getOrderId());
         detail.setOrder(order);
 
+        // 查询订单项（含商品图片、名称等信息）
+        if (afterSale.getOrderId() != null) {
+            List<OrderItem> items = orderItemMapper.selectList(
+                    new LambdaQueryWrapper<OrderItem>()
+                            .eq(OrderItem::getOrderId, afterSale.getOrderId())
+            );
+            detail.setOrderItems(items);
+        }
+
         Long orderId = afterSale.getOrderId();
         Logistics buyerLogistics = logisticsService.getByOrderIdAndBizType(orderId, LogisticsService.BIZ_TYPE_AFTER_SALE_BUYER_RETURN);
         Logistics merchantLogistics = logisticsService.getByOrderIdAndBizType(orderId, LogisticsService.BIZ_TYPE_AFTER_SALE_MERCHANT_SHIP);

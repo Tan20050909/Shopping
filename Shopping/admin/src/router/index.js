@@ -21,6 +21,7 @@ const routes = [
       { path: 'goods', name: 'Goods', component: () => import('../views/GoodsManage.vue'), meta: { title: '商品管理', permission: 'GOODS_MGMT' } },
       { path: 'order', name: 'Order', component: () => import('../views/OrderManage.vue'), meta: { title: '订单管理', permission: 'ORDER_MGMT' } },
       { path: 'after-sale', name: 'AfterSale', component: () => import('../views/AfterSaleManage.vue'), meta: { title: '售后管理', permission: 'AFTER_SALE_MGMT' } },
+      { path: 'after-sale/:id', name: 'AfterSaleDetail', component: () => import('../views/AdminAfterSaleDetail.vue'), meta: { title: '售后监管详情', permission: 'AFTER_SALE_MGMT' } },
       { path: 'dispute', name: 'Dispute', component: () => import('../views/DisputeManage.vue'), meta: { title: '纠纷仲裁', permission: 'DISPUTE_MGMT' } },
       { path: 'abnormal', name: 'Abnormal', component: () => import('../views/AbnormalOrder.vue'), meta: { title: '异常订单', permission: 'ORDER_ABNORMAL' } },
       { path: 'review', name: 'Review', component: () => import('../views/ReviewManage.vue'), meta: { title: '评论管理', permission: 'REVIEW_MGMT' } },

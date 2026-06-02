@@ -9,6 +9,8 @@ import java.util.Map;
 public class AfterSaleDetail {
     private AfterSale afterSale;
     private Order order;
+    /** 订单项列表（含商品图片、名称） */
+    private List<OrderItem> orderItems;
     private Logistics buyerLogistics;
     private List<LogisticsTrace> buyerLogisticsTraces;
     private Logistics merchantLogistics;

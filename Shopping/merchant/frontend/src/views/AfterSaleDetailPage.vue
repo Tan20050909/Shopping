@@ -56,20 +56,18 @@
                 <span class="k">订单号</span>
                 <span class="v">{{ orderView?.orderNo || '-' }}</span>
               </div>
-              <div class="order-row">
-                <span class="k">购买商品</span>
-                <span class="v">{{ orderGoodsSummary(orderView) }}</span>
-              </div>
-              <div class="order-row">
-                <span class="k">实付款</span>
-                <span class="v">¥ {{ toMoney(orderView?.payAmount ?? orderView?.totalAmount) }}</span>
-              </div>
-              <div class="order-row">
-                <span class="k">状态</span>
-                <span class="v">{{ orderStatusText(orderView?.status) }}</span>
-              </div>
-              <div class="order-actions">
+              <div class="order-actions" style="margin-top:6px">
                 <el-button size="small" :disabled="!orderView?.id" @click="goOrderDetail">查看订单详情</el-button>
+              </div>
+            </div>
+            <div v-if="orderItems.length" class="order-item-list" style="margin-top:12px">
+              <div v-for="item in orderItems" :key="item.id || item.orderItemId" class="order-item-row">
+                <img class="item-pic" :src="resolveImg(item.goodsPic)" alt="" @error="(e) => { e.target.src = defaultImage }" />
+                <div class="item-info">
+                  <div class="item-name">{{ item.goodsName || '-' }}</div>
+                  <div class="item-spec">{{ item.spec || '默认规格' }} x{{ item.quantity || item.num || 1 }}</div>
+                  <div class="item-price">¥ {{ toMoney(item.totalPrice || item.price) }}</div>
+                </div>
               </div>
             </div>
           </el-card>
@@ -98,7 +96,7 @@
           <el-empty v-if="!buyerEvidence.length" description="买家未提供证据" />
           <div v-else class="media-grid">
             <template v-for="(u, idx) in buyerEvidence" :key="idx">
-              <img v-if="isImage(u)" class="media" :src="u" alt="" />
+              <img v-if="isImage(u)" class="media" :src="resolveImg(u)" alt="" @error="(e) => { e.target.src = defaultImage }" />
               <video v-else class="media" controls :src="u"></video>
             </template>
           </div>
@@ -186,7 +184,7 @@
           <el-empty v-if="!merchantEvidenceList.length" description="暂无商家证据" />
           <div v-else class="media-grid">
             <template v-for="(u, idx) in merchantEvidenceList" :key="idx">
-              <img v-if="isImage(u)" class="media" :src="u" alt="" />
+              <img v-if="isImage(u)" class="media" :src="resolveImg(u)" alt="" @error="(e) => { e.target.src = defaultImage }" />
               <video v-else class="media" controls :src="u"></video>
             </template>
           </div>
@@ -278,6 +276,29 @@ const merchantHasWaybill = computed(() => Boolean(String(merchantLogistics.value
 const showCompleteBtn = computed(() => Number(afterSale.value?.type) === 2)
 const canComplete = computed(() => showCompleteBtn.value && derivedStatus.value === 1 && merchantHasWaybill.value)
 
+const defaultImage = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2280%22%20height%3D%2280%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2214%22%20fill%3D%22%23f3f4f6%22/%3E%3Cpath%20d%3D%22M22%2028h36v24H22z%22%20fill%3D%22%23e5e7eb%22/%3E%3Cpath%20d%3D%22M26%2048l10-10%208%208%2010-12%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%223%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2236%22%20r%3D%223.5%22%20fill%3D%22%23cbd5e1%22/%3E%3C/svg%3E'
+
+const resolveImg = (src) => {
+  const raw = String(src || '').trim()
+  if (!raw) return defaultImage
+  const v = raw.replace(/\\/g, '/')
+  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  if (v.startsWith('/uploads/')) return v
+  if (v.startsWith('uploads/')) return `/${v}`
+  if (v.startsWith('/goods/')) return `/uploads${v}`
+  if (v.startsWith('goods/')) return `/uploads/${v}`
+  const idx = v.indexOf('/uploads/')
+  if (idx > 0) return v.slice(idx)
+  if (v.startsWith('/')) return v
+  return defaultImage
+}
+
+/** 从对象中按优先级读取证据字段：applyEvidence、apply_evidence、evidence */
+const pickEvidenceField = (obj) => {
+  if (!obj) return ''
+  return String(obj.applyEvidence ?? obj.apply_evidence ?? obj.evidence ?? obj.apply_evidence ?? '').trim()
+}
+
 const parseEvidence = (val) => {
   const raw = String(val || '').trim()
   if (!raw) return []
@@ -299,7 +320,14 @@ const parseEvidence = (val) => {
     .filter(Boolean)
 }
 
-const buyerEvidence = computed(() => parseEvidence(afterSale.value?.evidence))
+const buyerEvidence = computed(() => parseEvidence(pickEvidenceField(afterSale.value)))
+
+/** 订单项列表（含商品图、名称） */
+const orderItems = computed(() => {
+  const items = detail.value?.orderItems
+  if (!Array.isArray(items) || items.length === 0) return detail.value?.order?.itemPics ? [{ goodsPic: null }] : []
+  return items
+})
 
 const merchantParsed = computed(() => {
   const raw = String(afterSale.value?.merchantRemark || '').trim()
@@ -659,6 +687,54 @@ onMounted(load)
   border-radius: 10px;
   object-fit: cover;
   background: #f5f5f5;
+}
+
+.order-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-item-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.item-pic {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f5f5f5;
+  flex-shrink: 0;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.item-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-spec {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.item-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e11d48;
 }
 
 @media (max-width: 1100px) {

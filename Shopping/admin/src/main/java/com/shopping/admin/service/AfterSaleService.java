@@ -82,6 +82,71 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
     }
 
     /**
+     * 获取完整的售后监管详情（含订单、日志、物流、纠纷）
+     */
+    public Map<String, Object> getDetail(Long afterSaleId) {
+        AfterSale afterSale = getById(afterSaleId);
+        if (afterSale == null) return null;
+
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("afterSale", afterSale);
+        result.put("afterSaleId", afterSale.getAfterSaleId());
+
+        // 查询关联订单
+        if (afterSale.getOrderId() != null) {
+            try {
+                Map<String, Object> order = jdbcTemplate.queryForMap(
+                        "SELECT order_id, order_no, group_no, order_status, pay_status, pay_amount, create_time " +
+                        "FROM tb_order WHERE order_id = ?", afterSale.getOrderId());
+                // 查询订单项
+                var items = jdbcTemplate.queryForList(
+                        "SELECT order_item_id, goods_name, sku_name, goods_pic, price, num, total_price " +
+                        "FROM tb_order_item WHERE order_id = ? ORDER BY order_item_id", afterSale.getOrderId());
+                result.put("order", order);
+                result.put("orderItems", items);
+            } catch (Exception ignored) {
+            }
+        }
+
+        // 查询售后处理日志
+        try {
+            var logs = jdbcTemplate.queryForList(
+                    "SELECT log_id, before_status, after_status, operator_type, operator_id, operation_desc, create_time " +
+                    "FROM tb_after_sale_log WHERE after_sale_id = ? ORDER BY create_time ASC, log_id ASC", afterSaleId);
+            result.put("logs", logs);
+        } catch (Exception ignored) {
+            result.put("logs", java.util.List.of());
+        }
+
+        // 查询退货物流
+        try {
+            Map<String, Object> logistics = getReturnLogistics(afterSaleId);
+            if (logistics != null) result.put("returnLogistics", logistics);
+        } catch (Exception ignored) {
+        }
+
+        // 查询纠纷信息
+        try {
+            Map<String, Object> dispute = jdbcTemplate.queryForMap(
+                    "SELECT dispute_id, dispute_no, dispute_status, judge_result, final_amount, platform_opinion, judge_time " +
+                    "FROM tb_dispute WHERE after_sale_id = ? ORDER BY create_time DESC LIMIT 1", afterSaleId);
+            result.put("dispute", dispute);
+        } catch (Exception ignored) {
+        }
+
+        // 查询退款信息
+        try {
+            Map<String, Object> refund = jdbcTemplate.queryForMap(
+                    "SELECT refund_id, refund_no, refund_status, refund_amount, refund_channel, success_time " +
+                    "FROM tb_refund WHERE after_sale_id = ? LIMIT 1", afterSaleId);
+            result.put("refund", refund);
+        } catch (Exception ignored) {
+        }
+
+        return result;
+    }
+
+    /**
      * 查询售后关联的买家退货物流信息
      */
     public Map<String, Object> getReturnLogistics(Long afterSaleId) {

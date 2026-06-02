@@ -58,65 +58,20 @@
       </div>
     </div>
 
-    <el-dialog v-model="detailVisible" title="售后详情" width="700px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="售后单号">{{ detail.afterSaleNo }}</el-descriptions-item>
-        <el-descriptions-item label="售后类型">{{ afterSaleTypeMap[detail.afterSaleType] || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="订单ID">{{ detail.orderId }}</el-descriptions-item>
-        <el-descriptions-item label="订单项ID">{{ detail.orderItemId }}</el-descriptions-item>
-        <el-descriptions-item label="用户ID">{{ detail.userId }}</el-descriptions-item>
-        <el-descriptions-item label="商家ID">{{ detail.merchantId }}</el-descriptions-item>
-        <el-descriptions-item label="申请金额"><span style="color:#E60012;font-weight:600">¥{{ detail.applyAmount }}</span></el-descriptions-item>
-        <el-descriptions-item label="处理状态">
-          <el-tag :type="statusTagMap[detail.handleStatus]" size="small" style="border-radius:999px">{{ statusTextMap[detail.handleStatus] }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="申请原因" :span="2">{{ detail.applyReason || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="商家备注" :span="2">{{ detail.merchantRemark || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="平台备注" :span="2">{{ detail.platformRemark || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请时间">{{ detail.applyTime }}</el-descriptions-item>
-        <el-descriptions-item label="处理时间">{{ detail.handleTime || '-' }}</el-descriptions-item>
-      </el-descriptions>
-      <div v-if="detail.applyEvidence" style="margin-top:16px">
-        <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">申请凭证</h4>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <el-image v-for="(img, i) in detail.applyEvidence.split(',')" :key="i" :src="img.trim()" style="width:80px;height:80px;border-radius:4px;object-fit:cover" fit="cover" :preview-src-list="detail.applyEvidence.split(',')" />
-        </div>
-      </div>
-      <div v-if="detailLogistics" style="margin-top:16px">
-        <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">退货物流</h4>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="快递公司">{{ detailLogistics.express_company || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="快递单号">{{ detailLogistics.express_no || '-' }}</el-descriptions-item>
-        </el-descriptions>
-        <div v-if="detailLogistics.traces && detailLogistics.traces.length" style="margin-top:12px">
-          <h5 style="margin-bottom:8px;font-size:13px;font-weight:600">物流轨迹</h5>
-          <el-timeline>
-            <el-timeline-item
-              v-for="t in detailLogistics.traces"
-              :key="t.trace_id"
-              :timestamp="t.trace_time"
-              placement="top"
-            >
-              {{ t.trace_content }}
-              <div v-if="t.trace_location" style="font-size:12px;color:#6b7280">{{ t.trace_location }}</div>
-            </el-timeline-item>
-          </el-timeline>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAfterSaleList, getAfterSaleDetail, getAfterSaleLogistics, handleAfterSale as handleAfterSaleApi } from '../api/common'
+import { getAfterSaleList, handleAfterSale as handleAfterSaleApi } from '../api/common'
 
+const router = useRouter()
 const tableData = ref([])
 const loading = ref(false)
 const current = ref(1), size = ref(10), total = ref(0)
 const keyword = ref(''), statusFilter = ref(null)
-const detailVisible = ref(false), detail = ref({}), detailLogistics = ref(null)
 
 const afterSaleTypeMap = { 1: '仅退款', 2: '换货', 3: '补发', 4: '退货退款' }
 const statusTextMap = { 0: '待商家处理', 1: '商家同意', 2: '商家拒绝', 3: '售后完成', 4: '退款成功', 5: '已撤销' }
@@ -134,21 +89,8 @@ const loadData = async () => {
   } finally { loading.value = false }
 }
 
-const showDetail = async (row) => {
-  try {
-    const res = await getAfterSaleDetail(row.afterSaleId)
-    detail.value = res.data || row
-    // 尝试获取退货物流信息
-    try {
-      const logisticsRes = await getAfterSaleLogistics(row.afterSaleId)
-      detailLogistics.value = logisticsRes.data || null
-    } catch { detailLogistics.value = null }
-    detailVisible.value = true
-  } catch (e) {
-    detail.value = row
-    detailLogistics.value = null
-    detailVisible.value = true
-  }
+const showDetail = (row) => {
+  router.push(`/after-sale/${row.afterSaleId}`)
 }
 
 const handleAfterSale = async (row, status) => {

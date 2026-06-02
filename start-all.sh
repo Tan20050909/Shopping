@@ -120,7 +120,6 @@ start_service() {
 
 prepare_frontend "Shopping/user/frontend"
 prepare_frontend "Shopping/merchant/frontend"
-prepare_frontend "Shopping/homepage-common"
 prepare_frontend "Shopping/admin"
 
 start_service "user-backend"     "Shopping/user"              8082 mvn spring-boot:run
@@ -129,14 +128,12 @@ start_service "admin-backend"    "Shopping/admin"             8080 mvn spring-bo
 start_service "user-frontend"    "Shopping/user/frontend"     5173 npm run dev -- --host 0.0.0.0
 start_service "merchant-frontend" "Shopping/merchant/frontend" 3000 npm run dev -- --host 0.0.0.0
 start_service "admin-frontend"   "Shopping/admin"             3002 npm run dev -- --host 0.0.0.0
-start_service "homepage-common"  "Shopping/homepage-common"   3001 npm run dev -- --host 0.0.0.0
 
 echo
 echo "全部启动命令已发出。常用地址："
 echo "用户前端:     http://localhost:5173"
 echo "商家前端:     http://localhost:3000"
 echo "平台前端:     http://localhost:3002"
-echo "公共首页:     http://localhost:3001"
 echo "用户后端:     http://localhost:8082"
 echo "商家后端:     http://localhost:8081"
 echo "平台后端:     http://localhost:8080"

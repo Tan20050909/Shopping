@@ -1226,7 +1226,7 @@ onBeforeUnmount(() => {
 })
 
 const openShop = () => {
-  window.open('http://localhost:3001/', '_blank')
+  window.open('http://localhost:5173/', '_blank')
 }
 </script>
 

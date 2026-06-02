@@ -62,7 +62,7 @@ fi
 # 第二步：扫描固定端口，清理本项目残留进程
 echo "扫描端口，清理残留进程..."
 
-for port in 8082 8081 8080 5173 3000 3002 3001; do
+for port in 8082 8081 8080 5173 3000 3002; do
   pids="$(port_pids "$port")"
   [[ -z "$pids" ]] && continue
 
@@ -79,7 +79,7 @@ done
 # 等待进程退出，未退出则强制停止
 sleep 1
 
-for port in 8082 8081 8080 5173 3000 3002 3001; do
+for port in 8082 8081 8080 5173 3000 3002; do
   pids="$(port_pids "$port")"
   [[ -z "$pids" ]] && continue
 

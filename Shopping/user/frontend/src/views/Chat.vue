@@ -885,22 +885,6 @@ onBeforeUnmount(() => {
           </div>
         </header>
 
-        <section class="chat-order-card allmart-chat-section">
-          <div class="chat-order-media">
-            <img v-if="orderSummary.goodsPic" :src="orderSummary.goodsPic" :alt="orderSummary.goodsName" />
-            <div v-else class="chat-order-placeholder">暂无商品</div>
-          </div>
-          <div class="chat-order-copy">
-            <strong>{{ orderSummary.goodsName }}</strong>
-            <div class="chat-order-meta">
-              <span class="chat-order-price">¥ {{ orderSummary.price ? orderSummary.price.toFixed(2) : '0.00' }}</span>
-              <span>x{{ orderSummary.quantity }}</span>
-            </div>
-            <span class="muted">订单号：{{ orderSummary.orderNo }}</span>
-          </div>
-          <span class="chat-order-status">{{ orderSummary.status }}</span>
-        </section>
-
         <div ref="messageList" class="messages">
           <div
             v-for="message in detailMessages"
@@ -1587,61 +1571,6 @@ onBeforeUnmount(() => {
 .chat-action-btn :deep(.el-icon) {
   margin-right: 8px;
   font-size: 16px;
-}
-
-.chat-order-card {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: center;
-  min-height: 152px;
-  padding: 22px 24px;
-}
-
-.chat-order-media img,
-.chat-order-placeholder {
-  width: 116px;
-  height: 116px;
-  object-fit: cover;
-  border-radius: 14px;
-  background: #fafafa;
-}
-
-.chat-order-placeholder {
-  display: grid;
-  place-items: center;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.chat-order-copy {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-.chat-order-copy strong {
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.chat-order-meta {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  color: var(--text-secondary);
-}
-
-.chat-order-price {
-  color: var(--text-main);
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.chat-order-status {
-  color: var(--brand-red);
-  font-size: 16px;
-  font-weight: 800;
 }
 
 .messages {
@@ -2345,16 +2274,6 @@ onBeforeUnmount(() => {
   .chat-actions {
     width: 100%;
     flex-wrap: wrap;
-  }
-
-  .chat-order-card {
-    grid-template-columns: 1fr;
-  }
-
-  .chat-order-media img,
-  .chat-order-placeholder {
-    width: 100%;
-    height: 180px;
   }
 
   .chat-shell-footer-inner {

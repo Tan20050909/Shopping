@@ -42,7 +42,7 @@
                 <div v-if="thumbs(o).length" v-for="(it, idx) in thumbs(o)" :key="idx" class="thumb">
                   <img class="thumb-img" :src="resolveImg(it.goodsPic)" alt="" @error="onImgError" />
                 </div>
-                <div v-else class="thumb" v-for="n in 2" :key="n"></div>
+                <div v-else class="thumb thumb-empty">无商品信息</div>
               </div>
               <div class="goods-summary">{{ orderGoodsSummary(o) }}</div>
             </div>

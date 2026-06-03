@@ -33,7 +33,10 @@
 
           <div class="card-body">
             <div class="thumbs">
-              <div v-if="firstEvidence(a)" class="thumb">
+              <div v-if="a.displayPic" class="thumb">
+                <img class="thumb-img" :src="resolveImg(a.displayPic)" alt="" @error="onImgError" />
+              </div>
+              <div v-else-if="firstEvidence(a)" class="thumb">
                 <img class="thumb-img" :src="resolveImg(firstEvidence(a))" alt="" @error="onImgError" />
               </div>
               <div v-else class="thumb"></div>

@@ -59,7 +59,8 @@ export function fallbackImageOf(item) {
 }
 
 export function imageOf(item) {
-  const rawSrc = item?.goodsPic || item?.goods_pic || item?.picUrl || item?.pic_url || item?.mainImage || item?.main_image || item?.imageUrl || item?.image_url || item?.image || item?.goodsImage || item?.goods_image || item?.productPic || item?.product_pic || item?.cover || item?.thumbnail || item?.liveCover || item?.live_cover
+  // 统一图片优先级：currentGoodsPic > goodsPic > firstGalleryPic > snapshotGoodsPic > goods_pic > ... > fallback
+  const rawSrc = item?.currentGoodsPic || item?.goodsPic || item?.firstGalleryPic || item?.snapshotGoodsPic || item?.goods_pic || item?.picUrl || item?.pic_url || item?.mainImage || item?.main_image || item?.imageUrl || item?.image_url || item?.image || item?.goodsImage || item?.goods_image || item?.productPic || item?.product_pic || item?.cover || item?.thumbnail || item?.liveCover || item?.live_cover
   const normalized = String(rawSrc || '').trim().replaceAll('\\', '/')
   if (normalized && normalized !== '[object Object]') {
     // http(s) 开头：原样使用

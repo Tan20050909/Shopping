@@ -177,30 +177,40 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
                 .and(w -> w.in(OrderItem::getOrderId, ids).or().in(!groupIds.isEmpty(), OrderItem::getGroupId, groupIds))
                 .orderByDesc(OrderItem::getCreateTime));
 
-        List<Long> missingGoodsIds = new ArrayList<>();
-        for (OrderItem it : items) {
-            if (it == null) continue;
-            String pic = it.getGoodsPic();
-            boolean invalidLocal = false;
-            if (pic != null && !pic.isBlank()) {
-                String v = pic.trim();
-                invalidLocal = v.startsWith("/goods/") || v.startsWith("goods/") || v.startsWith("/images/") || v.startsWith("images/");
-            }
-            if (pic != null && !pic.isBlank() && !invalidLocal) continue;
-            Long goodsId = it.getGoodsId();
-            if (goodsId != null) missingGoodsIds.add(goodsId);
-        }
+        // 收集所有商品ID（用于批量查询当前主图和图集第一张）
+        List<Long> allGoodsIds = items.stream()
+                .filter(it -> it != null && it.getGoodsId() != null)
+                .map(OrderItem::getGoodsId)
+                .distinct()
+                .collect(Collectors.toList());
 
-        Map<Long, String> goodsPicMap = new HashMap<>();
-        if (!missingGoodsIds.isEmpty()) {
+        // 批量查询当前商品主图
+        Map<Long, String> currentPicMap = new HashMap<>();
+        if (!allGoodsIds.isEmpty()) {
             List<Goods> goodsList = goodsMapper.selectList(new LambdaQueryWrapper<Goods>()
                     .select(Goods::getId, Goods::getGoodsPic)
-                    .in(Goods::getId, missingGoodsIds));
+                    .in(Goods::getId, allGoodsIds));
             for (Goods g : goodsList) {
                 if (g == null || g.getId() == null) continue;
                 String pic = g.getGoodsPic();
                 if (pic == null || pic.isBlank()) continue;
-                goodsPicMap.put(g.getId(), pic);
+                currentPicMap.put(g.getId(), pic);
+            }
+        }
+
+        // 批量查询商品图集第一张
+        Map<Long, String> firstGalleryMap = new HashMap<>();
+        if (!allGoodsIds.isEmpty() && jdbcTemplate != null) {
+            for (Long gid : allGoodsIds) {
+                try {
+                    Map<String, Object> row = jdbcTemplate.queryForMap(
+                            "SELECT pic_url FROM tb_goods_pic WHERE goods_id = ? AND is_deleted = 0 ORDER BY pic_sort, pic_id LIMIT 1",
+                            gid);
+                    if (row != null) {
+                        String url = (String) row.get("pic_url");
+                        if (url != null && !url.isBlank()) firstGalleryMap.put(gid, url);
+                    }
+                } catch (Exception ignored) { }
             }
         }
 
@@ -214,15 +224,17 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             if (it == null) continue;
             Long orderId = it.getOrderId();
             Long groupId = it.getGroupId();
-            String pic = it.getGoodsPic();
-            boolean invalidLocal = false;
-            if (pic != null && !pic.isBlank()) {
-                String v = pic.trim();
-                invalidLocal = v.startsWith("/goods/") || v.startsWith("goods/") || v.startsWith("/images/") || v.startsWith("images/");
-            }
-            if (pic == null || pic.isBlank() || invalidLocal) {
-                pic = goodsPicMap.get(it.getGoodsId());
-            }
+
+            // 按优先级计算 displayPic：当前主图 > 图集第一张 > 订单快照图
+            String snapshotPic = it.getGoodsPic();
+            String currentPic = currentPicMap.get(it.getGoodsId());
+            String galleryPic = firstGalleryMap.get(it.getGoodsId());
+            boolean invalidSnapshot = snapshotPic == null || snapshotPic.isBlank() ||
+                    snapshotPic.trim().startsWith("/goods/") || snapshotPic.trim().startsWith("goods/") ||
+                    snapshotPic.trim().startsWith("/images/") || snapshotPic.trim().startsWith("images/");
+            String pic = currentPic != null && !currentPic.isBlank() ? currentPic
+                    : (galleryPic != null && !galleryPic.isBlank() ? galleryPic
+                    : (!invalidSnapshot ? snapshotPic : null));
 
             if (it.getAfterSaleStatus() != null && it.getAfterSaleStatus() > 0) {
                 if (orderId != null) {

@@ -38,6 +38,14 @@ public class OrderItem {
     @TableField("goods_pic")
     private String goodsPic;
 
+    /** 当前商品主图（来自 tb_goods.goods_pic），非数据库字段 */
+    @TableField(exist = false)
+    private String currentGoodsPic;
+
+    /** 商品图集第一张（来自 tb_goods_pic），非数据库字段 */
+    @TableField(exist = false)
+    private String firstGalleryPic;
+
     private BigDecimal price;
 
     @TableField("num")

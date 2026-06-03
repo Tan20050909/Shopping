@@ -61,4 +61,14 @@ public class AfterSale {
 
     @TableField("update_time")
     private LocalDateTime updateTime;
+
+    /** 以下为商品图片字段（非数据库字段，由服务层填充） */
+    @TableField(exist = false)
+    private String goodsPic;
+    @TableField(exist = false)
+    private String currentGoodsPic;
+    @TableField(exist = false)
+    private String firstGalleryPic;
+    @TableField(exist = false)
+    private String displayPic;
 }

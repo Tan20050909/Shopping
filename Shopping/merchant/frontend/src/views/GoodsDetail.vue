@@ -349,8 +349,12 @@ const getErrorMessage = (error, fallback) => error?.response?.data?.message || f
 const resolveImg = (src) => {
   const v = String(src || '').trim()
   if (!v) return defaultImage
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
   if (v.startsWith('/uploads/')) return v
+  if (v.startsWith('uploads/')) return `/${v}`
+  if (v.startsWith('/goods/') || v.startsWith('goods/')) return v.startsWith('/') ? `/uploads${v}` : `/uploads/${v}`
+  if (v.startsWith('/images/') || v.startsWith('/videos/')) return v
+  if (v.startsWith('images/') || v.startsWith('videos/')) return `/uploads/${v}`
   return defaultImage
 }
 
@@ -431,7 +435,8 @@ const removeCurrentImage = () => {
 const uploadGalleryImage = async (options) => {
   try {
     const res = await uploadApi.uploadImage(options.file)
-    const url = res?.data?.url || ''
+    // 使用相对路径 path（/uploads/images/xxx.jpg）而非完整 url，保证跨端口可用
+    const url = res?.data?.path || res?.data?.url || ''
     if (url) {
       galleryUrls.value = normalizeUrls([...galleryUrls.value, url])
       activeIndex.value = galleryUrls.value.length - 1
@@ -448,7 +453,8 @@ const uploadGalleryImage = async (options) => {
 const uploadVideo = async (options) => {
   try {
     const res = await uploadApi.uploadVideo(options.file)
-    form.goodsVideo = res?.data?.url || ''
+    // 使用相对路径 path 而非完整 url
+    form.goodsVideo = res?.data?.path || res?.data?.url || ''
     options?.onSuccess?.(res?.data, options.file)
     ElMessage.success('上传成功')
     mediaMode.value = 'video'

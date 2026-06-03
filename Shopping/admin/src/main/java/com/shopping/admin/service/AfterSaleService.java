@@ -100,8 +100,13 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
                         "FROM tb_order WHERE order_id = ?", afterSale.getOrderId());
                 // 查询订单项
                 var items = jdbcTemplate.queryForList(
-                        "SELECT order_item_id, goods_name, sku_name, goods_pic, price, num, total_price " +
-                        "FROM tb_order_item WHERE order_id = ? ORDER BY order_item_id", afterSale.getOrderId());
+                        "SELECT oi.order_item_id, oi.goods_name, oi.sku_name, oi.goods_pic AS snapshotGoodsPic,\n" +
+                        "       g.goods_pic AS currentGoodsPic,\n" +
+                        "       (SELECT pic_url FROM tb_goods_pic WHERE goods_id = oi.goods_id AND is_deleted = 0 ORDER BY pic_sort, pic_id LIMIT 1) AS firstGalleryPic,\n" +
+                        "       COALESCE(NULLIF(g.goods_pic, ''), oi.goods_pic) AS goods_pic, oi.price, oi.num, oi.total_price\n" +
+                        "FROM tb_order_item oi\n" +
+                        "LEFT JOIN tb_goods g ON g.goods_id = oi.goods_id\n" +
+                        "WHERE oi.order_id = ? ORDER BY oi.order_item_id", afterSale.getOrderId());
                 result.put("order", order);
                 result.put("orderItems", items);
             } catch (Exception ignored) {

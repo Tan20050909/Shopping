@@ -61,7 +61,7 @@
         <el-table :data="detail.items" size="small" border>
           <el-table-column label="商品图片" width="80">
             <template #default="{ row }">
-              <el-image v-if="row.goodsPic" :src="row.goodsPic" style="width:50px;height:50px;border-radius:4px;object-fit:cover" fit="cover" :preview-src-list="[row.goodsPic]" />
+              <el-image v-if="row.goodsPic" :src="resolveImg(row.goodsPic)" style="width:50px;height:50px;border-radius:4px;object-fit:cover" fit="cover" :preview-src-list="[resolveImg(row.goodsPic)]" />
               <span v-else>-</span>
             </template>
           </el-table-column>
@@ -93,6 +93,16 @@ const current = ref(1), size = ref(10), total = ref(0)
 const keyword = ref(''), statusFilter = ref(null)
 const detailVisible = ref(false), detail = ref({})
 const statusTypes = { 0: 'warning', 1: '', 2: '', 3: 'success', 4: 'info', 5: 'danger' }
+
+const resolveImg = (src) => {
+  const raw = String(src || '').trim()
+  if (!raw) return ''
+  const v = raw.replace(/\\/g, '/')
+  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
+  if (v.startsWith('/uploads/')) return 'http://localhost:8081' + v
+  if (v.startsWith('uploads/')) return 'http://localhost:8081/' + v
+  return v
+}
 
 const loadData = async () => {
   loading.value = true

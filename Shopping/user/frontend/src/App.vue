@@ -222,7 +222,6 @@ onBeforeUnmount(() => {
       <div class="container site-footer-inner">
         <div class="stack">
           <img class="footer-logo-img" :src="brandLogo" alt="All Mart" />
-          <span class="brand-name">AllMart</span>
           <span class="muted">你的全品类购物新选择</span>
         </div>
         <div class="footer-info">

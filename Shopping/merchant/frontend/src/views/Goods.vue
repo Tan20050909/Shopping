@@ -196,8 +196,12 @@ const getErrorMessage = (error, fallback) => {
 const resolveImg = (src) => {
   const v = String(src || '').trim()
   if (!v) return defaultImage
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
+  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
   if (v.startsWith('/uploads/')) return v
+  if (v.startsWith('uploads/')) return `/${v}`
+  if (v.startsWith('/goods/') || v.startsWith('goods/')) return v.startsWith('/') ? `/uploads${v}` : `/uploads/${v}`
+  if (v.startsWith('/images/') || v.startsWith('/videos/')) return v
+  if (v.startsWith('images/') || v.startsWith('videos/')) return `/uploads/${v}`
   return defaultImage
 }
 

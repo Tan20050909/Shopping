@@ -281,11 +281,12 @@ const resolveImg = (src) => {
   const raw = String(src || '').trim()
   if (!raw) return defaultImage
   const v = raw.replace(/\\/g, '/')
-  if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('/uploads/')) return v
-  if (v.startsWith('uploads/')) return `/${v}`
+  if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:')) return v
+  // 商品图片统一从商家端静态资源获取
+  if (v.startsWith('/uploads/')) return 'http://localhost:8081' + v
+  if (v.startsWith('uploads/')) return 'http://localhost:8081/' + v
   const idx = v.indexOf('/uploads/')
-  if (idx > 0) return v.slice(idx)
+  if (idx > 0) return 'http://localhost:8081' + v.slice(idx)
   if (v.startsWith('/')) return v
   return defaultImage
 }

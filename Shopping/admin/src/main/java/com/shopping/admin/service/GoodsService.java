@@ -147,10 +147,32 @@ public class GoodsService extends ServiceImpl<GoodsMapper, Goods> {
             goods.setSales(goods.getSellCount());
             goods.setCategoryName(categoryNameMap.getOrDefault(goods.getCategoryId(), "-"));
             goods.setMerchantName(merchantNameMap.getOrDefault(goods.getMerchantId(), "-"));
-            goods.setMainImage(goods.getGoodsPic());
+            goods.setMainImage(resolveGoodsImage(goods.getGoodsPic()));
             goods.setGoodsDesc(goods.getGoodsIntro());
-            goods.setImages(imagesMap.get(goods.getGoodsId()));
+            goods.setImages(resolveImagesText(imagesMap.get(goods.getGoodsId())));
         }
+    }
+
+    /** 将商品主图的相对路径解析为可访问的完整 URL */
+    private String resolveGoodsImage(String picUrl) {
+        if (picUrl == null || picUrl.isBlank()) return "";
+        if (picUrl.startsWith("http://") || picUrl.startsWith("https://") || picUrl.startsWith("data:")) return picUrl;
+        // /uploads/... 的相对路径 → 拼到商家端（8081）获取
+        if (picUrl.startsWith("/uploads/")) return "http://localhost:8081" + picUrl;
+        if (picUrl.startsWith("uploads/")) return "http://localhost:8081/" + picUrl;
+        // 其他相对路径
+        if (picUrl.startsWith("/")) return "http://localhost:8081" + picUrl;
+        return picUrl;
+    }
+
+    /** 将逗号分隔的图片 URL 列表中的相对路径转换为完整 URL */
+    private String resolveImagesText(String imagesText) {
+        if (imagesText == null || imagesText.isBlank()) return "";
+        String[] parts = imagesText.split(",");
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = resolveGoodsImage(parts[i]);
+        }
+        return String.join(",", parts);
     }
 
     public void auditGoods(Long goodsId, Integer auditStatus, String auditRemark, Long adminId) {

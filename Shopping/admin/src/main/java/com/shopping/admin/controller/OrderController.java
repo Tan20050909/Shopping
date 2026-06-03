@@ -9,10 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/order")
@@ -36,6 +34,22 @@ public class OrderController {
         Order order = orderService.getById(id);
         if (order == null) return Result.error(404, "订单不存在");
         List<OrderItem> items = orderItemService.getByOrderId(id);
+        // 为订单项补充图片元数据
+        List<Long> goodsIds = items.stream()
+                .filter(it -> it != null && it.getGoodsId() != null)
+                .map(OrderItem::getGoodsId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Map<String, String>> imageMeta = orderItemService.buildImageMetaMap(goodsIds);
+        for (OrderItem it : items) {
+            if (it == null || it.getGoodsId() == null) continue;
+            Map<String, String> meta = imageMeta.get(it.getGoodsId());
+            if (meta != null) {
+                it.setGoodsPic(
+                    meta.getOrDefault("displayPic", meta.getOrDefault("currentGoodsPic", it.getGoodsPic()))
+                );
+            }
+        }
         Map<String, Object> data = new HashMap<>();
         data.put("order", order);
         data.put("items", items);

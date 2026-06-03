@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shopping.entity.AfterSale;
 import com.shopping.entity.AfterSaleDetail;
+import com.shopping.entity.Goods;
 import com.shopping.entity.Logistics;
 import com.shopping.entity.LogisticsTrace;
 import com.shopping.entity.Order;
 import com.shopping.entity.OrderItem;
 import com.shopping.mapper.AfterSaleMapper;
+import com.shopping.mapper.GoodsMapper;
 import com.shopping.mapper.OrderMapper;
 import com.shopping.mapper.OrderItemMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +36,13 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
     private OrderItemMapper orderItemMapper;
 
     @Autowired
+    private GoodsMapper goodsMapper;
+
+    @Autowired
     private LogisticsService logisticsService;
+
+    @Autowired
+    private OrderItemService orderItemService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -74,7 +82,79 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
             wrapper.eq(AfterSale::getStatus, status);
         }
         wrapper.orderByDesc(AfterSale::getCreateTime);
-        return list(wrapper);
+        List<AfterSale> list = list(wrapper);
+        fillGoodsImageFields(list, orderItems);
+        return list;
+    }
+
+    /** 为售后列表填充商品图片字段（currentGoodsPic / firstGalleryPic / displayPic） */
+    private void fillGoodsImageFields(List<AfterSale> afterSales, List<OrderItem> orderItems) {
+        if (afterSales == null || afterSales.isEmpty()) return;
+        // 建立 orderItemId → OrderItem 映射
+        Map<Long, OrderItem> itemMap = new HashMap<>();
+        if (orderItems != null) {
+            for (OrderItem oi : orderItems) {
+                if (oi == null || oi.getId() == null) continue;
+                itemMap.put(oi.getId(), oi);
+            }
+        }
+        // 收集所有商品ID
+        List<Long> goodsIds = new ArrayList<>();
+        for (AfterSale as : afterSales) {
+            if (as == null || as.getOrderItemId() == null) continue;
+            OrderItem oi = itemMap.get(as.getOrderItemId());
+            if (oi != null && oi.getGoodsId() != null) goodsIds.add(oi.getGoodsId());
+        }
+        goodsIds = goodsIds.stream().distinct().collect(Collectors.toList());
+        if (goodsIds.isEmpty()) return;
+
+        // 批量查当前主图
+        Map<Long, String> currentPicMap = new HashMap<>();
+        List<Goods> goodsList = goodsMapper.selectList(new LambdaQueryWrapper<Goods>()
+                .select(Goods::getId, Goods::getGoodsPic)
+                .in(Goods::getId, goodsIds));
+        for (Goods g : goodsList) {
+            if (g == null || g.getId() == null) continue;
+            String pic = g.getGoodsPic();
+            if (pic == null || pic.isBlank()) continue;
+            currentPicMap.put(g.getId(), pic);
+        }
+
+        // 批量查图集第一张
+        Map<Long, String> firstGalleryMap = new HashMap<>();
+        for (Long gid : goodsIds) {
+            try {
+                Map<String, Object> row = jdbcTemplate.queryForMap(
+                        "SELECT pic_url FROM tb_goods_pic WHERE goods_id = ? AND is_deleted = 0 ORDER BY pic_sort, pic_id LIMIT 1",
+                        gid);
+                if (row != null) {
+                    String url = (String) row.get("pic_url");
+                    if (url != null && !url.isBlank()) firstGalleryMap.put(gid, url);
+                }
+            } catch (Exception ignored) { }
+        }
+
+        // 填充每个售后
+        for (AfterSale as : afterSales) {
+            if (as == null || as.getOrderItemId() == null) continue;
+            OrderItem oi = itemMap.get(as.getOrderItemId());
+            if (oi == null) continue;
+            Long goodsId = oi.getGoodsId();
+            if (goodsId == null) continue;
+
+            String currentPic = currentPicMap.get(goodsId);
+            String galleryPic = firstGalleryMap.get(goodsId);
+            String snapshotPic = oi.getGoodsPic();
+
+            as.setGoodsPic(snapshotPic);
+            as.setCurrentGoodsPic(currentPic);
+            as.setFirstGalleryPic(galleryPic);
+            as.setDisplayPic(
+                (currentPic != null && !currentPic.isBlank() ? currentPic :
+                (galleryPic != null && !galleryPic.isBlank() ? galleryPic :
+                (snapshotPic != null && !snapshotPic.isBlank() ? snapshotPic : null)))
+            );
+        }
     }
 
     public boolean handle(Long id, Integer status, String remark, String evidence) {
@@ -154,6 +234,7 @@ public class AfterSaleService extends ServiceImpl<AfterSaleMapper, AfterSale> {
                     new LambdaQueryWrapper<OrderItem>()
                             .eq(OrderItem::getOrderId, afterSale.getOrderId())
             );
+            orderItemService.fillImageMeta(items);
             detail.setOrderItems(items);
         }
 

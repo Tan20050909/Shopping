@@ -289,35 +289,38 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="page stack">
+  <main class="page stack profile-page">
     <section class="band row profile-hero">
       <img class="avatar" :src="currentAvatar" alt="用户头像" />
-      <div class="stack">
-        <h1 class="section-title">{{ user.profile?.nickname || '个人中心' }}</h1>
-        <p class="muted">{{ user.profile?.phone }} / 积分 {{ user.profile?.asset?.integral || 0 }}</p>
-        <div class="row">
-          <el-input v-model="profileForm.nickname" placeholder="昵称" />
-          <el-input v-model="profileForm.realName" placeholder="姓名" />
-          <el-select v-model="profileForm.gender" placeholder="性别" style="width: 120px">
+      <div class="stack profile-summary">
+        <div class="stack profile-summary-copy">
+          <h1 class="section-title">{{ user.profile?.nickname || '个人中心' }}</h1>
+          <p class="muted profile-meta">{{ user.profile?.phone }} / 积分 {{ user.profile?.asset?.integral || 0 }}</p>
+        </div>
+        <div class="row profile-form-row">
+          <el-input v-model="profileForm.nickname" class="allmart-form-field profile-field" placeholder="昵称" />
+          <el-input v-model="profileForm.realName" class="allmart-form-field profile-field" placeholder="姓名" />
+          <el-select v-model="profileForm.gender" class="allmart-form-field profile-field" placeholder="性别" style="width: 120px">
             <el-option label="未知" :value="0" />
             <el-option label="男" :value="1" />
             <el-option label="女" :value="2" />
           </el-select>
           <el-date-picker
             v-model="profileForm.birthday"
+            class="allmart-form-field profile-field"
             type="date"
             placeholder="生日"
             value-format="YYYY-MM-DD"
             style="width: 160px"
           />
-          <el-button type="primary" @click="saveProfile">保存资料</el-button>
+          <el-button class="allmart-btn-primary" @click="saveProfile">保存资料</el-button>
         </div>
-        <div class="avatar-picker">
+        <div class="avatar-picker profile-avatar-panel">
           <div class="avatar-picker-head">
             <strong>默认头像</strong>
             <span class="muted">点击选择，或上传自己的头像</span>
             <input ref="avatarFileInput" type="file" accept="image/*" style="display:none" @change="(e) => uploadAvatarFile(e.target.files?.[0])" />
-            <el-button :loading="avatarUploading" plain @click="triggerAvatarUpload">上传头像</el-button>
+            <el-button class="allmart-btn-danger profile-upload-btn" :loading="avatarUploading" plain @click="triggerAvatarUpload">上传头像</el-button>
           </div>
           <div class="avatar-groups">
             <div class="avatar-group">
@@ -339,42 +342,42 @@ onMounted(load)
       </div>
     </section>
 
-    <el-tabs v-model="tab" class="band" @tab-change="handleTabChange">
+    <el-tabs v-model="tab" class="band profile-tabs profile-panel" @tab-change="handleTabChange">
       <el-tab-pane label="收货地址" name="addresses">
-        <div class="stack">
-          <el-button size="small" type="primary" @click="showAddressDialog = true">新增地址</el-button>
+        <div class="stack profile-section-stack">
+          <el-button class="allmart-btn-primary profile-toolbar-btn" @click="showAddressDialog = true">新增地址</el-button>
           <el-dialog v-model="showAddressDialog" :title="editingAddressId ? '编辑地址' : '新增地址'" width="500px" @closed="resetAddressForm">
             <div class="stack">
               <div class="row">
-                <el-input v-model="addressForm.consignee" placeholder="收货人" />
-                <el-input v-model="addressForm.phone" placeholder="手机号" />
+                <el-input v-model="addressForm.consignee" class="allmart-form-field profile-field" placeholder="收货人" />
+                <el-input v-model="addressForm.phone" class="allmart-form-field profile-field" placeholder="手机号" />
               </div>
               <div class="row">
-                <el-input v-model="addressForm.province" placeholder="省" />
-                <el-input v-model="addressForm.city" placeholder="市" />
-                <el-input v-model="addressForm.district" placeholder="区" />
+                <el-input v-model="addressForm.province" class="allmart-form-field profile-field" placeholder="省" />
+                <el-input v-model="addressForm.city" class="allmart-form-field profile-field" placeholder="市" />
+                <el-input v-model="addressForm.district" class="allmart-form-field profile-field" placeholder="区" />
               </div>
-              <el-input v-model="addressForm.detailAddr" placeholder="详细地址" type="textarea" :rows="2" />
+              <el-input v-model="addressForm.detailAddr" class="allmart-form-field profile-field" placeholder="详细地址" type="textarea" :rows="2" />
               <el-checkbox v-model="addressForm.defaultAddress">设为默认地址</el-checkbox>
             </div>
             <template #footer>
-              <el-button @click="resetAddressForm">取消</el-button>
-              <el-button type="primary" @click="saveAddress">保存</el-button>
+              <el-button class="allmart-btn-secondary" @click="resetAddressForm">取消</el-button>
+              <el-button class="allmart-btn-primary" @click="saveAddress">保存</el-button>
             </template>
           </el-dialog>
-          <div v-for="addr in addresses" :key="addr.addr_id" class="band address-card">
+          <div v-for="addr in addresses" :key="addr.addr_id" class="band address-card profile-record-card">
             <div class="stack address-info">
               <div class="row address-head">
                 <strong>{{ addr.consignee }}</strong>
                 <span>{{ addr.phone }}</span>
-                <span v-if="addr.is_default === 1" class="coupon-status">默认</span>
+                <span v-if="addr.is_default === 1" class="coupon-status allmart-status-tag">默认</span>
               </div>
               <span class="muted">{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detail_addr }}</span>
             </div>
             <div class="row address-actions">
-              <el-button size="small" @click="editAddress(addr)">编辑</el-button>
-              <el-button v-if="addr.is_default !== 1" size="small" @click="setDefaultAddress(addr.addr_id)">设为默认</el-button>
-              <el-button size="small" type="danger" plain @click="deleteAddress(addr.addr_id)">删除</el-button>
+              <el-button class="allmart-btn-secondary" @click="editAddress(addr)">编辑</el-button>
+              <el-button v-if="addr.is_default !== 1" class="allmart-btn-secondary" @click="setDefaultAddress(addr.addr_id)">设为默认</el-button>
+              <el-button class="allmart-btn-danger" @click="deleteAddress(addr.addr_id)">删除</el-button>
             </div>
           </div>
           <p v-if="!addresses.length" class="muted">还没有收货地址，点击上方按钮新增。</p>
@@ -382,97 +385,113 @@ onMounted(load)
       </el-tab-pane>
 
       <el-tab-pane label="优惠券" name="coupons">
-        <div class="stack">
+        <div class="stack profile-section-stack">
           <div class="row coupon-toolbar">
             <h3>我的券包</h3>
-            <el-segmented v-model="couponFilter" :options="couponFilters" />
+            <el-segmented v-model="couponFilter" class="profile-filter-tabs" :options="couponFilters" />
           </div>
-          <div v-if="filteredCoupons.length" v-for="coupon in filteredCoupons" :key="coupon.userCouponId || coupon.user_coupon_id" class="coupon-item wallet-coupon">
-            <div class="coupon-amount">
-              <strong>¥{{ coupon.denomination }}</strong>
-              <span>满 {{ coupon.minAmount || coupon.min_amount }} 可用</span>
+          <template v-if="filteredCoupons.length">
+            <div v-for="coupon in filteredCoupons" :key="coupon.userCouponId || coupon.user_coupon_id" class="coupon-item wallet-coupon profile-record-card">
+              <div class="coupon-amount">
+                <strong>¥{{ coupon.denomination }}</strong>
+                <span>满 {{ coupon.minAmount || coupon.min_amount }} 可用</span>
+              </div>
+              <div class="stack coupon-wallet-info">
+                <strong>{{ coupon.couponName || coupon.coupon_name }}</strong>
+                <span class="muted">{{ coupon.merchantName || coupon.merchant_name || '平台通用' }}</span>
+                <span class="muted">到期时间 {{ coupon.expireTime || coupon.expire_time }}</span>
+              </div>
+              <div class="stack coupon-actions">
+                <span class="coupon-status allmart-status-tag">{{ couponStatusText[couponUseStatus(coupon)] || `状态 ${couponUseStatus(coupon)}` }}</span>
+                <el-button v-if="couponUseStatus(coupon) === 0" class="allmart-btn-primary" @click="router.push('/products')">去使用</el-button>
+                <el-button v-else class="allmart-btn-secondary" disabled>不可使用</el-button>
+              </div>
             </div>
-            <div class="stack coupon-wallet-info">
-              <strong>{{ coupon.couponName || coupon.coupon_name }}</strong>
-              <span class="muted">{{ coupon.merchantName || coupon.merchant_name || '平台通用' }}</span>
-              <span class="muted">到期时间 {{ coupon.expireTime || coupon.expire_time }}</span>
-            </div>
-            <div class="stack coupon-actions">
-              <span class="coupon-status">{{ couponStatusText[couponUseStatus(coupon)] || `状态 ${couponUseStatus(coupon)}` }}</span>
-              <el-button v-if="couponUseStatus(coupon) === 0" size="small" type="primary" @click="router.push('/products')">去使用</el-button>
-              <el-button v-else size="small" disabled>不可使用</el-button>
-            </div>
-          </div>
+          </template>
           <p v-else class="muted">这个筛选下没有优惠券，可以去领券中心看看。</p>
         </div>
       </el-tab-pane>
 
       <el-tab-pane label="收藏" name="favorites">
-        <div v-if="favorites.length" v-for="item in favorites" :key="item.collect_id" class="list-item">
-          <router-link :to="`/products/${item.goods_id}`">
-            <img class="cover" :src="imageOf(item)" :alt="item.goods_name" />
-          </router-link>
-          <div class="stack">
-            <router-link :to="`/products/${item.goods_id}`">{{ item.goods_name }} ¥{{ item.price }}</router-link>
-            <div class="row">
-              <el-button size="small" @click="addToCart(item)">加入购物车</el-button>
-              <el-button size="small" type="primary" @click="buyNow(item)">立即购买</el-button>
-              <el-button size="small" @click="removeFavorite(item.goods_id)">取消收藏</el-button>
+        <div class="stack profile-section-stack">
+          <template v-if="favorites.length">
+            <div v-for="item in favorites" :key="item.collect_id" class="list-item profile-list-item favorites-item">
+              <router-link class="profile-item-media" :to="`/products/${item.goods_id}`">
+                <img class="cover profile-item-cover" :src="imageOf(item)" :alt="item.goods_name" />
+              </router-link>
+              <div class="stack profile-item-main">
+                <router-link class="profile-item-title" :to="`/products/${item.goods_id}`">{{ item.goods_name }}</router-link>
+                <span class="price profile-item-price">¥{{ item.price }}</span>
+                <div class="row profile-item-actions">
+                  <el-button class="allmart-btn-secondary" @click="addToCart(item)">加入购物车</el-button>
+                  <el-button class="allmart-btn-primary profile-compact-primary" @click="buyNow(item)">立即购买</el-button>
+                  <el-button class="allmart-btn-danger" @click="removeFavorite(item.goods_id)">取消收藏</el-button>
+                </div>
+              </div>
             </div>
-          </div>
+          </template>
+          <p v-else class="muted">你还没有收藏商品，先去商品页挑几件喜欢的吧。</p>
         </div>
-        <p v-else class="muted">你还没有收藏商品，先去商品页挑几件喜欢的吧。</p>
       </el-tab-pane>
 
       <el-tab-pane label="浏览记录" name="history">
-        <div class="row">
-          <el-button size="small" @click="clearHistory">清空全部</el-button>
-        </div>
-        <div v-if="history.length" v-for="item in history" :key="item.history_id" class="list-item">
-          <router-link :to="`/products/${item.goods_id}`">
-            <img class="cover" :src="imageOf(item)" :alt="item.goods_name" />
-          </router-link>
-          <div class="stack">
-            <router-link :to="`/products/${item.goods_id}`">{{ item.goods_name }} / 浏览 {{ item.browse_count }} 次</router-link>
-            <div class="row">
-              <el-button size="small" @click="addToCart(item)">加入购物车</el-button>
-              <el-button size="small" type="primary" @click="buyNow(item)">立即购买</el-button>
-              <el-button size="small" @click="deleteHistory(item.history_id)">删除记录</el-button>
-            </div>
+        <div class="stack profile-section-stack">
+          <div class="row profile-list-toolbar">
+            <el-button class="allmart-btn-danger" @click="clearHistory">清空全部</el-button>
           </div>
+          <template v-if="history.length">
+            <div v-for="item in history" :key="item.history_id" class="list-item profile-list-item history-item">
+              <router-link class="profile-item-media" :to="`/products/${item.goods_id}`">
+                <img class="cover profile-item-cover" :src="imageOf(item)" :alt="item.goods_name" />
+              </router-link>
+              <div class="stack profile-item-main">
+                <router-link class="profile-item-title" :to="`/products/${item.goods_id}`">{{ item.goods_name }}</router-link>
+                <span class="muted profile-item-meta">浏览 {{ item.browse_count }} 次</span>
+                <div class="row profile-item-actions">
+                  <el-button class="allmart-btn-secondary" @click="addToCart(item)">加入购物车</el-button>
+                  <el-button class="allmart-btn-primary profile-compact-primary" @click="buyNow(item)">立即购买</el-button>
+                  <el-button class="allmart-btn-danger" @click="deleteHistory(item.history_id)">删除记录</el-button>
+                </div>
+              </div>
+            </div>
+          </template>
+          <p v-else class="muted">还没有浏览记录，先去商品详情页逛一圈。</p>
         </div>
-        <p v-else class="muted">还没有浏览记录，先去商品详情页逛一圈。</p>
       </el-tab-pane>
 
       <el-tab-pane label="我的评价" name="reviews">
-        <div v-if="reviews.length" v-for="item in reviews" :key="item.commentId || item.comment_id" class="list-item review-row">
-          <router-link :to="`/products/${item.goodsId || item.goods_id}`">
-            <img class="cover" :src="imageOf(item)" :alt="item.goodsName || item.goods_name" />
-          </router-link>
-          <div class="stack review-info">
-            <div class="row review-head">
-              <router-link :to="`/products/${item.goodsId || item.goods_id}`">
-                <strong>{{ item.goodsName || item.goods_name }}</strong>
+        <div class="stack profile-section-stack">
+          <template v-if="reviews.length">
+            <div v-for="item in reviews" :key="item.commentId || item.comment_id" class="list-item profile-list-item review-row">
+              <router-link class="profile-item-media" :to="`/products/${item.goodsId || item.goods_id}`">
+                <img class="cover profile-item-cover review-cover" :src="imageOf(item)" :alt="item.goodsName || item.goods_name" />
               </router-link>
-              <span class="coupon-status">{{ item.isAnonymous || item.is_anonymous ? '匿名评价' : '公开评价' }}</span>
+              <div class="stack review-info">
+                <div class="row review-head">
+                  <router-link :to="`/products/${item.goodsId || item.goods_id}`">
+                    <strong>{{ item.goodsName || item.goods_name }}</strong>
+                  </router-link>
+                  <span class="coupon-status allmart-status-tag">{{ item.isAnonymous || item.is_anonymous ? '匿名评价' : '公开评价' }}</span>
+                </div>
+                <span class="muted">SKU：{{ item.skuName || item.sku_name || '默认规格' }} · {{ item.commentTime || item.comment_time }}</span>
+                <p>{{ item.commentContent || item.comment_content }}</p>
+                <span class="muted">商品 {{ item.goodsScore || item.goods_score }} 星 / 服务 {{ item.serviceScore || item.service_score }} 星 / 物流 {{ item.logisticsScore || item.logistics_score }} 星</span>
+                <img
+                  v-if="item.commentPic || item.comment_pic"
+                  class="review-thumb"
+                  :src="reviewImage(item.commentPic || item.comment_pic, item)"
+                  alt="评价图片"
+                  @error="(e) => onReviewImageError(e, item)"
+                />
+                <div class="row profile-item-actions">
+                  <el-button class="allmart-btn-secondary" :disabled="!reviewOrderId(item)" @click="goReviewOrder(item)">查看订单</el-button>
+                  <el-button class="allmart-btn-danger" @click="deleteReview(item.commentId || item.comment_id)">删除评价</el-button>
+                </div>
+              </div>
             </div>
-            <span class="muted">SKU：{{ item.skuName || item.sku_name || '默认规格' }} · {{ item.commentTime || item.comment_time }}</span>
-            <p>{{ item.commentContent || item.comment_content }}</p>
-            <span class="muted">商品 {{ item.goodsScore || item.goods_score }} 星 / 服务 {{ item.serviceScore || item.service_score }} 星 / 物流 {{ item.logisticsScore || item.logistics_score }} 星</span>
-            <img
-              v-if="item.commentPic || item.comment_pic"
-              class="review-thumb"
-              :src="reviewImage(item.commentPic || item.comment_pic, item)"
-              alt="评价图片"
-              @error="(e) => onReviewImageError(e, item)"
-            />
-            <div class="row">
-              <el-button size="small" :disabled="!reviewOrderId(item)" @click="goReviewOrder(item)">查看订单</el-button>
-              <el-button size="small" type="danger" plain @click="deleteReview(item.commentId || item.comment_id)">删除评价</el-button>
-            </div>
-          </div>
+          </template>
+          <p v-else class="muted">还没有发表评价，完成订单后可以给具体商品写评价。</p>
         </div>
-        <p v-else class="muted">还没有发表评价，完成订单后可以给具体商品写评价。</p>
       </el-tab-pane>
     </el-tabs>
   </main>
@@ -482,15 +501,194 @@ onMounted(load)
 .profile-hero {
   align-items: flex-start;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px 24px;
+}
+
+.profile-page :deep(.el-button) {
+  box-shadow: none;
+}
+
+.profile-page :deep(.profile-tabs .el-tabs__header) {
+  margin-bottom: 6px;
+}
+
+.profile-page :deep(.profile-tabs .el-tabs__nav-wrap::after) {
+  background-color: var(--border-light);
+}
+
+.profile-page :deep(.profile-tabs .el-tabs__item) {
+  height: 42px;
+  padding: 0 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.profile-page :deep(.profile-tabs .el-tabs__item:hover),
+.profile-page :deep(.profile-tabs .el-tabs__item:focus),
+.profile-page :deep(.profile-tabs .el-tabs__item.is-focus),
+.profile-page :deep(.profile-tabs .el-tabs__item.is-active) {
+  color: var(--brand-red) !important;
+  box-shadow: none;
+}
+
+.profile-page :deep(.profile-tabs .el-tabs__active-bar) {
+  height: 2px;
+  border-radius: 999px;
+  background-color: var(--brand-red) !important;
+}
+
+.profile-page :deep(.profile-filter-tabs) {
+  --el-segmented-bg-color: #fff;
+  --el-segmented-item-selected-color: var(--brand-red);
+  --el-border-radius-base: 999px;
+  min-height: 34px;
+  padding: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.profile-page :deep(.profile-filter-tabs .el-segmented__item) {
+  min-height: 30px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.profile-page :deep(.profile-filter-tabs .el-segmented__item:hover),
+.profile-page :deep(.profile-filter-tabs .el-segmented__item:focus-visible) {
+  color: var(--brand-red);
+}
+
+.profile-page :deep(.profile-filter-tabs .el-segmented__item.is-selected) {
+  color: var(--brand-red) !important;
+}
+
+.profile-page :deep(.profile-filter-tabs .el-segmented__item-selected) {
+  border-radius: 999px;
+  border: 1px solid rgba(230, 0, 18, 0.16);
+  background: rgba(255, 232, 234, 0.72);
+  box-shadow: none;
+}
+
+.profile-page :deep(.allmart-form-field .el-input__wrapper),
+.profile-page :deep(.allmart-form-field .el-select__wrapper) {
+  min-height: 40px;
+}
+
+.profile-page :deep(.allmart-form-field .el-textarea__inner) {
+  min-height: 88px;
+}
+
+.profile-page :deep(.profile-panel .el-tabs__content) {
+  padding-top: 18px;
+}
+
+.profile-summary {
+  gap: 18px;
+}
+
+.profile-summary-copy {
+  gap: 8px;
+}
+
+.profile-meta {
+  margin: 0;
+}
+
+.profile-form-row {
+  gap: 12px;
+}
+
+.profile-field {
+  width: min(100%, 180px);
+}
+
+.profile-avatar-panel {
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: #fcfcfc;
+}
+
+.profile-section-stack {
+  gap: 14px;
+}
+
+.profile-list-toolbar {
+  margin-bottom: 4px;
+}
+
+.profile-list-item {
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.profile-list-item:last-child {
+  border-bottom: 0;
+}
+
+.profile-item-media {
+  display: block;
+  width: 84px;
+}
+
+.profile-item-cover {
+  width: 84px;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.profile-item-main {
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-item-title {
+  color: var(--text-main);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.profile-item-price {
+  font-size: 14px;
+}
+
+.profile-item-meta {
+  line-height: 1.6;
+}
+
+.profile-item-actions {
+  gap: 10px;
+}
+
+.profile-compact-primary {
+  min-height: 32px;
+  padding: 0 14px;
 }
 
 .address-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: 0;
 }
 
 .address-info {
@@ -505,6 +703,8 @@ onMounted(load)
 
 .address-actions {
   flex-shrink: 0;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .avatar {
@@ -527,6 +727,14 @@ onMounted(load)
   align-items: baseline;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.profile-upload-btn {
+  min-width: 98px;
+}
+
+.profile-toolbar-btn {
+  width: fit-content;
 }
 
 .avatar-grid {
@@ -595,20 +803,25 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
+.coupon-toolbar h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
 .coupon-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid #f1f1f1;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .wallet-coupon {
   align-items: stretch;
-  padding: 16px;
-  border: 1px solid #ffd9df;
-  border-radius: 14px;
+  padding: 16px 0;
+  border: 0;
+  border-radius: 0;
   background: #fff;
 }
 
@@ -634,20 +847,20 @@ onMounted(load)
 .coupon-actions {
   align-items: flex-end;
   justify-content: center;
+  gap: 12px;
 }
 
 .coupon-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--brand-red-light);
-  color: var(--brand-red);
-  font-weight: 600;
+  width: fit-content;
 }
 
 .review-info {
-  gap: 8px;
+  gap: 9px;
+}
+
+.review-row {
+  padding-top: 18px;
+  padding-bottom: 18px;
 }
 
 .review-info p {
@@ -673,8 +886,21 @@ onMounted(load)
     grid-template-columns: 1fr;
   }
 
+  .profile-field {
+    width: 100%;
+  }
+
   .avatar-grid {
     grid-template-columns: repeat(5, 48px);
+  }
+
+  .profile-list-item {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .profile-item-media,
+  .profile-item-cover {
+    width: 72px;
   }
 }
 </style>

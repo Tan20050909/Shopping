@@ -55,28 +55,30 @@ onMounted(load)
   <main class="rankings-page">
     <section class="allmart-page-hero">
       <div class="container">
-        <span class="allmart-page-kicker">RANKINGS</span>
-        <h1 class="allmart-page-title">热门榜单</h1>
-        <p class="allmart-page-subtitle">先按销量、收藏热度和评分做展示，用真实商品数据呈现当前值得关注的 AllMart 好物。</p>
-        <div class="allmart-chip-tabs" aria-label="榜单筛选">
-          <button
-            v-for="rankType in rankTypes"
-            :key="rankType.value"
-            type="button"
-            class="allmart-chip"
-            :class="{ active: type === rankType.value }"
-            :aria-selected="type === rankType.value"
-            @click="chooseType(rankType.value)"
-          >
-            {{ rankType.label }}
-          </button>
-          <button v-if="!isMerchantRole" type="button" class="allmart-chip" @click="router.push('/cart')">购物车</button>
-          <button type="button" class="allmart-chip" @click="router.push('/products')">返回商品分类</button>
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">RANKINGS</span>
+          <h1 class="allmart-page-title">热门榜单</h1>
+          <p class="allmart-page-subtitle">先按销量、收藏热度和评分做展示，用真实商品数据呈现当前值得关注的 AllMart 好物。</p>
+          <div class="allmart-chip-tabs allmart-hero-actions" aria-label="榜单筛选">
+            <button
+              v-for="rankType in rankTypes"
+              :key="rankType.value"
+              type="button"
+              class="allmart-chip"
+              :class="{ active: type === rankType.value }"
+              :aria-selected="type === rankType.value"
+              @click="chooseType(rankType.value)"
+            >
+              {{ rankType.label }}
+            </button>
+            <button v-if="!isMerchantRole" type="button" class="allmart-chip" @click="router.push('/cart')">购物车</button>
+            <button type="button" class="allmart-chip" @click="router.push('/products')">返回商品分类</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="page rankings-content">
+    <section class="page rankings-content allmart-after-hero-page">
       <div v-if="items.length" class="allmart-product-grid" v-loading="loading">
         <div v-for="(item, index) in items" :key="item.goods_id || item.goodsId" class="rank-card">
           <span class="rank-badge">TOP {{ index + 1 }}</span>
@@ -100,7 +102,6 @@ onMounted(load)
 .rankings-content {
   display: grid;
   gap: 22px;
-  padding-top: 34px;
 }
 
 .rank-card {

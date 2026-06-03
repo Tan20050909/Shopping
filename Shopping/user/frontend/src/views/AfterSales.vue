@@ -8,8 +8,21 @@ const router = useRouter()
 const afterSales = ref([])
 const loading = ref(false)
 const handlingId = ref(null)
+const activeFilter = ref('all')
 
-const hasRecords = computed(() => afterSales.value.length > 0)
+const filterTabs = [
+  { key: 'apply', label: '从订单申请' },
+  { key: 'all', label: '全部售后' },
+  { key: 'pending', label: '待审核' },
+  { key: 'processing', label: '售后中' },
+  { key: 'done', label: '已完成' }
+]
+
+const filteredAfterSales = computed(() => {
+  if (activeFilter.value === 'all' || activeFilter.value === 'apply') return afterSales.value
+  return afterSales.value.filter((item) => matchFilter(item, activeFilter.value))
+})
+const hasRecords = computed(() => filteredAfterSales.value.length > 0)
 
 function field(item, camel, snake, fallback = '') {
   return item?.[camel] ?? item?.[snake] ?? fallback
@@ -36,6 +49,23 @@ function canCancel(item) {
   const refundStatus = Number(field(item, 'refundStatus', 'refund_status', -1))
   if (refundStatus === 1 || refundStatus === 2) return false
   return handleStatus === 0 || handleStatus === 3
+}
+
+function matchFilter(item, filterKey) {
+  const handleStatus = Number(field(item, 'handleStatus', 'handle_status', -1))
+  const refundStatus = Number(field(item, 'refundStatus', 'refund_status', -1))
+  if (filterKey === 'pending') return handleStatus === 0
+  if (filterKey === 'processing') return handleStatus === 1 || refundStatus === 1
+  if (filterKey === 'done') return handleStatus === 3 || handleStatus === 4 || handleStatus === 5 || refundStatus === 2
+  return true
+}
+
+function chooseFilter(filterKey) {
+  if (filterKey === 'apply') {
+    router.push('/orders')
+    return
+  }
+  activeFilter.value = filterKey
 }
 
 async function load() {
@@ -79,19 +109,35 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="page stack after-sales-page">
-    <section class="band list-head">
-      <div>
-        <h1 class="section-title">我的售后</h1>
-        <p class="muted">查看售后申请、退款金额和处理进度。</p>
+  <main class="after-sales-page">
+    <section class="allmart-page-hero">
+      <div class="container">
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">AFTER SALES</span>
+          <h1 class="allmart-page-title">我的售后</h1>
+          <p class="allmart-page-subtitle">查看售后申请、退款金额和处理进度。</p>
+          <div class="allmart-chip-tabs allmart-hero-actions" aria-label="售后筛选">
+            <button
+              v-for="tab in filterTabs"
+              :key="tab.key"
+              type="button"
+              class="allmart-chip"
+              :class="{ active: activeFilter === tab.key }"
+              :aria-selected="activeFilter === tab.key"
+              @click="chooseFilter(tab.key)"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+        </div>
       </div>
-      <el-button type="primary" @click="router.push('/orders')">从订单申请</el-button>
     </section>
 
-    <section v-loading="loading" class="after-sale-list">
+    <section class="page stack after-sales-content allmart-after-hero-page">
+      <section v-loading="loading" class="after-sale-list">
       <el-empty v-if="!loading && !hasRecords" description="目前还没有售后记录" />
 
-      <article v-for="item in afterSales" :key="field(item, 'afterSaleId', 'after_sale_id')" class="after-sale-card">
+      <article v-for="item in filteredAfterSales" :key="field(item, 'afterSaleId', 'after_sale_id')" class="after-sale-card">
         <img class="cover item-cover" :src="imageOf(item)" :alt="field(item, 'goodsName', 'goods_name')" @error="(e) => (e.target.src = fallbackImageOf(item))" />
         <div class="stack item-info">
           <div class="row title-row">
@@ -115,16 +161,18 @@ onMounted(load)
           </div>
         </div>
       </article>
+      </section>
     </section>
   </main>
 </template>
 
 <style scoped>
-.list-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 18px;
+.after-sales-page {
+  background: #fff;
+}
+
+.after-sales-content {
+  gap: 24px;
 }
 
 .after-sale-list {
@@ -168,7 +216,6 @@ onMounted(load)
 }
 
 @media (max-width: 720px) {
-  .list-head,
   .title-row {
     align-items: stretch;
     flex-direction: column;

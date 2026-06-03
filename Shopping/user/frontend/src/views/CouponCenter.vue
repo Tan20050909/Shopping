@@ -235,25 +235,27 @@ onMounted(load)
   <main class="coupon-center">
     <section class="allmart-page-hero coupon-hero">
       <div class="container">
-        <span class="allmart-page-kicker">COUPONS</span>
-        <h1 class="allmart-page-title">{{ pageTitle }}</h1>
-        <p class="allmart-page-subtitle">{{ pageDesc }}</p>
-        <div class="allmart-chip-tabs coupon-scene-tabs" aria-label="优惠券功能入口">
-          <button
-            v-for="scene in couponSceneChips"
-            :key="scene.key"
-            type="button"
-            class="allmart-chip"
-            :class="{ active: activeScene === scene.key }"
-            @click="chooseScene(scene.key)"
-          >
-            {{ scene.label }}
-          </button>
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">COUPONS</span>
+          <h1 class="allmart-page-title">{{ pageTitle }}</h1>
+          <p class="allmart-page-subtitle">{{ pageDesc }}</p>
+          <div class="allmart-chip-tabs allmart-hero-actions coupon-scene-tabs" aria-label="优惠券功能入口">
+            <button
+              v-for="scene in couponSceneChips"
+              :key="scene.key"
+              type="button"
+              class="allmart-chip"
+              :class="{ active: activeScene === scene.key }"
+              @click="chooseScene(scene.key)"
+            >
+              {{ scene.label }}
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="page coupon-content">
+    <section class="page coupon-content allmart-after-hero-page">
       <div class="coupon-toolbar">
         <div class="coupon-stats allmart-card">
           <span>可用优惠券 <strong>{{ availableCount }}</strong> 张</span>
@@ -322,10 +324,6 @@ onMounted(load)
 </template>
 
 <style scoped>
-.coupon-hero {
-  padding-bottom: 68px;
-}
-
 .coupon-content {
   display: grid;
   gap: 26px;

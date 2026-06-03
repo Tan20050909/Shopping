@@ -42,19 +42,21 @@ onMounted(load)
   <main class="recommend-page">
     <section class="allmart-page-hero">
       <div class="container">
-        <span class="allmart-page-kicker">RECOMMEND</span>
-        <h1 class="allmart-page-title">精选推荐</h1>
-        <p class="allmart-page-subtitle">基于真实推荐接口展示更适合你的商品，保留收藏、加购和立即购买的完整链路。</p>
-        <div class="allmart-chip-tabs" aria-label="精选推荐入口">
-          <button type="button" class="allmart-chip active" aria-selected="true">为你推荐</button>
-          <button type="button" class="allmart-chip" @click="router.push('/rankings')">热门精选</button>
-          <button type="button" class="allmart-chip" @click="router.push('/products')">新品好物</button>
-          <button v-if="!isMerchantRole" type="button" class="allmart-chip" @click="router.push('/cart')">购物车</button>
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">RECOMMEND</span>
+          <h1 class="allmart-page-title">精选推荐</h1>
+          <p class="allmart-page-subtitle">基于真实推荐接口展示更适合你的商品，保留收藏、加购和立即购买的完整链路。</p>
+          <div class="allmart-chip-tabs allmart-hero-actions" aria-label="精选推荐入口">
+            <button type="button" class="allmart-chip active" aria-selected="true">为你推荐</button>
+            <button type="button" class="allmart-chip" @click="router.push('/rankings')">热门精选</button>
+            <button type="button" class="allmart-chip" @click="router.push('/products')">新品好物</button>
+            <button v-if="!isMerchantRole" type="button" class="allmart-chip" @click="router.push('/cart')">购物车</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="page recommend-content">
+    <section class="page recommend-content allmart-after-hero-page">
       <div v-if="items.length" class="allmart-product-grid recommend-grid" v-loading="loading">
         <ProductCard v-for="item in items" :key="item.goods_id || item.goodsId" :item="item" />
       </div>
@@ -78,7 +80,6 @@ onMounted(load)
 .recommend-content {
   display: grid;
   gap: 24px;
-  padding-top: 34px;
 }
 
 .recommend-grid {

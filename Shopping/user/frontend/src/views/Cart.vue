@@ -162,88 +162,103 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="page stack">
-    <section class="band stack">
-      <div class="row section-head">
-        <div>
-          <h1 class="section-title">购物车</h1>
-          <p class="muted">先把商品挑好，下一步去确认订单。</p>
-        </div>
-        <div class="row">
-          <el-button @click="router.push('/products')">继续逛逛</el-button>
-          <el-button v-if="cart.length" @click="toggleAllSelected(!allSelected)">
-            {{ allSelected ? '取消全选' : '全选商品' }}
-          </el-button>
-          <el-button v-if="selectedCount" @click="clearChecked">清空已勾选</el-button>
-          <el-button v-if="invalidItems.length" @click="clearInvalidItems">清理失效商品</el-button>
-        </div>
-      </div>
-
-      <div v-if="!cart.length && !loading" class="muted">购物车还是空的，先去挑点商品。</div>
-      <div v-else-if="invalidItems.length" class="cart-alert">
-        当前有 {{ invalidItems.length }} 件商品不可结算，建议先处理库存不足或已下架商品。
-      </div>
-      <div v-else-if="hasMultiMerchantSelected" class="cart-alert">
-        当前勾选商品来自多个店铺，下单后会自动拆分成多个包裹，并统一支付。
-      </div>
-
-      <section v-for="group in merchantGroups" :key="group.merchantId" class="merchant-group">
-        <div class="row merchant-head">
-          <div class="stack merchant-meta">
-            <strong>{{ group.merchantName }}</strong>
-            <span class="muted">已选 {{ group.selectedCount }} / {{ group.items.length }} 件，店铺小计 ¥{{ group.selectedAmount.toFixed(2) }}</span>
-          </div>
-          <el-button
-            v-if="group.selectableCount"
-            text
-            @click="toggleMerchantSelected(group, !group.allSelected)"
-          >
-            {{ group.allSelected ? '取消本店全选' : '全选本店商品' }}
-          </el-button>
-        </div>
-
-        <div v-for="item in group.items" :key="item.cart_id" class="list-item">
-          <img class="cover cart-cover" :src="imageOf(item)" :alt="item.goods_name" @error="(e) => (e.target.src = fallbackImageOf(item))" />
-          <div class="stack">
-            <div class="row">
-              <el-checkbox
-                :model-value="Number(item.is_selected) === 1"
-                :disabled="!isAvailable(item)"
-                @change="(checked) => updateItem(item, { selected: checked })"
-              />
-              <strong>{{ item.goods_name }}</strong>
-              <span class="muted">{{ item.sku_name }}</span>
-              <span class="status-chip" :class="{ invalid: !isAvailable(item) }">{{ itemStatusText(item) }}</span>
-            </div>
-            <div class="row">
-              <span class="price">¥{{ item.price }}</span>
-              <span class="muted">可售库存 {{ item.stock }}</span>
-              <span class="muted">小计 ¥{{ (Number(item.price) * Number(item.buy_num)).toFixed(2) }}</span>
-            </div>
-            <div class="row">
-              <el-input-number
-                :model-value="item.buy_num"
-                :min="1"
-                :disabled="!isAvailable(item)"
-                @change="(value) => handleNumChange(item, value)"
-              />
-              <el-button @click="removeItem(item)">删除</el-button>
-            </div>
+  <main class="cart-page">
+    <section class="allmart-page-hero">
+      <div class="container">
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">CART</span>
+          <h1 class="allmart-page-title">购物车</h1>
+          <p class="allmart-page-subtitle">先把商品放好，下一步去确认订单。</p>
+          <div class="allmart-chip-tabs allmart-hero-actions" aria-label="购物车操作">
+            <button type="button" class="allmart-chip" @click="router.push('/products')">继续逛逛</button>
+            <button type="button" class="allmart-chip" :disabled="!selectedCount" @click="toggleAllSelected(false)">取消全选</button>
+            <button type="button" class="allmart-chip" :disabled="!selectedCount" @click="clearChecked">清空已勾选</button>
+            <button v-if="cart.length" type="button" class="allmart-chip" :class="{ active: allSelected }" :aria-selected="allSelected" @click="toggleAllSelected(!allSelected)">
+              {{ allSelected ? '已全选商品' : '全选商品' }}
+            </button>
+            <button v-if="invalidItems.length" type="button" class="allmart-chip" @click="clearInvalidItems">清理失效商品</button>
           </div>
         </div>
-      </section>
+      </div>
     </section>
 
-    <section class="band row settlement-bar">
-      <strong>已选 {{ selectedCount }} 件 / {{ selectedMerchantIds.length || 0 }} 个店铺</strong>
-      <span class="price">合计 ¥{{ selectedAmount.toFixed(2) }}</span>
-      <el-button type="primary" :disabled="!selectedCount" @click="goConfirm">去结算</el-button>
+    <section class="page stack allmart-after-hero-page cart-content">
+      <section class="band stack cart-surface">
+
+        <div v-if="!cart.length && !loading" class="muted">购物车还是空的，先去挑点商品。</div>
+        <div v-else-if="invalidItems.length" class="cart-alert">
+          当前有 {{ invalidItems.length }} 件商品不可结算，建议先处理库存不足或已下架商品。
+        </div>
+        <div v-else-if="hasMultiMerchantSelected" class="cart-alert">
+          当前勾选商品来自多个店铺，下单后会自动拆分成多个包裹，并统一支付。
+        </div>
+
+        <section v-for="group in merchantGroups" :key="group.merchantId" class="merchant-group">
+          <div class="row merchant-head">
+            <div class="stack merchant-meta">
+              <strong>{{ group.merchantName }}</strong>
+              <span class="muted">已选 {{ group.selectedCount }} / {{ group.items.length }} 件，店铺小计 ¥{{ group.selectedAmount.toFixed(2) }}</span>
+            </div>
+            <el-button
+              v-if="group.selectableCount"
+              text
+              @click="toggleMerchantSelected(group, !group.allSelected)"
+            >
+              {{ group.allSelected ? '取消本店全选' : '全选本店商品' }}
+            </el-button>
+          </div>
+
+          <div v-for="item in group.items" :key="item.cart_id" class="list-item">
+            <img class="cover cart-cover" :src="imageOf(item)" :alt="item.goods_name" @error="(e) => (e.target.src = fallbackImageOf(item))" />
+            <div class="stack">
+              <div class="row">
+                <el-checkbox
+                  :model-value="Number(item.is_selected) === 1"
+                  :disabled="!isAvailable(item)"
+                  @change="(checked) => updateItem(item, { selected: checked })"
+                />
+                <strong>{{ item.goods_name }}</strong>
+                <span class="muted">{{ item.sku_name }}</span>
+                <span class="status-chip" :class="{ invalid: !isAvailable(item) }">{{ itemStatusText(item) }}</span>
+              </div>
+              <div class="row">
+                <span class="price">¥{{ item.price }}</span>
+                <span class="muted">可售库存 {{ item.stock }}</span>
+                <span class="muted">小计 ¥{{ (Number(item.price) * Number(item.buy_num)).toFixed(2) }}</span>
+              </div>
+              <div class="row">
+                <el-input-number
+                  :model-value="item.buy_num"
+                  :min="1"
+                  :disabled="!isAvailable(item)"
+                  @change="(value) => handleNumChange(item, value)"
+                />
+                <el-button @click="removeItem(item)">删除</el-button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="band row settlement-bar">
+        <strong>已选 {{ selectedCount }} 件 / {{ selectedMerchantIds.length || 0 }} 个店铺</strong>
+        <span class="price">合计 ¥{{ selectedAmount.toFixed(2) }}</span>
+        <el-button type="primary" :disabled="!selectedCount" @click="goConfirm">去结算</el-button>
+      </section>
     </section>
   </main>
 </template>
 
 <style scoped>
-.section-head,
+.cart-page {
+  background: #fff;
+}
+
+.cart-content {
+  gap: 24px;
+}
+
+.cart-surface,
 .settlement-bar {
   justify-content: space-between;
 }

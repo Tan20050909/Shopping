@@ -246,20 +246,42 @@ async function handlePageChange(page) {
   await load()
 }
 
+function chooseStatus(nextStatus) {
+  if (String(status.value) === String(nextStatus ?? '')) return
+  status.value = nextStatus
+  handleStatusChange()
+}
+
 onMounted(load)
 </script>
 
 <template>
-  <main class="page stack order-page">
-    <section class="band order-toolbar">
-      <div>
-        <h1 class="section-title">我的订单</h1>
-        <p class="muted">按结算记录查看订单、商品和售后进度。</p>
+  <main class="order-page">
+    <section class="allmart-page-hero">
+      <div class="container">
+        <div class="allmart-hero-inner">
+          <span class="allmart-page-kicker">ORDERS</span>
+          <h1 class="allmart-page-title">我的订单</h1>
+          <p class="allmart-page-subtitle">按结算记录查看订单、商品和售后进度。</p>
+          <div class="allmart-chip-tabs allmart-hero-actions" aria-label="订单筛选">
+            <button
+              v-for="tab in statusTabs"
+              :key="String(tab.value)"
+              type="button"
+              class="allmart-chip"
+              :class="{ active: String(status) === String(tab.value) }"
+              :aria-selected="String(status) === String(tab.value)"
+              @click="chooseStatus(tab.value)"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+        </div>
       </div>
-      <el-segmented v-model="status" :options="statusTabs" @change="handleStatusChange" />
     </section>
 
-    <section v-loading="loading" class="orders-surface">
+    <section class="page stack order-content allmart-after-hero-page">
+      <section v-loading="loading" class="orders-surface">
       <el-empty v-if="!loading && !hasOrders" description="当前没有匹配的订单" />
 
       <article v-for="order in orders" :key="field(order, 'groupId', 'group_id')" class="order-card">
@@ -331,26 +353,28 @@ onMounted(load)
           <el-button @click="viewDetail(order)">查看详情</el-button>
         </div>
       </article>
-    </section>
+      </section>
 
-    <el-pagination
-      v-if="total > pageSize"
-      background
-      layout="prev, pager, next"
-      :page-size="pageSize"
-      :current-page="pageNum"
-      :total="total"
-      @current-change="handlePageChange"
-    />
+      <el-pagination
+        v-if="total > pageSize"
+        background
+        layout="prev, pager, next"
+        :page-size="pageSize"
+        :current-page="pageNum"
+        :total="total"
+        @current-change="handlePageChange"
+      />
+    </section>
   </main>
 </template>
 
 <style scoped>
-.order-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 18px;
+.order-page {
+  background: #fff;
+}
+
+.order-content {
+  gap: 24px;
 }
 
 .orders-surface {
@@ -462,7 +486,6 @@ onMounted(load)
 }
 
 @media (max-width: 760px) {
-  .order-toolbar,
   .order-head {
     align-items: stretch;
     flex-direction: column;

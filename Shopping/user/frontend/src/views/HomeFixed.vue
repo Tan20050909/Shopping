@@ -435,35 +435,37 @@ onMounted(loadPage)
     <template v-else>
       <section class="allmart-page-hero">
         <div class="container">
-          <span class="allmart-page-kicker">CATEGORIES</span>
-          <h1 class="allmart-page-title">商品分类</h1>
-          <p class="allmart-page-subtitle">按分类、关键词和排序发现 AllMart 精选好物，保留真实商品数据与完整购买链路。</p>
-          <div class="allmart-chip-tabs" aria-label="商品分类筛选">
-            <button
-              type="button"
-              class="allmart-chip"
-              :class="{ active: !categoryId }"
-              :aria-selected="!categoryId"
-              @click="chooseCategory(undefined)"
-            >
-              全部
-            </button>
-            <button
-              v-for="group in groupedCategories"
-              :key="group.cateId"
-              type="button"
-              class="allmart-chip"
-              :class="{ active: Number(categoryId) === Number(group.cateId) }"
-              :aria-selected="Number(categoryId) === Number(group.cateId)"
-              @click="chooseCategory(group.cateId)"
-            >
-              {{ group.cateName }}
-            </button>
+          <div class="allmart-hero-inner">
+            <span class="allmart-page-kicker">CATEGORIES</span>
+            <h1 class="allmart-page-title">商品分类</h1>
+            <p class="allmart-page-subtitle">按分类、关键词和排序发现 AllMart 精选好物，保留真实商品数据与完整购买链路。</p>
+            <div class="allmart-chip-tabs allmart-hero-actions" aria-label="商品分类筛选">
+              <button
+                type="button"
+                class="allmart-chip"
+                :class="{ active: !categoryId }"
+                :aria-selected="!categoryId"
+                @click="chooseCategory(undefined)"
+              >
+                全部
+              </button>
+              <button
+                v-for="group in groupedCategories"
+                :key="group.cateId"
+                type="button"
+                class="allmart-chip"
+                :class="{ active: Number(categoryId) === Number(group.cateId) }"
+                :aria-selected="Number(categoryId) === Number(group.cateId)"
+                @click="chooseCategory(group.cateId)"
+              >
+                {{ group.cateName }}
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section allmart-after-hero-section">
         <div class="container product-list-layout product-browser">
           <div class="product-toolbar">
             <div class="product-toolbar-meta">

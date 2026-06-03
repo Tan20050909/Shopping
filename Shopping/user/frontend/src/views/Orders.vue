@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { api, fallbackImageOf, imageOf } from '../api/client'
 
 const router = useRouter()
+const route = useRoute()
 const orders = ref([])
 const status = ref('')
 const pageNum = ref(1)
@@ -64,6 +65,26 @@ const statusTabs = [
 ]
 
 const hasOrders = computed(() => orders.value.length > 0)
+const merchantFilterId = computed(() => {
+  const value = Number(route.query.merchantId || 0)
+  return Number.isFinite(value) && value > 0 ? value : null
+})
+
+function merchantLikeId(source) {
+  if (!source || typeof source !== 'object') return 0
+  const value = Number(
+    source.merchantId ??
+    source.merchant_id ??
+    source.shopId ??
+    source.shop_id ??
+    source.storeId ??
+    source.store_id ??
+    source.sellerId ??
+    source.seller_id ??
+    0
+  )
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
 
 function field(item, camel, snake, fallback = '') {
   return item?.[camel] ?? item?.[snake] ?? fallback
@@ -82,6 +103,14 @@ function orderIdOf(order) {
 
 function itemsOf(order) {
   return order.items || order.orderItems || order.order_items || order.goodsItems || []
+}
+
+function matchesMerchant(order, merchantId) {
+  if (!merchantId) return true
+  if (merchantLikeId(order) === merchantId) return true
+  const childOrders = order?.childOrders || order?.child_orders || []
+  if (childOrders.some((child) => merchantLikeId(child) === merchantId)) return true
+  return itemsOf(order).some((item) => merchantLikeId(item) === merchantId)
 }
 
 function previewItems(order) {
@@ -170,19 +199,27 @@ async function load() {
   try {
     const params = new URLSearchParams()
     if (status.value !== undefined && status.value !== null && status.value !== '') params.set('status', status.value)
-    params.set('pageNum', pageNum.value)
-    params.set('pageSize', pageSize.value)
+    params.set('pageNum', merchantFilterId.value ? '1' : String(pageNum.value))
+    params.set('pageSize', merchantFilterId.value ? '200' : String(pageSize.value))
     const data = await api(`/api/user/orders?${params.toString()}`)
     const list = data.records || []
     const seen = new Set()
-    orders.value = list.filter((order) => {
+    const deduped = list.filter((order) => {
       const key = String(field(order, 'groupNo', 'group_no') || field(order, 'groupId', 'group_id') || '')
       if (!key) return true
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-    total.value = data.total || 0
+    if (merchantFilterId.value) {
+      const matched = deduped.filter((order) => matchesMerchant(order, merchantFilterId.value))
+      total.value = matched.length
+      const start = (pageNum.value - 1) * pageSize.value
+      orders.value = matched.slice(start, start + pageSize.value)
+    } else {
+      orders.value = deduped
+      total.value = data.total || 0
+    }
     // #region debug-point B:orders-response
     dbg('B', 'orders response summary', {
       total: Number(data.total || 0),
@@ -253,6 +290,11 @@ function chooseStatus(nextStatus) {
 }
 
 onMounted(load)
+
+watch(() => route.query.merchantId, async () => {
+  pageNum.value = 1
+  await load()
+})
 </script>
 
 <template>

@@ -21,6 +21,14 @@ const pageNum = ref(1)
 const pageSize = ref(12)
 const loading = ref(false)
 const homeLoading = ref(false)
+const sortOptions = [
+  { label: '综合推荐', value: '' },
+  { label: '销量优先', value: 'salesDesc' },
+  { label: '价格从低到高', value: 'priceAsc' },
+  { label: '价格从高到低', value: 'priceDesc' },
+  { label: '评分优先', value: 'ratingDesc' },
+  { label: '最新上架', value: 'newest' }
+]
 const homeData = ref({
   banners: [],
   sections: [],
@@ -33,6 +41,11 @@ const lives = ref([])
 const isHome = computed(() => route.path === '/')
 const hotKeywords = computed(() => homeData.value.hotKeywords || [])
 const displayedGoods = computed(() => (isHome.value ? goods.value.slice(0, 8) : goods.value))
+const currentCategoryName = computed(() => {
+  if (!categoryId.value) return '全部商品'
+  const match = topLevelCategories.value.find((item) => Number(item.cateId) === Number(categoryId.value))
+  return match?.cateName || '当前分类'
+})
 const visibleHomeSections = computed(() => (homeData.value.sections || []).filter((section) => {
   const name = String(section.sectionName || '')
   return !name.includes('热门推荐') && !name.includes('数码专区')
@@ -213,6 +226,16 @@ function sectionAction(section) {
 
 function goCategory(cateId) {
   categoryId.value = cateId
+  handleSearch()
+}
+
+function chooseCategory(cateId) {
+  categoryId.value = cateId
+  handleSearch()
+}
+
+function chooseSort(value) {
+  sort.value = value
   handleSearch()
 }
 
@@ -410,54 +433,82 @@ onMounted(loadPage)
     </template>
 
     <template v-else>
-      <section class="page-hero">
+      <section class="allmart-page-hero">
         <div class="container">
-          <span class="page-kicker">Products</span>
-          <h1>商品分类</h1>
-          <p>发现更多适合你的生活好物。</p>
+          <span class="allmart-page-kicker">CATEGORIES</span>
+          <h1 class="allmart-page-title">商品分类</h1>
+          <p class="allmart-page-subtitle">按分类、关键词和排序发现 AllMart 精选好物，保留真实商品数据与完整购买链路。</p>
+          <div class="allmart-chip-tabs" aria-label="商品分类筛选">
+            <button
+              type="button"
+              class="allmart-chip"
+              :class="{ active: !categoryId }"
+              :aria-selected="!categoryId"
+              @click="chooseCategory(undefined)"
+            >
+              全部
+            </button>
+            <button
+              v-for="group in groupedCategories"
+              :key="group.cateId"
+              type="button"
+              class="allmart-chip"
+              :class="{ active: Number(categoryId) === Number(group.cateId) }"
+              :aria-selected="Number(categoryId) === Number(group.cateId)"
+              @click="chooseCategory(group.cateId)"
+            >
+              {{ group.cateName }}
+            </button>
+          </div>
         </div>
       </section>
 
       <section class="section">
-        <div class="container product-list-layout">
-          <div class="filter-panel">
-            <div class="search-toolbar">
+        <div class="container product-list-layout product-browser">
+          <div class="product-toolbar">
+            <div class="product-toolbar-meta">
+              <span>{{ currentCategoryName }}</span>
+              <strong>{{ total }} 件商品</strong>
+            </div>
+            <div class="product-toolbar-search">
               <el-input v-model="keyword" placeholder="搜商品、品牌、关键词" clearable @keyup.enter="handleSearch" />
-              <el-select v-model="categoryId" placeholder="分类" clearable>
-                <el-option v-for="c in topLevelCategories" :key="c.cateId" :label="c.cateName" :value="c.cateId" />
-              </el-select>
-              <div class="price-range">
-                <el-input-number v-model="minPrice" :min="0" :precision="2" :controls="false" placeholder="最低价" />
-                <span>至</span>
-                <el-input-number v-model="maxPrice" :min="0" :precision="2" :controls="false" placeholder="最高价" />
-              </div>
-              <el-select v-model="sort" placeholder="排序" clearable>
-                <el-option label="销量优先" value="salesDesc" />
-                <el-option label="价格从低到高" value="priceAsc" />
-                <el-option label="价格从高到低" value="priceDesc" />
-                <el-option label="评分优先" value="ratingDesc" />
-                <el-option label="最新上架" value="newest" />
-              </el-select>
-              <el-button type="primary" :loading="loading" @click="handleSearch">搜索商品</el-button>
+              <el-button class="toolbar-action" :loading="loading" @click="handleSearch">搜索</el-button>
             </div>
-            <div class="category-tabs slim">
-              <button
-                v-for="group in groupedCategories"
-                :key="group.cateId"
-                class="category-tab"
-                :class="{ active: Number(categoryId) === Number(group.cateId) }"
-                @click="goCategory(group.cateId)"
-              >
-                <span>{{ group.cateName }}</span>
-              </button>
-            </div>
-            <span class="result-tip">当前共 {{ total }} 件商品</span>
           </div>
 
-          <div class="product-grid list-grid">
+          <div class="product-light-filters">
+            <div class="product-sort-tabs">
+              <button
+                v-for="option in sortOptions"
+                :key="option.value || 'default'"
+                type="button"
+                class="allmart-chip"
+                :class="{ active: sort === option.value }"
+                :aria-selected="sort === option.value"
+                @click="chooseSort(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <div class="price-mini-filter">
+              <span>价格</span>
+              <el-input-number v-model="minPrice" :min="0" :precision="2" :controls="false" placeholder="最低" />
+              <em>至</em>
+              <el-input-number v-model="maxPrice" :min="0" :precision="2" :controls="false" placeholder="最高" />
+              <el-button class="toolbar-action" :loading="loading" @click="handleSearch">应用</el-button>
+            </div>
+          </div>
+
+          <div v-if="goods.length" class="allmart-product-grid list-grid" v-loading="loading">
             <ProductCard v-for="item in goods" :key="item.goodsId" :item="item" />
           </div>
+          <section v-else class="allmart-empty-state" v-loading="loading">
+            <strong>暂时没有找到商品</strong>
+            <p>换个关键词、分类或价格范围试试，商品列表仍会优先读取真实接口数据。</p>
+            <el-button type="primary" @click="router.push('/products')">查看全部商品</el-button>
+          </section>
           <el-pagination
+            class="product-pagination"
             background
             layout="prev, pager, next"
             :page-size="pageSize"
@@ -799,7 +850,11 @@ onMounted(loadPage)
 
 .product-list-layout {
   display: grid;
-  gap: 32px;
+  gap: 24px;
+}
+
+.product-browser {
+  margin-top: -18px;
 }
 
 .filter-panel {
@@ -837,6 +892,119 @@ onMounted(loadPage)
   font-size: 14px;
 }
 
+.product-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.product-toolbar-meta {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  min-width: max-content;
+}
+
+.product-toolbar-meta span {
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.product-toolbar-meta strong {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.product-toolbar-search {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.product-toolbar-search :deep(.el-input__wrapper) {
+  min-height: 40px;
+  background: var(--bg-soft);
+}
+
+.toolbar-action {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 18px;
+  border-color: var(--border-light);
+  color: var(--text-main);
+  background: #fff;
+}
+
+.toolbar-action:hover {
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+  background: #fff;
+}
+
+.product-light-filters {
+  display: flex;
+  gap: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.product-sort-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.product-sort-tabs .allmart-chip {
+  min-height: 34px;
+  padding-inline: 17px;
+  box-shadow: none;
+}
+
+.price-mini-filter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.price-mini-filter span {
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.price-mini-filter em {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.price-mini-filter :deep(.el-input-number) {
+  width: 92px;
+}
+
+.price-mini-filter :deep(.el-input__wrapper) {
+  min-height: 36px;
+  border-radius: var(--radius-pill) !important;
+  background: #fff;
+}
+
+.price-mini-filter :deep(.el-input__inner) {
+  font-size: 12px;
+}
+
+.product-pagination {
+  justify-self: center;
+  margin-top: 4px;
+}
+
 @media (max-width: 1080px) {
   .hero-copy h1,
   .page-hero h1 {
@@ -858,6 +1026,21 @@ onMounted(loadPage)
 
   .search-toolbar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .product-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .product-toolbar-search {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .product-light-filters {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -900,6 +1083,14 @@ onMounted(loadPage)
 
   .search-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .product-toolbar-search {
+    grid-template-columns: 1fr;
+  }
+
+  .price-mini-filter {
+    flex-wrap: wrap;
   }
 
   .topic-cover {

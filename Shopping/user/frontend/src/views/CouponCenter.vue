@@ -8,6 +8,21 @@ const router = useRouter()
 const coupons = ref([])
 const loading = ref(false)
 const receivingId = ref(null)
+const activeScene = ref('platform')
+const activeFilter = ref('all')
+const couponSceneChips = [
+  { key: 'platform', label: '平台满减券' },
+  { key: 'merchant', label: '店铺折扣券' },
+  { key: 'category', label: '品类券' },
+  { key: 'stackable', label: '可叠加优惠' }
+]
+const filterChips = [
+  { key: 'all', label: '全部' },
+  { key: 'platform', label: '平台券' },
+  { key: 'merchant', label: '店铺券' },
+  { key: 'category', label: '品类券' },
+  { key: 'expiring', label: '即将过期' }
+]
 
 const authRole = computed(() => String(sessionStorage.getItem('shopping_auth_role') || ''))
 const isMerchantRole = computed(() => authRole.value === 'merchant')
@@ -35,11 +50,16 @@ const needsUserLogin = computed(() => !isMerchantRole.value && !userToken.value)
 const pageTitle = computed(() => (isMerchantRole.value ? '优惠券' : '领券中心'))
 const pageDesc = computed(() => {
   if (isMerchantRole.value) return '展示平台券和本店优惠券（商品端查看用）。'
-  return '先领券再下单，平台券、店铺券、商品券都在这里集中领取。'
+  return '先领券再下单，平台券、店铺券、品类券和商品券都在这里集中领取。'
 })
-const availableCount = computed(() => {
-  if (isMerchantRole.value) return coupons.value.length
-  return coupons.value.filter((item) => item.canReceive).length
+
+const normalizedCoupons = computed(() => coupons.value.map((coupon) => normalizeCoupon(coupon)))
+const availableCount = computed(() => normalizedCoupons.value.filter((item) => item.state !== 'disabled').length)
+const expiringSoonCount = computed(() => normalizedCoupons.value.filter((item) => item.isExpiringSoon).length)
+const filteredCoupons = computed(() => {
+  if (activeFilter.value === 'all') return normalizedCoupons.value
+  if (activeFilter.value === 'expiring') return normalizedCoupons.value.filter((item) => item.isExpiringSoon)
+  return normalizedCoupons.value.filter((item) => item.filterType === activeFilter.value)
 })
 
 function money(value) {
@@ -61,8 +81,45 @@ function rangeText(coupon) {
 }
 
 function buttonText(coupon) {
-  if (coupon.canReceive) return '立即领取'
+  if (coupon.state === 'receive') return '立即领取'
+  if (coupon.state === 'use') return '去使用'
   return coupon.cannotReceiveReason || '不可领取'
+}
+
+function parseTime(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const normalized = raw.includes(' ') ? raw.replace(' ', 'T') : raw
+  const time = new Date(normalized)
+  return Number.isNaN(time.getTime()) ? null : time
+}
+
+function couponFilterType(coupon) {
+  const couponType = Number(coupon.couponType ?? coupon.coupon_type ?? 0)
+  const scopeText = String(coupon.scopeText || coupon.scope_text || '')
+  if (scopeText.includes('指定分类') || scopeText.includes('指定商品')) return 'category'
+  return couponType === 1 ? 'platform' : 'merchant'
+}
+
+function couponState(coupon) {
+  if (coupon.canReceive) return 'receive'
+  if (!isMerchantRole.value && String(coupon.cannotReceiveReason || '') === '已领取') return 'use'
+  return 'disabled'
+}
+
+function normalizeCoupon(coupon) {
+  const endTime = coupon.endTime || coupon.end_time
+  const endAt = parseTime(endTime)
+  const now = Date.now()
+  const diff = endAt ? endAt.getTime() - now : Number.POSITIVE_INFINITY
+  return {
+    ...coupon,
+    endTimeText: endTime,
+    scopeTextResolved: rangeText(coupon),
+    filterType: couponFilterType(coupon),
+    state: couponState(coupon),
+    isExpiringSoon: diff > 0 && diff <= 1000 * 60 * 60 * 24 * 3
+  }
 }
 
 function toCenterCoupon(coupon, kind) {
@@ -156,52 +213,108 @@ async function receive(coupon) {
   }
 }
 
+function handleCouponAction(coupon) {
+  if (coupon.state === 'receive') {
+    receive(coupon)
+    return
+  }
+  if (coupon.state === 'use') {
+    router.push('/products')
+  }
+}
+
+function chooseScene(sceneKey) {
+  activeScene.value = sceneKey
+  activeFilter.value = sceneKey === 'stackable' ? 'all' : sceneKey
+}
+
 onMounted(load)
 </script>
 
 <template>
   <main class="coupon-center">
-    <section class="page-hero coupon-hero">
+    <section class="allmart-page-hero coupon-hero">
       <div class="container">
-        <span class="page-kicker">Coupons</span>
-        <h1>{{ pageTitle }}</h1>
-        <p>{{ pageDesc }}</p>
-        <div class="row page-hero-actions">
-          <span class="coupon-count">{{ isMerchantRole ? `共 ${availableCount} 张（平台+本店）` : `当前 ${availableCount} 张可领取` }}</span>
+        <span class="allmart-page-kicker">COUPONS</span>
+        <h1 class="allmart-page-title">{{ pageTitle }}</h1>
+        <p class="allmart-page-subtitle">{{ pageDesc }}</p>
+        <div class="allmart-chip-tabs coupon-scene-tabs" aria-label="优惠券功能入口">
+          <button
+            v-for="scene in couponSceneChips"
+            :key="scene.key"
+            type="button"
+            class="allmart-chip"
+            :class="{ active: activeScene === scene.key }"
+            @click="chooseScene(scene.key)"
+          >
+            {{ scene.label }}
+          </button>
         </div>
       </div>
     </section>
 
-    <section class="page stack">
+    <section class="page coupon-content">
+      <div class="coupon-toolbar">
+        <div class="coupon-stats allmart-card">
+          <span>可用优惠券 <strong>{{ availableCount }}</strong> 张</span>
+          <i></i>
+          <span>即将过期 <strong>{{ expiringSoonCount }}</strong> 张</span>
+        </div>
+        <div class="coupon-filter-tabs" aria-label="优惠券筛选">
+          <button
+            v-for="chip in filterChips"
+            :key="chip.key"
+            type="button"
+            class="allmart-chip"
+            :class="{ active: activeFilter === chip.key }"
+            :aria-selected="activeFilter === chip.key"
+            @click="activeFilter = chip.key"
+          >
+            {{ chip.label }}
+          </button>
+        </div>
+      </div>
+
       <div class="coupon-grid" v-loading="loading">
-        <article v-for="coupon in coupons" :key="coupon.couponId || coupon.coupon_id" class="coupon-card">
-          <div class="coupon-value">
+        <article v-for="coupon in filteredCoupons" :key="coupon.couponId || coupon.coupon_id" class="coupon-ticket">
+          <div class="coupon-ticket-value">
             <strong>{{ discountText(coupon) }}</strong>
             <span>满 {{ money(coupon.minAmount ?? coupon.min_amount) }} 可用</span>
           </div>
-          <div class="coupon-info stack">
-            <div>
+          <div class="coupon-ticket-divider" aria-hidden="true">
+            <span></span>
+          </div>
+          <div class="coupon-ticket-main">
+            <div class="coupon-ticket-copy">
               <h2>{{ coupon.couponName || coupon.coupon_name }}</h2>
-              <p>{{ rangeText(coupon) }}</p>
+              <p>{{ coupon.scopeTextResolved }}</p>
             </div>
-            <div class="coupon-meta">
-              <span>有效期至 {{ coupon.endTime || coupon.end_time }}</span>
+            <div class="coupon-ticket-meta">
+              <span>有效期至 {{ coupon.endTimeText }}</span>
               <span>剩余 {{ coupon.surplusNum ?? coupon.surplus_num }} 张</span>
             </div>
             <el-button
-              type="primary"
-              :disabled="!coupon.canReceive"
+              class="coupon-ticket-action"
+              :class="{
+                'is-outline': coupon.state === 'receive',
+                'is-solid': coupon.state === 'use',
+                'is-muted': coupon.state === 'disabled'
+              }"
+              :disabled="coupon.state === 'disabled'"
               :loading="receivingId === (coupon.couponId || coupon.coupon_id)"
-              @click="receive(coupon)"
+              @click="handleCouponAction(coupon)"
             >
               {{ buttonText(coupon) }}
             </el-button>
           </div>
         </article>
-        <section v-if="!loading && !coupons.length" class="band stack empty-state">
-          <strong>{{ needsUserLogin ? '请先登录再查看可领取优惠券' : '暂时没有优惠券' }}</strong>
+        <section v-if="!loading && !filteredCoupons.length" class="allmart-empty-state coupon-empty-state">
+          <strong>{{ needsUserLogin ? '请先登录再查看可领取优惠券' : '暂无可领取优惠券' }}</strong>
           <p class="muted">{{ needsUserLogin ? '登录后可领取平台券与店铺券。' : '稍后再来看看。' }}</p>
-          <el-button v-if="needsUserLogin" type="primary" @click="router.push('/login')">去登录</el-button>
+          <div class="row">
+            <el-button v-if="needsUserLogin" type="primary" @click="router.push('/login')">去登录</el-button>
+            <el-button v-else @click="router.push('/products')">去逛逛</el-button>
+          </div>
         </section>
       </div>
     </section>
@@ -210,94 +323,222 @@ onMounted(load)
 
 <style scoped>
 .coupon-hero {
-  padding-bottom: 80px;
+  padding-bottom: 68px;
 }
 
-.coupon-count {
+.coupon-content {
+  display: grid;
+  gap: 26px;
+}
+
+.coupon-toolbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.coupon-stats {
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
-  padding: 0 18px;
+  gap: 18px;
+  min-height: 54px;
+  padding: 0 20px;
   border-radius: var(--radius-pill);
-  background: #ffffff;
-  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.coupon-stats strong {
   color: var(--brand-red);
-  font-weight: 800;
+  font-size: 20px;
+}
+
+.coupon-stats i {
+  width: 1px;
+  height: 18px;
+  background: var(--border-light);
+}
+
+.coupon-filter-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .coupon-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
 }
 
-.coupon-card {
+.coupon-ticket {
   display: grid;
-  grid-template-columns: 128px minmax(0, 1fr);
-  overflow: hidden;
-  min-height: 176px;
+  grid-template-columns: 128px 18px minmax(0, 1fr);
+  min-height: 184px;
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   background: #fff;
-  box-shadow: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
-.coupon-value {
+.coupon-ticket-value {
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 10px;
-  background: var(--bg-soft);
+  gap: 12px;
+  padding: 18px 12px;
+  background: linear-gradient(180deg, #fff7f8 0%, #fff1f2 100%);
   color: var(--brand-red);
-  border-right: 1px dashed var(--border-light);
 }
 
-.coupon-value strong {
-  font-size: 34px;
+.coupon-ticket-value strong {
+  font-size: 42px;
+  font-weight: 800;
   line-height: 1;
 }
 
-.coupon-value span {
+.coupon-ticket-value span {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.coupon-info {
-  padding: 20px;
+.coupon-ticket-divider {
+  position: relative;
+  background:
+    radial-gradient(circle at top, #ffffff 9px, transparent 10px) top center / 18px 18px no-repeat,
+    radial-gradient(circle at bottom, #ffffff 9px, transparent 10px) bottom center / 18px 18px no-repeat;
 }
 
-.coupon-info h2 {
-  margin: 0 0 8px;
-  font-size: 20px;
+.coupon-ticket-divider::before {
+  content: "";
+  position: absolute;
+  inset: 12px 8px;
+  border-left: 1px dashed #f0d3d7;
 }
 
-.coupon-info p {
+.coupon-ticket-main {
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 18px 16px;
+}
+
+.coupon-ticket-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.coupon-ticket-copy h2 {
   margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.coupon-ticket-copy p,
+.coupon-ticket-meta {
   color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
-.coupon-meta {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  color: var(--text-secondary);
-  font-size: 14px;
+.coupon-ticket-copy p {
+  margin: 0;
 }
 
-.empty-state {
-  padding: 28px 20px;
+.coupon-ticket-meta {
+  display: grid;
+  gap: 4px;
 }
 
-:deep(.coupon-info .el-button.is-disabled) {
-  color: var(--text-muted);
-  background: var(--bg-soft);
+.coupon-ticket-action {
+  justify-self: start;
+  min-width: 154px;
+}
+
+.coupon-ticket-action.is-outline {
+  border-color: #ff6b78;
+  color: var(--brand-red);
+  background: #fff;
+}
+
+.coupon-ticket-action.is-solid {
+  border-color: var(--brand-red);
+  background: var(--brand-red);
+  color: #fff;
+}
+
+.coupon-ticket-action.is-muted {
   border-color: var(--border-light);
+  background: #fafafa;
+  color: var(--text-muted);
+}
+
+.coupon-empty-state {
+  grid-column: 1 / -1;
+}
+
+:deep(.coupon-ticket-action.is-outline:hover) {
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+  background: #fff7f8;
+}
+
+:deep(.coupon-ticket-action.is-solid:hover) {
+  border-color: var(--brand-red-dark);
+  background: var(--brand-red-dark);
+}
+
+:deep(.coupon-ticket-action.is-muted:hover) {
+  border-color: var(--border-light);
+  color: var(--text-muted);
+  background: #fafafa;
+}
+
+:deep(.coupon-ticket-action.is-muted.is-disabled) {
+  border-color: var(--border-light);
+  color: var(--text-muted);
+  background: #fafafa;
+  box-shadow: none;
+  opacity: 1;
+}
+
+@media (max-width: 1080px) {
+  .coupon-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
-  .coupon-card {
+  .coupon-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .coupon-stats {
+    min-height: auto;
+    padding: 14px 18px;
+  }
+
+  .coupon-grid {
     grid-template-columns: 1fr;
-    display: grid;
+  }
+
+  .coupon-ticket {
+    grid-template-columns: 1fr;
+  }
+
+  .coupon-ticket-divider {
+    display: none;
+  }
+
+  .coupon-ticket-main {
+    padding-left: 20px;
   }
 }
 </style>

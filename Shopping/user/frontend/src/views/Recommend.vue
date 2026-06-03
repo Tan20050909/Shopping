@@ -40,24 +40,25 @@ onMounted(load)
 
 <template>
   <main class="recommend-page">
-    <section class="page-hero">
+    <section class="allmart-page-hero">
       <div class="container">
-        <span class="page-kicker">Recommend</span>
-        <h1>精选推荐</h1>
-        <p>根据最近浏览和收藏，先给你一版规则推荐。</p>
-        <div class="row page-hero-actions">
-          <el-button v-if="!isMerchantRole" @click="router.push('/cart')">去购物车</el-button>
-          <el-button v-if="!isMerchantRole" @click="router.push('/profile')">个人中心</el-button>
-          <el-button @click="router.push('/products')">返回商品分类</el-button>
+        <span class="allmart-page-kicker">RECOMMEND</span>
+        <h1 class="allmart-page-title">精选推荐</h1>
+        <p class="allmart-page-subtitle">基于真实推荐接口展示更适合你的商品，保留收藏、加购和立即购买的完整链路。</p>
+        <div class="allmart-chip-tabs" aria-label="精选推荐入口">
+          <button type="button" class="allmart-chip active" aria-selected="true">为你推荐</button>
+          <button type="button" class="allmart-chip" @click="router.push('/rankings')">热门精选</button>
+          <button type="button" class="allmart-chip" @click="router.push('/products')">新品好物</button>
+          <button v-if="!isMerchantRole" type="button" class="allmart-chip" @click="router.push('/cart')">购物车</button>
         </div>
       </div>
     </section>
 
-    <section class="page stack">
-      <div v-if="items.length" class="grid">
+    <section class="page recommend-content">
+      <div v-if="items.length" class="allmart-product-grid recommend-grid" v-loading="loading">
         <ProductCard v-for="item in items" :key="item.goods_id || item.goodsId" :item="item" />
       </div>
-      <section v-else class="band stack empty-state">
+      <section v-else class="allmart-empty-state" v-loading="loading">
         <strong>暂时还没有推荐结果</strong>
         <p class="muted">先去看看商品、点点详情、收藏几件商品，推荐页很快就会有内容。</p>
         <div class="row">
@@ -70,7 +71,39 @@ onMounted(load)
 </template>
 
 <style scoped>
-.empty-state {
-  padding: 28px 20px;
+.recommend-page {
+  background: #fff;
+}
+
+.recommend-content {
+  display: grid;
+  gap: 24px;
+  padding-top: 34px;
+}
+
+.recommend-grid {
+  justify-content: start;
+}
+
+.recommend-grid > :deep(*) {
+  min-width: 0;
+}
+
+@media (min-width: 1081px) {
+  .recommend-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .recommend-grid:has(> :only-child) {
+    grid-template-columns: minmax(0, 276px);
+  }
+
+  .recommend-grid:has(> :nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 276px));
+  }
+
+  .recommend-grid:has(> :nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 276px));
+  }
 }
 </style>

@@ -3,95 +3,102 @@
     <router-view></router-view>
   </div>
 
-  <div v-else-if="layout === 'merchant'" class="merchant-portal">
-    <div class="top-nav">
-      <div class="top-nav-left">
-        <a href="#" @click.prevent="goHome">商家工作台</a>
-        <a href="#" @click.prevent="goRoute('/goods')">商品入口</a>
-        <a href="#" @click.prevent="goRoute('/activity')">活动入口</a>
-      </div>
-      <div class="top-nav-right">
-        <a href="#" @click.prevent="goRoute('/chat')">消息</a>
-        <a href="#" @click.prevent="goRoute('/platform-support')">平台客服</a>
-        <a href="#" class="merchant-tag" @click.prevent="goRoute('/dashboard')">商家中心</a>
-        <a href="#" @click.prevent="logoutMerchant">退出</a>
-      </div>
-    </div>
+  <div v-else-if="layout === 'merchant'" class="merchant-portal" :class="{ 'dashboard-shell': route.path === '/dashboard', 'goods-inner-page': route.path === '/goods' }">
+    <!-- 单层顶部栏 — 参考用户端 site-header 结构 -->
+    <header class="merchant-site-header">
+      <div class="merchant-header-inner">
+        <!-- 左侧：Logo + 商家中心 -->
+        <router-link class="merchant-brand-lockup" to="/dashboard">
+          <img class="merchant-logo-img" :src="brandLogo" alt="AllMart" />
+          <span class="merchant-brand-name">商家中心</span>
+        </router-link>
 
-    <header class="main-header">
-      <div class="header-left">
-        <div class="brand">
-          <div class="logo">
-            <div class="logo-text brand-logo">
-              <span class="brand-all">All</span><span class="brand-mart">Mart</span>
+        <!-- 中间：自定义导航（无 el-menu） -->
+        <nav class="merchant-site-nav">
+          <template v-for="item in navItems" :key="item.label">
+            <!-- 有子项的导航 — 悬浮下拉 -->
+            <div
+              v-if="item.children"
+              class="merchant-nav-hover"
+              @mouseenter="openDropdown(item.label)"
+              @mouseleave="closeDropdown"
+            >
+              <button
+                class="merchant-nav-link"
+                :class="{ active: isNavActive(item) }"
+                type="button"
+              >
+                {{ item.label }}
+                <span class="nav-arrow">▾</span>
+              </button>
+              <div v-if="activeDropdown === item.label" class="merchant-dropdown-menu">
+                <template v-for="child in item.children" :key="child.label">
+                  <button
+                    v-if="child.openChat"
+                    class="merchant-dropdown-item"
+                    type="button"
+                    @click="handleNavClick(child)"
+                  >
+                    {{ child.label }}
+                  </button>
+                  <router-link
+                    v-else
+                    class="merchant-dropdown-item"
+                    :to="child.path"
+                    @click="closeDropdown"
+                  >
+                    {{ child.label }}
+                  </router-link>
+                </template>
+              </div>
             </div>
-            <div class="logo-sub">AllMart</div>
-          </div>
-          <div class="brand-split">|</div>
-          <div class="brand-page">商家中心</div>
-        </div>
-      </div>
+            <!-- 无子项的导航 — 直接跳转 -->
+            <router-link
+              v-else
+              class="merchant-nav-link"
+              :class="{ active: route.path === item.path }"
+              :to="item.path"
+            >
+              {{ item.label }}
+            </router-link>
+          </template>
+        </nav>
 
-      <div class="search-box">
-        <el-select v-model="searchType" class="search-select">
-          <el-option label="宝贝" value="baby" />
-          <el-option label="订单" value="order" />
-        </el-select>
-        <el-input
-          v-model="searchText"
-          placeholder="搜索商品/订单/售后"
-          class="search-input"
-          clearable
-          @keydown.enter.prevent="doSearch"
-          @clear="clearSearch"
-        />
-        <el-button type="primary" class="search-btn" @click="doSearch">搜索</el-button>
-      </div>
+        <!-- 右侧：搜索框 + 店铺胶囊 + 退出 -->
+        <div class="merchant-site-actions">
+          <div class="merchant-site-search">
+            <el-input
+              v-model="searchText"
+              placeholder="搜索商品/订单"
+              clearable
+              @keyup.enter="doSearch"
+              @clear="clearSearch"
+            />
+            <el-button type="primary" @click="doSearch">搜</el-button>
+          </div>
 
-      <div class="header-right">
-        <div class="shop-card" @click="openAvatarDialog">
-          <div class="shop-avatar">
-            <img v-if="currentAvatar" class="shop-avatar-img" :src="currentAvatar" alt="" />
-            <span v-else>{{ shopAvatar }}</span>
-          </div>
-          <div class="shop-meta">
-            <div class="shop-name">{{ currentUser?.merchantName || currentUser?.username || '商家店铺' }}</div>
-            <div class="shop-sub">
-              <span class="shop-level">信誉 {{ shopLevelText }}</span>
-              <span class="shop-split">|</span>
-              <span class="shop-rank">评分 {{ shopRatingText }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="shop-badges">
-          <el-badge :value="pendingOrders" :max="99" class="badge-item">
-            <el-button class="badge-btn" @click="goRoute('/order')">待处理订单</el-button>
-          </el-badge>
-          <el-badge :value="unreadMessages" :max="99" class="badge-item">
-            <el-button class="badge-btn" @click="goRoute('/chat')">消息通知</el-button>
-          </el-badge>
+          <el-dropdown trigger="click" @command="handleUserMenuCommand">
+            <button class="merchant-user-chip" type="button">
+              <template v-if="currentAvatar">
+                <img class="merchant-user-avatar" :src="currentAvatar" alt="" />
+              </template>
+              <span v-else class="merchant-user-avatar merchant-avatar-fallback">{{ shopAvatar }}</span>
+              <span class="merchant-user-name">{{ currentUser?.merchantName || currentUser?.username || '商家店铺' }}</span>
+              <span class="user-caret">▾</span>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu class="merchant-user-menu">
+                <el-dropdown-item command="setting">店铺设置</el-dropdown-item>
+                <el-dropdown-item command="audit">入驻审核</el-dropdown-item>
+                <el-dropdown-item command="profile">账号资料</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <button class="merchant-logout-link" type="button" @click="logoutMerchant">退出</button>
         </div>
       </div>
     </header>
-
-    <div class="main-nav">
-      <el-menu :key="menuKey" :default-active="activeMenu" mode="horizontal" class="merchant-top-menu" @select="onMenuSelect">
-        <el-menu-item index="/dashboard">工作台</el-menu-item>
-        <el-menu-item index="/data-center">数据中心</el-menu-item>
-        <el-menu-item index="/goods">商品管理</el-menu-item>
-        <el-menu-item index="/stock">库存管理</el-menu-item>
-        <el-menu-item index="/comment-appeal">评价申诉</el-menu-item>
-        <el-menu-item index="/order">订单管理</el-menu-item>
-        <el-menu-item index="/after-sale">售后管理</el-menu-item>
-        <el-menu-item index="/merchant">入驻审核</el-menu-item>
-        <el-menu-item index="/merchant-setting">店铺设置</el-menu-item>
-        <el-menu-item index="/finance">财务结算</el-menu-item>
-        <el-menu-item index="/activity">营销活动</el-menu-item>
-        <el-menu-item index="/chat">客服管理</el-menu-item>
-        <el-menu-item index="/platform-support">平台客服</el-menu-item>
-        <el-menu-item index="/merchant-live">直播管理</el-menu-item>
-      </el-menu>
-    </div>
 
     <main class="main-content">
       <div class="content-wrapper">
@@ -151,7 +158,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { merchantApi, orderApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
@@ -160,13 +167,61 @@ import { DEFAULT_AVATARS, DEFAULT_USER_AVATAR, resolveAvatar } from '@/utils/ava
 
 const route = useRoute()
 const router = useRouter()
-const activeMenu = ref(route.path)
-const menuKey = ref(0)
+const brandLogo = '/brand-assets/allmart-logo-full.png'
 
 const layout = computed(() => String(route.meta?.layout || 'user'))
 const isStandalonePage = computed(() => layout.value === 'merchant' && String(route.query?.standalone || '') === '1')
 
 const currentUser = ref(null)
+const searchText = ref('')
+const pendingOrders = ref(0)
+const unreadMessages = ref(0)
+const activeDropdown = ref(null)
+
+// 导航数据结构
+const navItems = [
+  { label: '首页', path: '/dashboard' },
+  { label: '商品管理', children: [
+    { label: '商品列表', path: '/goods' },
+    { label: '库存管理', path: '/stock' },
+    { label: '评价申诉', path: '/comment-appeal' },
+  ]},
+  { label: '订单管理', children: [
+    { label: '订单管理', path: '/order' },
+    { label: '售后管理', path: '/after-sale' },
+  ]},
+  { label: '营销中心', children: [
+    { label: '营销活动', path: '/coupon' },
+    { label: '直播管理', path: '/merchant-live' },
+  ]},
+  { label: '数据中心', path: '/data-center' },
+  { label: '财务中心', path: '/finance' },
+  { label: '服务市场', children: [
+    { label: '客服管理', path: '/chat', openChat: true },
+    { label: '平台客服', path: '/platform-support', openChat: true },
+    { label: '店铺设置', path: '/merchant-setting' },
+  ]},
+]
+
+const isNavActive = (item) => {
+  if (item.children) {
+    return item.children.some(child => route.path.startsWith(child.path === '/chat' ? '/chat' : child.path))
+  }
+  return route.path === item.path
+}
+
+const openDropdown = (label) => { activeDropdown.value = label }
+const closeDropdown = () => { activeDropdown.value = null }
+
+const handleNavClick = (child) => {
+  activeDropdown.value = null
+  if (child.openChat) {
+    if (child.path === '/chat') openChatWindow()
+    else openPlatformSupportWindow()
+  } else {
+    router.push(child.path)
+  }
+}
 
 const loadUser = async () => {
   const local = ensureMerchantUser()
@@ -193,28 +248,9 @@ const loadUser = async () => {
   }
 }
 
-const searchType = ref('baby')
-const searchText = ref('')
-
-const pendingOrders = ref(0)
-const unreadMessages = ref(0)
 const shopScore = computed(() => {
   const v = Number(currentUser.value?.shopScore ?? currentUser.value?.shop_score ?? currentUser.value?.rating ?? 0)
   return Number.isFinite(v) ? v : 0
-})
-const shopLevelText = computed(() => {
-  const s = shopScore.value
-  if (!(s > 0)) return '-'
-  if (s >= 4.8) return '5'
-  if (s >= 4.5) return '4'
-  if (s >= 4.0) return '3'
-  if (s >= 3.5) return '2'
-  return '1'
-})
-const shopRatingText = computed(() => {
-  const s = shopScore.value
-  if (!(s > 0)) return '-'
-  return s.toFixed(1)
 })
 const shopAvatar = computed(() => (currentUser.value?.merchantName || currentUser.value?.username || '商')[0])
 const currentAvatar = computed(() => {
@@ -230,9 +266,7 @@ const openAvatarDialog = () => {
   avatarDialogVisible.value = true
 }
 
-const selectAvatar = (url) => {
-  selectedAvatar.value = url
-}
+const selectAvatar = (url) => { selectedAvatar.value = url }
 
 const persistMerchantUser = (patch) => {
   const raw = localStorage.getItem('merchantUser')
@@ -281,10 +315,6 @@ const loadHeaderCounters = async () => {
   }
 }
 
-const goHome = () => {
-  router.push('/dashboard')
-}
-
 const logoutMerchant = () => {
   localStorage.removeItem('merchantUser')
   sessionStorage.removeItem('shopping_auth_role')
@@ -297,16 +327,12 @@ const doSearch = () => {
     ElMessage.warning('请输入搜索内容')
     return
   }
-  if (searchType.value === 'order') {
-    router.push({ path: '/order', query: { keyword: k } })
-    return
-  }
   router.push({ path: '/goods', query: { keyword: k } })
 }
 
 const clearSearch = () => {
   searchText.value = ''
-  if (route.path === '/goods' || route.path === '/order') {
+  if (route.path === '/goods') {
     const q = { ...(route.query || {}) }
     if (q.keyword != null) {
       delete q.keyword
@@ -316,14 +342,8 @@ const clearSearch = () => {
 }
 
 const goRoute = (path) => {
-  if (path === '/chat') {
-    openChatWindow()
-    return
-  }
-  if (path === '/platform-support') {
-    openPlatformSupportWindow()
-    return
-  }
+  if (path === '/chat') { openChatWindow(); return }
+  if (path === '/platform-support') { openPlatformSupportWindow(); return }
   router.push(path)
 }
 
@@ -339,25 +359,13 @@ const openPlatformSupportWindow = () => {
   if (!w) router.push('/platform-support')
 }
 
-const onMenuSelect = (index) => {
-  const path = String(index || '')
-  if (path === '/chat') {
-    openChatWindow()
-    activeMenu.value = route.path
-    menuKey.value += 1
-    return
-  }
-  if (path === '/platform-support') {
-    openPlatformSupportWindow()
-    activeMenu.value = route.path
-    menuKey.value += 1
-    return
-  }
-  router.push(path)
+const handleUserMenuCommand = (command) => {
+  if (command === 'setting') { router.push('/merchant-setting'); return }
+  if (command === 'audit') { router.push('/merchant'); return }
+  if (command === 'profile') { openAvatarDialog() }
 }
 
-watch(() => route.path, (newPath) => {
-  activeMenu.value = newPath
+watch(() => route.path, () => {
   if (layout.value === 'merchant' && !isStandalonePage.value) {
     loadUser()
     loadHeaderCounters()
@@ -377,27 +385,21 @@ onMounted(() => {
   --brand-red: #E60012;
   --brand-red-dark: #C4000F;
   --brand-red-light: #FFE8EA;
-
   --bg-page: #FFFFFF;
   --bg-section: #F7F7F7;
   --bg-soft: #FAFAFA;
   --bg-card: #FFFFFF;
-
   --text-main: #111111;
   --text-secondary: #555555;
   --text-muted: #999999;
-
   --border-light: #EEEEEE;
   --border-soft: #F3F3F3;
-
   --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.05);
   --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.08);
-
   --radius-lg: 16px;
   --radius-md: 10px;
   --radius-sm: 6px;
   --radius-pill: 999px;
-
   --el-color-primary: var(--brand-red);
   --el-color-primary-dark-2: var(--brand-red-dark);
   --el-color-primary-light-3: #FFB9BF;
@@ -407,8 +409,7 @@ onMounted(() => {
   --el-color-primary-light-9: #FFF7F7;
 }
 
-html,
-body {
+html, body {
   background: var(--bg-page);
   color: var(--text-main);
 }
@@ -417,30 +418,6 @@ body {
   background: var(--brand-red);
   border-color: var(--brand-red);
   border-radius: var(--radius-pill);
-}
-
-.el-button--primary.is-plain {
-  --el-button-text-color: var(--brand-red);
-  --el-button-bg-color: transparent;
-  --el-button-border-color: var(--brand-red);
-  --el-button-hover-text-color: var(--brand-red-dark);
-  --el-button-hover-bg-color: var(--el-color-primary-light-9);
-  --el-button-hover-border-color: var(--brand-red-dark);
-  --el-button-active-text-color: var(--brand-red-dark);
-  --el-button-active-bg-color: var(--el-color-primary-light-8);
-  --el-button-active-border-color: var(--brand-red-dark);
-  color: var(--brand-red) !important;
-  background: transparent !important;
-  border-color: var(--brand-red) !important;
-}
-
-.el-button--primary.is-plain:hover {
-  --el-button-text-color: var(--brand-red-dark);
-  --el-button-bg-color: var(--el-color-primary-light-9);
-  --el-button-border-color: var(--brand-red-dark);
-  color: var(--brand-red-dark) !important;
-  background: var(--el-color-primary-light-9) !important;
-  border-color: var(--brand-red-dark) !important;
 }
 
 .el-button--primary:not(.is-plain):hover {
@@ -452,301 +429,295 @@ body {
   border-radius: var(--radius-pill);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-}
+* { margin: 0; padding: 0; }
 
-.merchant-portal {
-  min-height: 100vh;
-  background: var(--bg-section);
-}
-
-.top-nav {
-  background: #fefefe;
-  height: 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 50px;
-  font-size: 12px;
-  border-bottom: 1px solid #eee;
-}
-
-.top-nav a {
-  color: #666;
-  text-decoration: none;
-  margin: 0 15px;
-}
-
-.top-nav a:hover {
-  color: var(--brand-red);
-}
-
-.merchant-tag {
-  font-weight: 600;
-  color: var(--brand-red);
-}
-
-.main-header {
-  background: #fff;
-  height: 96px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 50px;
-  gap: 24px;
-  border-bottom: 2px solid var(--brand-red);
-}
-
-.header-left {
+/* ============ 商家端单层顶部栏 ============ */
+.merchant-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035);
+  backdrop-filter: blur(12px);
+  min-height: 76px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
 }
 
-.brand {
+.merchant-header-inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  min-height: 76px;
+}
+
+/* Logo + 商家中心 */
+.merchant-brand-lockup {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-}
-
-.logo-text {
-  font-size: 40px;
-  font-weight: bold;
-  font-style: normal;
-  line-height: 1;
-  color: #e60012;
-}
-
-.brand-logo {
-  color: #111827;
-  letter-spacing: 0.5px;
-}
-
-.brand-all {
-  color: #111827;
-}
-
-.brand-mart {
-  color: #e60012;
-}
-
-.logo-sub {
-  font-size: 12px;
-  color: #999;
-}
-
-.brand-split {
-  color: #ddd;
-  font-size: 16px;
-}
-
-.brand-page {
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
-}
-
-.search-box {
-  display: flex;
-  gap: 0;
-  background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  height: 46px;
-  flex: 1;
-  max-width: 720px;
-  border: 2px solid #e60012;
-  padding: 2px;
-}
-
-.search-select {
-  width: 110px;
-}
-
-.search-select :deep(.el-input__wrapper) {
-  box-shadow: none;
-  border-radius: 12px 0 0 12px;
-  background: transparent;
-  height: 42px;
-}
-
-.search-select {
-  border-right: 1px solid #e5e7eb;
-}
-
-.search-input {
-  flex: 1;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  box-shadow: none;
-  border-radius: 0;
-  height: 42px;
-}
-
-.search-box :deep(.el-input__wrapper) {
-  box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.search-box :deep(.el-input__inner) {
-  height: 42px;
-  line-height: 42px;
-}
-
-.search-box :deep(.el-input__inner:focus-visible) {
-  outline: none;
-}
-
-.search-box :deep(.el-select .el-input__inner) {
-  height: 42px;
-  line-height: 42px;
-}
-
-.search-box :deep(.el-select .el-input__inner:focus-visible) {
-  outline: none;
-}
-
-.search-box :deep(.el-select__wrapper) {
-  height: 42px;
-  box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-  align-items: center;
-}
-
-.search-box :deep(.el-select__selected-item),
-.search-box :deep(.el-select__placeholder),
-.search-box :deep(.el-select__caret) {
-  line-height: 42px;
-}
-
-.search-box :deep(.el-input__wrapper) {
-  align-items: center;
-}
-
-.search-box :deep(.el-input) {
-  --el-input-border-color: transparent;
-  --el-input-hover-border-color: transparent;
-  --el-input-focus-border-color: transparent;
-  --el-input-outline-color: transparent;
-}
-
-.search-btn {
-  background: #e60012;
-  border: 1px solid #e60012;
-  border-radius: 12px;
-  padding: 0 26px;
-  font-weight: 800;
-  height: 42px;
-}
-
-.search-btn:hover {
-  background: #ff2a3a;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 18px;
   flex-shrink: 0;
+  text-decoration: none;
 }
 
-.shop-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #fff5f5;
-  border-radius: 16px;
-  padding: 10px 14px;
-  color: #333;
-  border: 1px solid #ffd6d9;
-  cursor: pointer;
+.merchant-logo-img {
+  display: block;
+  width: 140px;
+  height: auto;
+  object-fit: contain;
 }
 
-.shop-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #ffe9ea;
+.merchant-brand-name {
+  position: relative;
+  padding-left: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.merchant-brand-name::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 14px;
+  background: var(--border-light);
+}
+
+/* 中间导航 */
+.merchant-site-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #e60012;
+  gap: clamp(8px, 1vw, 16px);
+  min-width: 0;
   overflow: hidden;
 }
 
-.shop-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.shop-name {
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.shop-sub {
+.merchant-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 0 24px;
+  color: var(--text-secondary);
   font-size: 12px;
-  color: #666;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.merchant-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.merchant-nav-link:hover,
+.merchant-nav-link.active {
+  color: var(--brand-red);
+}
+
+.merchant-nav-link.active::after {
+  background: var(--brand-red);
+}
+
+.nav-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* 导航下拉菜单 */
+.merchant-nav-hover {
+  position: relative;
+}
+
+.merchant-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 140px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
+  z-index: 60;
+}
+
+.merchant-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: color 0.15s, background 0.15s;
+}
+
+.merchant-dropdown-item:hover {
+  color: var(--brand-red);
+  background: var(--brand-red-light);
+}
+
+/* 右侧操作区 */
+.merchant-site-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* 搜索框 — 用户端胶囊风格 */
+.merchant-site-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.merchant-site-search :deep(.el-input) {
+  width: clamp(140px, 12vw, 220px);
+}
+
+.merchant-site-search :deep(.el-input__wrapper) {
+  min-height: 42px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-soft);
+  box-shadow: 0 0 0 1px var(--border-light) inset;
+}
+
+.merchant-site-search :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #ddd inset;
+}
+
+.merchant-site-search :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--brand-red) inset;
+}
+
+.merchant-site-search :deep(.el-input__inner) {
+  height: 42px;
+  font-size: 12px;
+}
+
+.merchant-site-search :deep(.el-input__inner::placeholder) {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.merchant-site-search .el-button {
+  flex-shrink: 0;
+  min-height: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 店铺头像胶囊 — 用户端 user-chip 风格 */
+.merchant-user-chip {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: border-color 0.2s;
 }
 
-.shop-split {
-  opacity: 0.65;
+.merchant-user-chip:hover {
+  border-color: #ffd6d9;
 }
 
-.shop-badges {
+.merchant-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.merchant-avatar-fallback {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  background: var(--brand-red-light);
+  color: var(--brand-red);
+  font-weight: 700;
+  font-size: 13px;
 }
 
-.badge-btn {
-  border-radius: 16px;
-  border: none;
-  background: #fff;
-  color: #e60012;
-  padding: 0 14px;
-  border: 1px solid #ffd6d9;
+.merchant-user-name {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.badge-btn:hover {
-  background: #fff5f5;
+.user-caret {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
 }
 
-.main-nav {
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 0 50px;
-}
-
-.merchant-top-menu {
-  border-bottom: none;
-}
-
-.merchant-top-menu :deep(.el-menu-item) {
-  height: 52px;
-  line-height: 52px;
-  font-size: 14px;
+/* 退出按钮 */
+.merchant-logout-link {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
+  padding: 0 2px;
+  white-space: nowrap;
+  transition: color 0.2s;
 }
 
-.merchant-top-menu :deep(.el-menu-item.is-active) {
-  color: #e60012;
-  border-bottom-color: #e60012;
+.merchant-logout-link:hover {
+  color: var(--brand-red);
+}
+
+/* ============ 旧样式保留（不影响其他页面） ============ */
+.merchant-portal {
+  min-height: 100vh;
+  background: #fbfbfb;
 }
 
 .main-content {
@@ -809,63 +780,93 @@ body {
   font-size: 13px;
 }
 
-.avatar-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 10px;
-}
-
-.avatar-item {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid transparent;
-  cursor: pointer;
-  background: #f8fafc;
-}
-
-.avatar-item.active {
-  border-color: #e60012;
-  box-shadow: 0 0 0 3px rgba(230, 0, 18, 0.15);
-}
-
-.avatar-item img {
+.dashboard-shell .main-content {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 1280px;
+  padding: 24px 0 0;
+  box-sizing: border-box;
+}
+
+.dashboard-shell .content-wrapper {
   display: block;
 }
 
-.avatar-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+.dashboard-shell .right-sidebar {
+  display: none;
 }
 
+.goods-inner-page .content-wrapper {
+  display: block;
+}
+
+.goods-inner-page .right-sidebar {
+  display: none;
+}
+
+.goods-inner-page .main-content {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+}
+
+/* 用户菜单下拉 */
+.merchant-user-menu .el-dropdown-menu__item {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.merchant-user-menu .el-dropdown-menu__item:hover {
+  color: var(--brand-red);
+  background: #fff7f8;
+}
+
+/* 头像弹窗 */
+.avatar-panel { display: flex; flex-direction: column; gap: 14px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
+.avatar-item { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #f8fafc; }
+.avatar-item.active { border-color: #e60012; box-shadow: 0 0 0 3px rgba(230, 0, 18, 0.15); }
+.avatar-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* 响应式 */
 @media (max-width: 1200px) {
-  .main-header {
+  .merchant-header-inner {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 20px;
+    min-height: auto;
+  }
+
+  .merchant-site-header {
+    min-height: auto;
+  }
+
+  .merchant-site-nav {
+    justify-content: flex-start;
+    gap: 14px;
+    overflow-x: auto;
+  }
+
+  .merchant-nav-link {
+    padding: 6px 0 10px;
+  }
+
+  .merchant-site-actions {
+    width: 100%;
+    justify-content: flex-start;
     flex-wrap: wrap;
-    height: auto;
-    padding: 16px 20px;
   }
 
-  .top-nav {
-    padding: 0 20px;
-  }
-
-  .main-nav {
-    padding: 0 20px;
+  .merchant-site-search :deep(.el-input) {
+    width: min(220px, 50vw);
   }
 
   .main-content {
     padding: 16px 20px;
+  }
+
+  .dashboard-shell .main-content {
+    padding: 18px 16px 0;
   }
 
   .right-sidebar {

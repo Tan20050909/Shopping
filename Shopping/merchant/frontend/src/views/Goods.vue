@@ -1,121 +1,145 @@
 <template>
   <div class="goods-page">
-    <div class="hero-card">
-      <div>
-        <p class="hero-badge">商品中心</p>
-        <h2>发布和管理你的店铺商品</h2>
-        <div v-if="queryKeyword" class="hero-search-tip">
-          当前搜索：{{ queryKeyword }}
-          <el-button text class="hero-clear" @click.stop="clearKeyword">清除</el-button>
-        </div>
-      </div>
-      <el-button type="primary" size="large" class="hero-action" @click="goCreate">
-        发布商品
-      </el-button>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stats-card">
-        <span class="stats-label">商品总数</span>
-        <strong>{{ goodsList.length }}</strong>
-      </div>
-      <div class="stats-card">
-        <span class="stats-label">已上架</span>
-        <strong>{{ publishedCount }}</strong>
-      </div>
-      <div class="stats-card">
-        <span class="stats-label">待审核</span>
-        <strong>{{ pendingAuditCount }}</strong>
-      </div>
-    </div>
-
-    <el-card v-if="topSelling.length" class="rank-panel" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <div>
-            <div class="card-title">热销榜 TOP3</div>
-            <div class="card-subtitle">按已付款订单购买量统计</div>
+    <!-- 全宽 Hero — 参考用户端 /products -->
+    <section class="goods-hero">
+      <div class="goods-container">
+        <div class="goods-hero-inner">
+          <span class="goods-kicker">MERCHANT GOODS</span>
+          <h1 class="goods-hero-title">商品管理</h1>
+          <p class="goods-hero-desc">发布、编辑和管理店铺商品，实时掌握上架、审核与销售状态</p>
+          <div v-if="queryKeyword" class="hero-search-tip">
+            当前搜索：{{ queryKeyword }}
+            <el-button text class="hero-clear" @click.stop="clearKeyword">清除</el-button>
           </div>
-        </div>
-      </template>
-      <div class="rank-grid">
-        <div v-for="(g, idx) in topSelling" :key="g.id" class="rank-item" @click="goDetail(g.id)">
-          <div class="rank-no">{{ idx + 1 }}</div>
-          <img class="rank-img" :src="resolveImg(g.goodsPic)" alt="" @error="onImgError" />
-          <div class="rank-meta">
-            <div class="rank-name">{{ g.name }}</div>
-            <div class="rank-sub">已售 {{ Number(g.buyCount ?? 0) }}</div>
+          <div class="goods-hero-actions">
+            <div class="goods-chip-tabs" aria-label="商品状态筛选">
+              <button
+                v-for="tab in statusTabs"
+                :key="tab.key"
+                type="button"
+                class="goods-chip"
+                :class="{ active: goodsStatusFilter === tab.key }"
+                @click="goodsStatusFilter = tab.key"
+              >
+                {{ tab.label }} <span class="chip-count">{{ tab.count }}</span>
+              </button>
+            </div>
+            <el-button type="primary" size="large" class="hero-publish-btn" @click="goCreate">
+              发布商品
+            </el-button>
           </div>
         </div>
       </div>
-    </el-card>
+    </section>
 
-    <el-card class="table-card" shadow="never">
-      <template #header>
-        <div class="card-header">
+    <!-- 热销榜 TOP3 -->
+    <section v-if="topSelling.length" class="goods-top-section">
+      <div class="goods-container">
+        <div class="section-header">
           <div>
-            <div class="card-title">商品列表</div>
-            <div class="card-subtitle">当前商家 ID：{{ merchantId }}</div>
+            <div class="section-title">热销榜 TOP3</div>
+            <div class="section-subtitle">按已付款订单购买量统计</div>
+          </div>
+        </div>
+        <div class="top-grid">
+          <div v-for="(g, idx) in topSelling" :key="g.id" class="top-card" @click="goDetail(g.id)">
+            <div class="top-rank">{{ idx + 1 }}</div>
+            <img class="top-img" :src="resolveImg(g.goodsPic)" alt="" @error="onImgError" />
+            <div class="top-info">
+              <div class="top-name">{{ g.name }}</div>
+              <div class="top-sold">已售 {{ Number(g.buyCount ?? 0) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 商品列表 -->
+    <section class="goods-list-section">
+      <div class="goods-container">
+        <div class="section-header">
+          <div>
+            <div class="section-title">商品列表</div>
+            <div class="section-subtitle">共 {{ goodsList.length }} 件商品</div>
           </div>
           <div class="header-actions">
             <div v-if="selectedCount > 0" class="bulk-bar">
               <span class="bulk-tip">已选 {{ selectedCount }}</span>
-              <el-button size="small" type="success" plain @click="bulkUpdateStatus(1)">批量上架</el-button>
-              <el-button size="small" type="warning" plain @click="bulkUpdateStatus(0)">批量下架</el-button>
-              <el-button size="small" type="danger" plain @click="bulkDelete">批量删除</el-button>
+              <el-button size="small" type="primary" plain @click="bulkUpdateStatus(1)">批量上架</el-button>
+              <el-button size="small" plain @click="bulkUpdateStatus(0)">批量下架</el-button>
+              <el-button size="small" plain @click="bulkDelete">批量删除</el-button>
               <el-button size="small" plain @click="clearSelection">清空</el-button>
               <el-button size="small" plain @click="selectAllDisplayed">全选当前</el-button>
             </div>
             <el-button plain @click="loadGoods">刷新列表</el-button>
           </div>
         </div>
-      </template>
 
-      <el-empty v-if="!goodsList.length" description="还没有商品，先发布一个试试" />
+        <el-empty v-if="!goodsList.length" description="还没有商品，先发布一个试试" />
+        <el-empty v-else-if="!displayGoods.length" description="未找到匹配的商品" />
 
-      <el-empty v-else-if="!displayGoods.length" description="未找到匹配的商品" />
-
-      <div v-else class="goods-grid">
-        <div v-for="g in displayGoods" :key="g.id" class="goods-card" @click="goDetail(g.id)">
-          <div class="goods-card-media">
-            <img class="goods-card-img" :src="resolveImg(g.goodsPic)" alt="" @error="onImgError" />
-            <div class="goods-card-select" @click.stop>
-              <el-checkbox :model-value="isSelected(g.id)" @change="(v) => setSelected(g.id, v)" />
+        <div v-else class="goods-grid">
+          <div v-for="g in displayGoods" :key="g.id" class="goods-card" @click="goDetail(g.id)">
+            <div class="goods-card-media">
+              <img class="goods-card-img" :src="resolveImg(g.goodsPic)" alt="" @error="onImgError" />
+              <div class="goods-card-select" @click.stop>
+                <el-checkbox :model-value="isSelected(g.id)" @change="(v) => setSelected(g.id, v)" />
+              </div>
+              <div class="goods-card-tags">
+                <span class="tag" :class="g.status === 1 ? 't-on' : g.status === 3 ? 't-ban' : 't-off'">{{ g.status === 1 ? '上架中' : g.status === 3 ? '平台下架' : '未上架' }}</span>
+                <span class="tag" :class="g.auditStatus === 1 ? 't-pass' : g.auditStatus === 2 ? 't-fail' : 't-wait'">{{ g.auditStatus === 1 ? '已通过' : g.auditStatus === 2 ? '已拒绝' : '待审核' }}</span>
+                <span v-if="g.auditStatus === 2 && g.auditRemark" class="tag t-fail" :title="g.auditRemark">原因：{{ g.auditRemark }}</span>
+                <span v-if="plannedTime(g.id)" class="tag t-plan">定时 {{ plannedTime(g.id) }}</span>
+              </div>
             </div>
-            <div class="goods-card-tags">
-              <span class="tag" :class="g.status === 1 ? 't-on' : g.status === 3 ? 't-ban' : 't-off'">{{ g.status === 1 ? '上架中' : g.status === 3 ? '平台下架' : '未上架' }}</span>
-              <span class="tag" :class="g.auditStatus === 1 ? 't-pass' : g.auditStatus === 2 ? 't-fail' : 't-wait'">{{ g.auditStatus === 1 ? '已通过' : g.auditStatus === 2 ? '已拒绝' : '待审核' }}</span>
-              <span v-if="g.auditStatus === 2 && g.auditRemark" class="tag t-fail" :title="g.auditRemark">原因：{{ g.auditRemark }}</span>
-              <span v-if="plannedTime(g.id)" class="tag t-plan">定时 {{ plannedTime(g.id) }}</span>
+            <div class="goods-card-body">
+              <div class="goods-card-name">{{ g.name }}</div>
+              <div class="goods-card-desc">{{ g.description || '暂无商品描述' }}</div>
+              <div class="goods-card-price">¥{{ formatPrice(goodsPrice(g)) }}</div>
+              <div class="goods-card-meta">
+                <span class="meta-item">分类：{{ g.categoryName || categoryName(g.categoryId) }}</span>
+                <span class="meta-item">收藏：{{ Number(g.favoriteCount ?? 0) }}</span>
+                <span class="meta-item">已售：{{ Number(g.buyCount ?? 0) }}</span>
+              </div>
             </div>
-          </div>
-          <div class="goods-card-body">
-            <div class="goods-card-name">{{ g.name }}</div>
-            <div class="goods-card-desc">{{ g.description || '暂无商品描述' }}</div>
-            <div class="goods-card-meta">
-              <span class="meta-item">分类：{{ g.categoryName || categoryName(g.categoryId) }}</span>
-              <span class="meta-item">收藏：{{ Number(g.favoriteCount ?? 0) }}</span>
-              <span class="meta-item">已售：{{ Number(g.buyCount ?? 0) }}</span>
+            <div class="goods-card-actions" @click.stop>
+              <el-button v-if="g.status !== 3" size="small" type="primary" plain @click="toggleShelf(g)">
+                {{ g.status === 1 ? '下架' : '上架' }}
+              </el-button>
+              <el-button v-if="g.status === 3" size="small" type="warning" plain @click="submitReview(g)">提交复审</el-button>
+              <span v-if="g.status === 3 && g.auditRemark" class="tag t-ban" :title="g.auditRemark" style="cursor:default;font-size:11px">原因：{{ g.auditRemark }}</span>
+              <el-button size="small" plain @click="goDetail(g.id)">详情</el-button>
+              <el-button size="small" plain @click="goDetail(g.id, 'comment')">评价</el-button>
+              <el-button size="small" type="danger" plain @click="deleteGoods(g.id)">删除</el-button>
             </div>
-          </div>
-          <div class="goods-card-actions" @click.stop>
-            <el-button v-if="g.status !== 3" size="small" type="primary" plain @click="toggleShelf(g)">
-              {{ g.status === 1 ? '下架' : '上架' }}
-            </el-button>
-            <el-button v-if="g.status === 3" size="small" type="warning" plain @click="submitReview(g)">提交复审</el-button>
-            <span v-if="g.status === 3 && g.auditRemark" class="tag t-ban" :title="g.auditRemark" style="cursor:default;font-size:11px">原因：{{ g.auditRemark }}</span>
-            <el-button size="small" plain @click="goDetail(g.id)">详情</el-button>
-            <el-button size="small" plain @click="goDetail(g.id, 'comment')">评价</el-button>
-            <el-button size="small" type="danger" plain @click="deleteGoods(g.id)">删除</el-button>
           </div>
         </div>
       </div>
-    </el-card>
+    </section>
+
+    <!-- Footer -->
+    <footer class="goods-footer">
+      <div class="goods-container">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <img src="/brand-assets/allmart-logo-full.png" alt="AllMart" />
+            <span>商家 ID：{{ merchantId }}</span>
+          </div>
+          <nav class="footer-nav">
+            <a href="#" @click.prevent="goSupport">帮助中心</a>
+            <a href="#" @click.prevent="goSupport">平台规则</a>
+            <a href="#" @click.prevent="goSetting">隐私政策</a>
+            <a href="#" @click.prevent="goSupport">联系我们</a>
+          </nav>
+          <p class="footer-copy">© 2025 AllMart，保留所有权利。</p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { categoryApi, goodsApi } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -124,13 +148,14 @@ import { getMerchantId } from '@/utils/merchant'
 const route = useRoute()
 const router = useRouter()
 
-const defaultImage = 'https://via.placeholder.com/320x320?text=Goods'
+const defaultImage = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22320%22%20height%3D%22320%22%20viewBox%3D%220%200%20320%20320%22%3E%3Crect%20width%3D%22320%22%20height%3D%22320%22%20rx%3D%2228%22%20fill%3D%22%23f7f7f7%22/%3E%3Cpath%20d%3D%22M86%20118h132v88H86z%22%20fill%3D%22%23ececec%22/%3E%3Cpath%20d%3D%22M104%20190l37-38%2029%2029%2028-35%22%20stroke%3D%22%23cfcfcf%22%20stroke-width%3D%2210%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22/%3E%3Ccircle%20cx%3D%22122%22%20cy%3D%22142%22%20r%3D%2213%22%20fill%3D%22%23d5d5d5%22/%3E%3C/svg%3E'
 const goodsList = ref([])
 const queryKeyword = ref('')
 const merchantId = ref(getMerchantId())
 const categories = ref([])
 const scheduleMap = ref({})
 const selectedIds = ref([])
+const goodsStatusFilter = ref('all')
 
 const scheduleKey = (merchantId) => `goodsSchedule:${merchantId}`
 
@@ -170,6 +195,14 @@ const plannedTime = (id) => {
 
 const publishedCount = computed(() => goodsList.value.filter(item => item.status === 1).length)
 const pendingAuditCount = computed(() => goodsList.value.filter(item => item.auditStatus !== 1).length)
+const offShelfCount = computed(() => goodsList.value.filter(item => item.status !== 1).length)
+
+const statusTabs = computed(() => [
+  { key: 'all', label: '全部', count: goodsList.value.length },
+  { key: 'on', label: '已上架', count: publishedCount.value },
+  { key: 'audit', label: '待审核', count: pendingAuditCount.value },
+  { key: 'off', label: '已下架', count: offShelfCount.value }
+])
 
 const matchGoodsKeyword = (g) => {
   const k = String(queryKeyword.value || '').trim()
@@ -179,8 +212,24 @@ const matchGoodsKeyword = (g) => {
 }
 
 const displayGoods = computed(() => {
-  return (goodsList.value || []).filter(matchGoodsKeyword)
+  return (goodsList.value || [])
+    .filter(matchGoodsKeyword)
+    .filter(g => {
+      if (goodsStatusFilter.value === 'on') return Number(g.status) === 1
+      if (goodsStatusFilter.value === 'audit') return Number(g.auditStatus) !== 1
+      if (goodsStatusFilter.value === 'off') return Number(g.status) !== 1
+      return true
+    })
 })
+
+const formatPrice = (value) => {
+  const n = Number(value ?? 0)
+  return Number.isFinite(n) ? n.toFixed(2) : '0.00'
+}
+
+const goodsPrice = (goods) => {
+  return goods?.price ?? goods?.displayPrice ?? goods?.display_price ?? goods?.minPrice ?? goods?.min_price ?? 0
+}
 
 const topSelling = computed(() => {
   return (goodsList.value || [])
@@ -365,6 +414,14 @@ const goDetail = (id, tab) => {
   router.push({ path: `/goods/${id}`, query: tab ? { tab } : {} })
 }
 
+const goSupport = () => {
+  router.push('/platform-support')
+}
+
+const goSetting = () => {
+  router.push('/merchant-setting')
+}
+
 const deleteGoods = async (id) => {
   try {
     await ElMessageBox.confirm('删除后不可恢复，确认继续吗？', '删除商品', { type: 'warning' })
@@ -416,93 +473,91 @@ watch(
 </script>
 
 <style scoped>
+/* ============ 基础 ============ */
 .goods-page {
+  color: var(--text-main);
+  background: #fff;
+}
+
+.goods-page,
+.goods-page * {
+  box-sizing: border-box;
+}
+
+/* ============ 通用容器 ============ */
+.goods-container {
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============ Hero — 全宽淡红色页头 ============ */
+.goods-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 28%, rgba(230, 0, 18, 0.12), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+}
+
+.goods-hero::after {
+  content: "";
+  position: absolute;
+  top: 38px;
+  right: max(24px, calc((100vw - 1220px) / 2 + 24px));
+  width: min(34vw, 430px);
+  height: min(34vw, 430px);
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 0, 18, 0.1), rgba(230, 0, 18, 0.03) 42%, transparent 70%);
+  filter: blur(4px);
+}
+
+.goods-hero .goods-container {
+  position: relative;
+  z-index: 1;
+}
+
+.goods-hero-inner {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 42px 0 36px;
 }
 
-.hero-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding: 28px 32px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #182848 0%, #4b6cb7 100%);
-  color: #fff;
-  box-shadow: 0 18px 40px rgba(24, 40, 72, 0.16);
-}
-
-.upload {
-  margin-bottom: 10px;
-}
-
-.sku-block {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sku-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.sku-table {
-  width: 100%;
-}
-
-.kv-block {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.kv-actions {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.kv-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.kv-key {
-  flex: 0 0 40%;
-}
-
-.kv-val {
-  flex: 1;
-}
-
-.hero-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+.goods-kicker {
+  width: fit-content;
+  color: var(--brand-red);
   font-size: 12px;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
-.hero-card h2 {
-  margin: 14px 0 10px;
-  font-size: 30px;
+.goods-hero-title {
+  max-width: 640px;
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(40px, 4.1vw, 48px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
 }
 
-.hero-desc {
-  max-width: 680px;
-  color: rgba(255, 255, 255, 0.82);
-  line-height: 1.7;
+.goods-hero-desc {
+  max-width: 560px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.8;
 }
 
 .hero-search-tip {
-  margin-top: 10px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-secondary);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -510,121 +565,168 @@ watch(
 }
 
 .hero-clear {
-  color: #fff;
+  color: var(--brand-red);
   padding: 0;
   height: 22px;
 }
 
-.hero-action {
-  border-radius: 14px;
-  padding: 0 24px;
+.goods-hero-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.rank-panel :deep(.el-card__header) {
-  border-bottom: 1px solid #eef2f7;
+/* ============ Chips ============ */
+.goods-chip-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
 }
 
-.rank-grid {
+.goods-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 20px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.028);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+
+.goods-chip:hover,
+.goods-chip.active {
+  border-color: var(--brand-red);
+  background: rgba(255, 232, 234, 0.72);
+  color: var(--brand-red);
+  box-shadow: 0 8px 18px rgba(230, 0, 18, 0.06);
+}
+
+.chip-count {
+  margin-left: 4px;
+  color: inherit;
+  font-size: 12px;
+}
+
+/* ============ 发布商品按钮 ============ */
+.hero-publish-btn {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 28px;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* ============ 热销榜 TOP3 ============ */
+.goods-top-section {
+  padding: 24px 0 32px;
+  background: #fff;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.section-subtitle {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.top-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.rank-item {
+.top-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid #eef2f7;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
   background: #fff;
   cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.rank-no {
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
-  background: #ffe8ea;
-  color: #e60012;
+.top-card:hover {
+  border-color: #ffd6d9;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.top-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--brand-red-light);
+  color: var(--brand-red);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
+  font-size: 13px;
   flex: none;
 }
 
-.rank-img {
-  width: 44px;
-  height: 44px;
+.top-img {
+  width: 58px;
+  height: 58px;
   border-radius: 12px;
   object-fit: cover;
-  border: 1px solid #eef2f7;
-  background: #f8fafc;
+  background: #f7f7f7;
   flex: none;
+  border: 1px solid var(--border-light);
 }
 
-.rank-meta {
+.top-info {
   min-width: 0;
   flex: 1;
 }
 
-.rank-name {
-  font-weight: 900;
-  font-size: 13px;
-  color: #0f172a;
+.top-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-main);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rank-sub {
+.top-sold {
   margin-top: 6px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
-@media (max-width: 960px) {
-  .rank-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.stats-card {
-  padding: 22px 24px;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-}
-
-.stats-label {
-  display: block;
-  margin-bottom: 10px;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.stats-card strong {
-  font-size: 30px;
-  color: #0f172a;
-}
-
-.table-card {
-  border: none;
-  border-radius: 24px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+/* ============ 商品列表区域 ============ */
+.goods-list-section {
+  padding: 36px 0 48px;
+  background: var(--bg-section);
 }
 
 .header-actions {
@@ -640,49 +742,39 @@ watch(
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 10px;
-  border: 1px solid #eef2f7;
-  border-radius: 12px;
-  background: #ffffff;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: #fff;
 }
 
 .bulk-tip {
   font-size: 12px;
-  color: #111827;
+  color: var(--text-main);
   font-weight: 700;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.card-subtitle {
-  margin-top: 4px;
-  color: #6b7280;
-  font-size: 13px;
-}
-
+/* ============ 商品网格 ============ */
 .goods-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 
 .goods-card {
-  border: 1px solid #eef2f7;
-  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
   background: #fff;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .goods-card:hover {
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+  border-color: #f1d7da;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.055);
   transform: translateY(-2px);
 }
 
@@ -690,7 +782,7 @@ watch(
   position: relative;
   height: 0;
   padding-top: 100%;
-  background: #f8fafc;
+  background: #f7f7f7;
   overflow: hidden;
 }
 
@@ -702,7 +794,7 @@ watch(
   padding: 6px 8px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(229, 231, 235, 0.9);
+  border: 1px solid rgba(238, 238, 238, 0.95);
 }
 
 .goods-card-img {
@@ -711,9 +803,6 @@ watch(
   right: 0;
   bottom: 0;
   left: 0;
-}
-
-.goods-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -725,47 +814,31 @@ watch(
   left: 10px;
   top: 10px;
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 60px);
 }
 
 .tag {
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 999px;
-  font-size: 12px;
-  background: rgba(17, 24, 39, 0.75);
-  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f3f3f3;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
-.t-on {
-  background: rgba(16, 185, 129, 0.9);
-}
-
-.t-off {
-  background: rgba(107, 114, 128, 0.9);
-}
-
-.t-pass {
-  background: rgba(34, 197, 94, 0.9);
-}
-
-.t-wait {
-  background: rgba(245, 158, 11, 0.9);
-}
-
-.t-fail {
-  background: rgba(245, 108, 108, 0.9);
-}
-
-.t-plan {
-  background: rgba(230, 0, 18, 0.85);
-}
-
-.t-ban {
-  background: rgba(220, 38, 38, 0.9);
-}
+.t-on { background: #e9f8ef; color: #2f9d62; }
+.t-off { background: #f3f3f3; color: #777; }
+.t-pass { background: #ecf8f0; color: #35a96d; }
+.t-wait { background: #fff4df; color: #b57913; }
+.t-fail { background: #fff0f1; color: var(--brand-red); }
+.t-plan { background: #fff5f6; color: var(--brand-red); }
+.t-ban { background: #fff0f1; color: var(--brand-red); }
 
 .goods-card-body {
-  padding: 12px 14px;
+  padding: 14px 15px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -773,36 +846,41 @@ watch(
 }
 
 .goods-card-name {
-  font-weight: 700;
-  color: #111827;
-  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  font-size: 15px;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  height: 42px;
+  min-height: 40px;
 }
 
 .goods-card-desc {
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.4;
   font-size: 13px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  height: 40px;
+  min-height: 36px;
+}
+
+.goods-card-price {
+  color: var(--brand-red);
+  font-size: 17px;
+  font-weight: 900;
 }
 
 .goods-card-meta {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   align-items: center;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 12px;
-  height: 18px;
   min-height: 18px;
 }
 
@@ -815,38 +893,167 @@ watch(
 
 .goods-card-actions {
   margin-top: auto;
-  padding: 12px 14px 14px;
+  padding: 10px 14px 14px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
   align-items: stretch;
 }
 
 .goods-card-actions :deep(.el-button) {
   width: 100%;
-  border-radius: 10px;
-  height: 32px;
-  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  height: 30px;
+  padding: 0 8px;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .goods-card-actions :deep(.el-button + .el-button) {
   margin-left: 0;
 }
 
-@media (max-width: 900px) {
-  .hero-card,
-  .card-header {
+/* ============ 按钮样式覆写 ============ */
+.goods-page :deep(.el-button--primary.is-plain) {
+  color: var(--brand-red);
+  border-color: rgba(230, 0, 18, 0.45);
+  background: #fff;
+}
+
+.goods-page :deep(.el-button--primary.is-plain:hover) {
+  color: #fff;
+  border-color: var(--brand-red);
+  background: var(--brand-red);
+}
+
+.goods-page :deep(.el-button--success.is-plain),
+.goods-page :deep(.el-button--warning.is-plain) {
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+  background: #fff;
+}
+
+.goods-page :deep(.el-button--success.is-plain:hover),
+.goods-page :deep(.el-button--warning.is-plain:hover) {
+  color: var(--brand-red);
+  border-color: #ffd6d9;
+  background: #fff7f8;
+}
+
+.goods-page :deep(.el-button--danger.is-plain) {
+  color: var(--brand-red);
+  border-color: #ffd6d9;
+  background: #fff;
+}
+
+.goods-page :deep(.el-button--danger.is-plain:hover) {
+  color: var(--brand-red);
+  border-color: var(--brand-red);
+  background: #fff5f6;
+}
+
+/* ============ Footer ============ */
+.goods-footer {
+  background: var(--bg-section);
+  border-top: 1px solid var(--border-light);
+  padding: 48px 0 40px;
+}
+
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-brand img {
+  width: 120px;
+  height: auto;
+}
+
+.footer-brand span {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-left: 12px;
+  border-left: 1px solid var(--border-light);
+}
+
+.footer-nav {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footer-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.footer-nav a:hover {
+  color: var(--brand-red);
+}
+
+.footer-copy {
+  margin: 0;
+  color: #bbb;
+  font-size: 12px;
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1180px) {
+  .goods-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .top-grid,
+  .goods-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .goods-hero-inner {
+    min-height: auto;
+    padding: 32px 0 28px;
+  }
+
+  .goods-hero-actions {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .stats-grid {
+  .hero-publish-btn {
+    width: 100%;
+  }
+
+  .top-grid,
+  .goods-grid {
     grid-template-columns: 1fr;
   }
 
-  .goods-grid {
-    grid-template-columns: 1fr;
+  .goods-list-section {
+    padding: 24px 0 32px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-nav {
+    gap: 14px 22px;
   }
 }
 </style>

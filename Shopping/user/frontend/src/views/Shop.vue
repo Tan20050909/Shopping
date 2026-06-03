@@ -232,7 +232,7 @@ onMounted(async () => {
           <el-button type="primary" :loading="loading" @click="handleSearch">搜索</el-button>
         </div>
       </div>
-      <div v-loading="loading" class="grid">
+      <div v-loading="loading" class="allmart-product-grid">
         <ProductCard v-for="item in products" :key="item.goodsId" :item="item" />
       </div>
       <el-empty v-if="!loading && !products.length" description="这个店铺暂时没有可售商品" />

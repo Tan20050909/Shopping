@@ -16,7 +16,6 @@
         <!-- 中间：自定义导航（无 el-menu） -->
         <nav class="merchant-site-nav">
           <template v-for="item in navItems" :key="item.label">
-            <!-- 有子项的导航 — 悬浮下拉 -->
             <div
               v-if="item.children"
               class="merchant-nav-hover"
@@ -25,13 +24,16 @@
             >
               <button
                 class="merchant-nav-link"
-                :class="{ active: isNavActive(item) }"
+                :class="{ active: isNavActive(item), opened: activeDropdown === item.label }"
                 type="button"
               >
                 {{ item.label }}
                 <span class="nav-arrow">▾</span>
               </button>
-              <div v-if="activeDropdown === item.label" class="merchant-dropdown-menu">
+              <div
+                v-if="activeDropdown === item.label"
+                class="merchant-dropdown-menu"
+              >
                 <template v-for="child in item.children" :key="child.label">
                   <button
                     v-if="child.openChat"
@@ -52,7 +54,6 @@
                 </template>
               </div>
             </div>
-            <!-- 无子项的导航 — 直接跳转 -->
             <router-link
               v-else
               class="merchant-nav-link"
@@ -73,8 +74,14 @@
               clearable
               @keyup.enter="doSearch"
               @clear="clearSearch"
-            />
-            <el-button type="primary" @click="doSearch">搜</el-button>
+            >
+              <template #prefix>
+                <el-icon class="merchant-search-prefix-icon"><Search /></el-icon>
+              </template>
+            </el-input>
+            <button class="merchant-search-icon-btn" type="button" @click="doSearch" aria-label="搜索">
+              <el-icon><Search /></el-icon>
+            </button>
           </div>
 
           <el-dropdown trigger="click" @command="handleUserMenuCommand">
@@ -159,6 +166,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { merchantApi, orderApi, uploadApi } from '@/api'
 import { ElMessage } from 'element-plus'
@@ -178,6 +186,8 @@ const pendingOrders = ref(0)
 const unreadMessages = ref(0)
 const activeDropdown = ref(null)
 
+const openDropdown = (label) => { activeDropdown.value = label }
+const closeDropdown = () => { activeDropdown.value = null }
 // 导航数据结构
 const navItems = [
   { label: '首页', path: '/dashboard' },
@@ -205,16 +215,16 @@ const navItems = [
 
 const isNavActive = (item) => {
   if (item.children) {
-    return item.children.some(child => route.path.startsWith(child.path === '/chat' ? '/chat' : child.path))
+    return item.children.some(child => {
+      const p = child.path
+      if (p === '/chat' || p === '/platform-support') return route.path === p
+      return route.path === p || route.path.startsWith(p.replace(/\/?$/, '/'))
+    })
   }
   return route.path === item.path
 }
 
-const openDropdown = (label) => { activeDropdown.value = label }
-const closeDropdown = () => { activeDropdown.value = null }
-
 const handleNavClick = (child) => {
-  activeDropdown.value = null
   if (child.openChat) {
     if (child.path === '/chat') openChatWindow()
     else openPlatformSupportWindow()
@@ -440,21 +450,23 @@ html, body {
   border-bottom: 1px solid var(--border-light);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035);
   backdrop-filter: blur(12px);
-  min-height: 76px;
+  height: 72px;
+  min-height: 72px;
   display: flex;
   align-items: center;
 }
 
 .merchant-header-inner {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(620px, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  column-gap: 24px;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px;
-  min-height: 76px;
+  padding: 0 32px;
+  height: 72px;
+  min-height: 72px;
 }
 
 /* Logo + 商家中心 */
@@ -497,28 +509,54 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 1vw, 16px);
+  gap: 22px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.merchant-nav-hover {
+  position: relative;
+  height: 72px;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .merchant-nav-link {
-  position: relative;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 72px;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 28px 0 24px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
-  border: 0;
-  background: transparent;
+  position: relative;
   cursor: pointer;
+  text-decoration: none;
   font-family: inherit;
-  transition: color 0.2s;
+  transition: color 0.18s ease;
+}
+
+.merchant-nav-link:focus,
+.merchant-nav-link:focus-visible,
+.merchant-nav-link:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.merchant-nav-link:hover,
+.merchant-nav-link.opened,
+.merchant-nav-link.active {
+  color: #e60012;
 }
 
 .merchant-nav-link::after {
@@ -527,120 +565,175 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
+  height: 3px;
+  border-radius: 999px;
   background: transparent;
-  transition: background 0.2s;
-}
-
-.merchant-nav-link:hover,
-.merchant-nav-link.active {
-  color: var(--brand-red);
 }
 
 .merchant-nav-link.active::after {
-  background: var(--brand-red);
+  background: #e60012;
 }
 
 .nav-arrow {
   font-size: 10px;
-  color: var(--text-muted);
+  color: currentColor;
   line-height: 1;
 }
 
-/* 导航下拉菜单 */
-.merchant-nav-hover {
-  position: relative;
-}
-
+/* 下拉菜单 — 轻量白色浮层 */
 .merchant-dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: 72px;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 140px;
+  width: 132px;
+  min-width: 132px;
   padding: 8px;
   background: #fff;
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
-  z-index: 60;
+  border: 1px solid #eeeeee;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.10);
+  z-index: 3000;
+}
+
+.merchant-dropdown-menu::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  height: 10px;
 }
 
 .merchant-dropdown-item {
-  display: block;
   width: 100%;
-  padding: 8px 16px;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
+  height: 36px;
+  padding: 0 12px;
   border: 0;
-  background: transparent;
-  cursor: pointer;
+  border-radius: 10px;
+  background: transparent !important;
+  color: #333 !important;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 36px;
   text-align: left;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
   white-space: nowrap;
+  box-sizing: border-box;
   font-family: inherit;
-  transition: color 0.15s, background 0.15s;
+  transition: all 0.18s ease;
 }
 
 .merchant-dropdown-item:hover {
-  color: var(--brand-red);
-  background: var(--brand-red-light);
+  background: #fff5f5 !important;
+  color: #e60012 !important;
+}
+
+.merchant-dropdown-item.router-link-active,
+.merchant-dropdown-item.router-link-exact-active {
+  background: transparent !important;
+  color: #333 !important;
+  font-weight: 500;
+}
+
+.merchant-dropdown-item.router-link-active:hover,
+.merchant-dropdown-item.router-link-exact-active:hover {
+  background: #fff5f5 !important;
+  color: #e60012 !important;
 }
 
 /* 右侧操作区 */
 .merchant-site-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* 搜索框 — 用户端胶囊风格 */
 .merchant-site-search {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .merchant-site-search :deep(.el-input) {
-  width: clamp(140px, 12vw, 220px);
+  width: 190px;
 }
 
 .merchant-site-search :deep(.el-input__wrapper) {
-  min-height: 42px;
-  border-radius: var(--radius-pill);
-  background: var(--bg-soft);
-  box-shadow: 0 0 0 1px var(--border-light) inset;
+  min-height: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #fafafa;
+  box-shadow: 0 0 0 1px #eeeeee inset;
+  padding: 0 14px;
 }
 
 .merchant-site-search :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #ddd inset;
+  box-shadow: 0 0 0 1px #ddd inset !important;
 }
 
 .merchant-site-search :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--brand-red) inset;
+  box-shadow: 0 0 0 1px var(--brand-red) inset !important;
 }
 
 .merchant-site-search :deep(.el-input__inner) {
-  height: 42px;
-  font-size: 12px;
+  height: 40px;
+  line-height: 40px;
+  font-size: 13px;
+  color: #555;
 }
 
 .merchant-site-search :deep(.el-input__inner::placeholder) {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
-.merchant-site-search .el-button {
-  flex-shrink: 0;
-  min-height: 34px;
-  height: 34px;
-  border-radius: var(--radius-pill);
-  padding: 0 14px;
-  font-size: 12px;
-  font-weight: 700;
+.merchant-site-search :deep(.el-input__prefix) {
+  color: #999;
+  font-size: 14px;
+}
+
+.merchant-search-prefix-icon {
+  color: #999;
+}
+
+/* 圆形搜索按钮 — 用户端购物车按钮风格 */
+.merchant-search-icon-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f7f7f7;
+  color: #222;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.merchant-search-icon-btn .el-icon {
+  font-size: 16px;
+}
+
+.merchant-search-icon-btn:hover {
+  background: #fff5f5;
+  color: #e60012;
+}
+
+.merchant-search-icon-btn:focus,
+.merchant-search-icon-btn:focus-visible {
+  outline: none;
 }
 
 /* 店铺头像胶囊 — 用户端 user-chip 风格 */
@@ -829,7 +922,7 @@ html, body {
 .avatar-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 /* 响应式 */
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
   .merchant-header-inner {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -849,6 +942,7 @@ html, body {
 
   .merchant-nav-link {
     padding: 6px 0 10px;
+    line-height: normal;
   }
 
   .merchant-site-actions {

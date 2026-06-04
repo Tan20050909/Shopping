@@ -1,35 +1,45 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">客服消息</h2>
-        <p class="page-subtitle">管理用户与客服消息</p>
+  <div class="admin-order-page">
+    <section class="admin-page-hero">
+      <div class="admin-page-container">
+        <div class="admin-page-hero-inner">
+          <span class="admin-page-kicker">CUSTOMER SERVICE</span>
+          <h1 class="admin-page-title">客服消息</h1>
+          <p class="admin-page-desc">管理用户与客服之间的消息往来，及时回复用户咨询</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <el-input v-model="fromIdFilter" placeholder="发送者ID" clearable style="width:120px" @clear="loadData" />
-        <el-button type="primary" @click="loadData">搜索</el-button>
-      </div>
-    </div>
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
-        <template #empty><el-empty description="暂无客服消息" /></template>
-        <el-table-column prop="messageId" label="ID" width="70" />
-        <el-table-column prop="fromId" label="发送者" width="90" />
-        <el-table-column label="发送者类型" width="100">
-          <template #default="{ row }"><el-tag :type="row.fromType===1?'':row.fromType===2?'warning':'success'" size="small" effect="light" style="border-radius:999px">{{ ['','用户','商家','客服'][row.fromType] }}</el-tag></template>
-
-        </el-table-column>
-        <el-table-column prop="content" label="内容" min-width="250" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="时间" width="170" />
-        <el-table-column label="操作" width="80" fixed="right">
-          <template #default="{ row }">
-            <el-button v-if="row.fromType!==3" type="primary" link size="small" @click="handleReply(row)">回复</el-button>
-
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top:24px;display:flex;justify-content:flex-end">
-        <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+    </section>
+    <div class="admin-page-container">
+      <div class="admin-panel">
+        <div class="admin-filter-bar">
+          <el-input v-model="fromIdFilter" placeholder="发送者ID" clearable class="admin-search-input" style="width:160px" @clear="loadData" />
+          <el-button type="primary" @click="loadData">搜索</el-button>
+          <el-button plain @click="loadData">刷新</el-button>
+        </div>
+        <div class="admin-table-wrap">
+          <el-table :data="tableData" stripe v-loading="loading" class="admin-table" style="width:100%">
+            <template #empty><el-empty description="暂无客服消息" /></template>
+            <el-table-column prop="messageId" label="ID" width="70" />
+            <el-table-column prop="fromId" label="发送者" width="90" />
+            <el-table-column label="发送者类型" width="100">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="row.fromType===1?'tag-primary':row.fromType===2?'tag-warning':'tag-success'">{{ ['','用户','商家','客服'][row.fromType] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="content" label="内容" min-width="250" show-overflow-tooltip />
+            <el-table-column prop="createTime" label="时间" width="170" />
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="{ row }">
+                <div class="admin-table-actions">
+                  <button v-if="row.fromType!==3" class="admin-action-btn" @click="handleReply(row)">回复</button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="admin-pagination-bar">
+          <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+        </div>
       </div>
     </div>
     <el-dialog v-model="replyVisible" title="回复消息" width="480px">
@@ -83,3 +93,6 @@ const submitReply = async () => {
 
 onMounted(loadData)
 </script>
+<style scoped>
+.admin-order-page { color: var(--text-main); }
+</style>

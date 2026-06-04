@@ -1,53 +1,68 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">优惠券管理</h2>
-        <p class="page-subtitle">创建和管理平台优惠券</p>
+  <div class="admin-order-page">
+    <section class="admin-page-hero">
+      <div class="admin-page-container">
+        <div class="admin-page-hero-inner">
+          <span class="admin-page-kicker">COUPON MANAGEMENT</span>
+          <h1 class="admin-page-title">优惠券管理</h1>
+          <p class="admin-page-desc">创建和管理平台优惠券，支持满减、折扣、无门槛等多种类型</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <el-input v-model="keyword" placeholder="搜索优惠券名称" clearable style="width:200px" @clear="loadData" @keyup.enter="loadData">
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-select v-model="typeFilter" placeholder="类型" clearable style="width:110px" @change="loadData">
-          <el-option label="满减" :value="1" /><el-option label="折扣" :value="2" /><el-option label="无门槛" :value="3" />
-        </el-select>
-        <el-button type="primary" @click="loadData">搜索</el-button>
-        <el-button type="primary" @click="openForm()">新增优惠券</el-button>
-      </div>
-    </div>
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
-        <template #empty><el-empty description="暂无优惠券数据" /></template>
-        <el-table-column prop="couponId" label="ID" width="70" />
-        <el-table-column prop="couponName" label="名称" min-width="160" />
-        <el-table-column label="类型" width="80">
-          <template #default="{ row }"><el-tag size="small" effect="light" style="border-radius:999px">{{ ['','满减','折扣','无门槛'][row.couponType] }}</el-tag></template>
-        </el-table-column>
-        <el-table-column label="优惠" width="120">
-          <template #default="{ row }">
-            <span style="color:#E60012;font-weight:600">{{ row.couponType===2 ? row.discountValue+'折' : '¥'+row.discountValue }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="已领/总量" width="110">
-          <template #default="{ row }">{{ row.receivedCount || 0 }}/{{ row.totalCount }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }"><el-tag :type="row.status===1?'success':'info'" size="small" effect="light" style="border-radius:999px">{{ row.status===1?'启用':'禁用' }}</el-tag></template>
-        </el-table-column>
-        <el-table-column label="有效期" width="180">
-          <template #default="{ row }"><span style="font-size:12px">{{ row.startTime?.slice(0,10) }} ~ {{ row.endTime?.slice(0,10) }}</span></template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="openForm(row)">编辑</el-button>
-            <el-button :type="row.status===1?'warning':'success'" link size="small" @click="toggleStatus(row)">{{ row.status===1?'禁用':'启用' }}</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top:24px;display:flex;justify-content:flex-end">
-        <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+    </section>
+    <div class="admin-page-container">
+      <div class="admin-panel">
+        <div class="admin-filter-bar">
+          <el-input v-model="keyword" placeholder="搜索优惠券名称" clearable class="admin-search-input" @clear="loadData" @keyup.enter="loadData">
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-select v-model="typeFilter" placeholder="类型" clearable class="admin-status-select" @change="loadData">
+            <el-option label="满减" :value="1" /><el-option label="折扣" :value="2" /><el-option label="无门槛" :value="3" />
+          </el-select>
+          <el-button type="primary" @click="loadData">搜索</el-button>
+          <el-button plain @click="loadData">刷新</el-button>
+          <el-button type="primary" @click="openForm()">新增优惠券</el-button>
+        </div>
+        <div class="admin-table-wrap">
+          <el-table :data="tableData" stripe v-loading="loading" class="admin-table" style="width:100%">
+            <template #empty><el-empty description="暂无优惠券数据" /></template>
+            <el-table-column prop="couponId" label="ID" width="70" />
+            <el-table-column prop="couponName" label="名称" min-width="160" />
+            <el-table-column label="类型" width="80">
+              <template #default="{ row }">
+                <span class="admin-status-tag tag-info">{{ ['','满减','折扣','无门槛'][row.couponType] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="优惠" width="120">
+              <template #default="{ row }">
+                <span class="admin-table-price">{{ row.couponType===2 ? row.discountValue+'折' : '¥'+row.discountValue }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="已领/总量" width="110">
+              <template #default="{ row }">{{ row.receivedCount || 0 }}/{{ row.totalCount }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="80">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="row.status===1?'tag-success':'tag-info'">{{ row.status===1?'启用':'禁用' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="有效期" width="180">
+              <template #default="{ row }"><span style="font-size:12px">{{ row.startTime?.slice(0,10) }} ~ {{ row.endTime?.slice(0,10) }}</span></template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <div class="admin-table-actions">
+                  <button class="admin-action-btn" @click="openForm(row)">编辑</button>
+                  <button v-if="row.status===1" class="admin-action-btn admin-action-warning" @click="toggleStatus(row)">禁用</button>
+                  <button v-else class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="toggleStatus(row)">启用</button>
+                  <button class="admin-action-btn admin-action-danger" @click="handleDelete(row)">删除</button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="admin-pagination-bar">
+          <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+        </div>
       </div>
     </div>
     <el-dialog v-model="formVisible" :title="form.couponId?'编辑优惠券':'新增优惠券'" width="580px">
@@ -164,7 +179,9 @@ const handleDelete = async (row) => {
 
 onMounted(loadData)
 </script>
-
+<style scoped>
+.admin-order-page { color: var(--text-main); }
+</style>
 <style>
 .range-date-popper { z-index: 3000 !important; }
 </style>

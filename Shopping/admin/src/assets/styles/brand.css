@@ -342,3 +342,351 @@ a { text-decoration: none; color: inherit; }
     gap: 16px;
   }
 }
+
+/* ============ 平台端管理页通用类 ============ */
+
+/* Hero Banner — 白底到浅红渐变 */
+.admin-page-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 28%, rgba(230, 0, 18, 0.12), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+}
+
+.admin-page-hero::after {
+  content: "";
+  position: absolute;
+  top: 38px;
+  right: max(24px, calc((100vw - 1220px) / 2 + 24px));
+  width: min(34vw, 430px);
+  height: min(34vw, 430px);
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 0, 18, 0.10), rgba(230, 0, 18, 0.03) 42%, transparent 70%);
+  filter: blur(4px);
+}
+
+.admin-page-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.admin-page-hero-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 240px;
+  padding: 36px 0 30px;
+  box-sizing: border-box;
+}
+
+.admin-page-kicker {
+  width: fit-content;
+  color: var(--brand-red);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-page-title {
+  max-width: 640px;
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(34px, 3.8vw, 42px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.admin-page-desc {
+  max-width: 560px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+/* 白底面板 — 表格居中容器 */
+.admin-panel {
+  background: #fff;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  border-radius: 18px;
+  padding: 20px 24px 24px;
+  margin: 20px auto 40px;
+  width: min(1180px, calc(100vw - 64px));
+  box-shadow: 0 12px 32px rgba(17, 17, 17, 0.035);
+  min-height: 260px;
+}
+
+/* 宽面板 — 字段多的页面（售后、纠纷） */
+.admin-panel-wide {
+  width: min(1240px, calc(100vw - 48px));
+}
+
+/* 筛选栏 */
+.admin-filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.admin-search-input {
+  width: 240px;
+}
+
+.admin-search-input .el-input__wrapper {
+  border-radius: var(--radius-pill) !important;
+}
+
+.admin-status-select {
+  width: 140px;
+}
+
+.admin-status-select .el-input__wrapper {
+  border-radius: var(--radius-pill) !important;
+}
+
+/* 表格美化 — 统一规范 */
+.admin-table-wrap {
+  border-radius: var(--radius-md);
+  overflow: visible;
+  border: 1px solid var(--border-light);
+  width: 100%;
+}
+
+.admin-table-wrap .el-table__body-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.admin-table.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: #fafafa;
+  --el-table-row-hover-bg-color: #FFF5F5;
+  border: none;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.admin-table.el-table .el-table__inner-wrapper {
+  width: 100%;
+}
+
+.admin-table.el-table .el-table__body-wrapper {
+  width: 100%;
+}
+
+.admin-table.el-table table {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.admin-table.el-table th.el-table__cell {
+  background: #fafafa !important;
+  color: #555555 !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  height: 48px;
+  padding: 8px 12px !important;
+}
+
+.admin-table.el-table td.el-table__cell {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  height: 52px;
+  padding: 4px 12px !important;
+  white-space: nowrap;
+}
+
+.admin-table.el-table td.el-table__cell .cell {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* 高行 — 操作多的页面 */
+.admin-table-row-tall.el-table td.el-table__cell {
+  height: 56px;
+}
+
+.admin-table-price {
+  color: var(--brand-red);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.admin-table-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Tab 导航（预留后续复用） */
+.admin-tabs {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border-bottom: 1px solid #eef2f7;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+
+.admin-tab {
+  position: relative;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 2px;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+
+.admin-tab:hover,
+.admin-tab.active {
+  color: var(--brand-red);
+}
+
+.admin-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -11px;
+  height: 2px;
+  background: var(--brand-red);
+  border-radius: 1px;
+}
+
+.admin-badge {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 999px;
+  background: var(--brand-red);
+  color: #fff;
+}
+
+/* 状态标签 — 胶囊红黑轻量风格 */
+.admin-status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 24px;
+  white-space: nowrap;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-status-tag.status-0 { background: #fff7ed; color: #c2410c; }  /* 待支付 */
+.admin-status-tag.status-1 { background: #eff6ff; color: #1d4ed8; }  /* 待发货 */
+.admin-status-tag.status-2 { background: #eef2ff; color: #4338ca; }  /* 待收货 */
+.admin-status-tag.status-3 { background: #ecfdf5; color: #047857; }  /* 已完成 */
+.admin-status-tag.status-4 { background: #f5f5f5; color: #737373; }  /* 已取消 */
+.admin-status-tag.tag-success { background: #ecfdf5; color: #047857; }
+.admin-status-tag.tag-danger { background: #fee2e2; color: #b91c1c; }
+.admin-status-tag.tag-warning { background: #fff7ed; color: #c2410c; }
+.admin-status-tag.tag-info { background: #f5f5f5; color: #737373; }
+.admin-status-tag.tag-primary { background: #eff6ff; color: #1d4ed8; }
+.admin-status-tag.tag-purple { background: #f3e8ff; color: #7c3aed; }
+
+/* 操作按钮 — 轻量描边胶囊，统一28px高 */
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.admin-action-btn:hover {
+  color: var(--brand-red);
+  border-color: var(--brand-red);
+  background: #fff7f8;
+}
+
+.admin-action-btn.admin-action-danger {
+  color: var(--brand-red);
+  border-color: #ffd6d9;
+}
+
+.admin-action-btn.admin-action-danger:hover {
+  background: var(--brand-red-light);
+  border-color: var(--brand-red);
+  color: var(--brand-red-dark);
+}
+
+.admin-action-btn.admin-action-warning {
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.admin-action-btn.admin-action-warning:hover {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+/* 分页栏 */
+.admin-pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* 空状态 */
+.admin-empty {
+  padding: 40px 0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .admin-page-hero-inner {
+    min-height: auto;
+    padding: 28px 0 24px;
+  }
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-search-input,
+  .admin-status-select {
+    width: 100%;
+  }
+  .admin-table-actions {
+    flex-wrap: wrap;
+  }
+}

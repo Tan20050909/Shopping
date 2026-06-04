@@ -1,60 +1,69 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">纠纷仲裁</h2>
-        <p class="page-subtitle">处理用户与商家之间的纠纷，进行判责和裁决</p>
+  <div class="admin-order-page">
+    <section class="admin-page-hero">
+      <div class="admin-page-container">
+        <div class="admin-page-hero-inner">
+          <span class="admin-page-kicker">DISPUTE ARBITRATION</span>
+          <h1 class="admin-page-title">纠纷仲裁</h1>
+          <p class="admin-page-desc">处理用户与商家之间的纠纷，进行判责和裁决</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <el-select v-model="filterDisputeStatus" placeholder="纠纷状态" clearable style="width:130px" @change="loadData">
-          <el-option label="待平台处理" :value="0" /><el-option label="举证中" :value="1" />
-          <el-option label="平台处理中" :value="2" /><el-option label="已裁决" :value="3" />
-          <el-option label="已关闭" :value="4" />
-        </el-select>
-        <el-select v-model="filterApplyType" placeholder="发起方" clearable style="width:120px" @change="loadData">
-          <el-option label="用户" :value="1" /><el-option label="商家" :value="2" /><el-option label="平台" :value="3" />
-        </el-select>
-        <el-button type="primary" @click="loadData">搜索</el-button>
-      </div>
-    </div>
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
-        <el-table-column prop="disputeId" label="ID" width="70" />
-        <el-table-column prop="disputeNo" label="纠纷单号" width="150" show-overflow-tooltip />
-        <el-table-column prop="orderId" label="订单ID" width="100" />
-        <el-table-column label="发起方" width="80">
-          <template #default="{ row }">
-            <el-tag :type="applyTypeTag[row.applyType]" size="small" effect="light" style="border-radius:999px">{{ applyTypeMap[row.applyType] || '-' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="disputeReason" label="纠纷原因" min-width="150" show-overflow-tooltip />
-        <el-table-column label="纠纷状态" width="110">
-          <template #default="{ row }">
-            <el-tag :type="disputeStatusTag[row.disputeStatus]" size="small" effect="light" style="border-radius:999px">{{ disputeStatusMap[row.disputeStatus] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="判责结果" width="110">
-          <template #default="{ row }">
-            <span v-if="row.judgeResult">{{ judgeResultMap[row.judgeResult] }}</span>
-            <span v-else style="color:#999">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="裁决金额" width="110">
-          <template #default="{ row }">
-            <span v-if="row.finalAmount" style="color:#E60012;font-weight:600">¥{{ row.finalAmount }}</span>
-            <span v-else style="color:#999">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button type="info" link size="small" @click="handleDetail(row)">详情</el-button>
-            <el-button v-if="row.disputeStatus !== 3 && row.disputeStatus !== 4" type="success" link size="small" @click="handleJudge(row)">处理</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top:24px;display:flex;justify-content:flex-end">
-        <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+    </section>
+    <div class="admin-page-container">
+      <div class="admin-panel admin-panel-wide">
+        <div class="admin-filter-bar">
+          <el-select v-model="filterDisputeStatus" placeholder="纠纷状态" clearable class="admin-status-select" @change="loadData">
+            <el-option label="待平台处理" :value="0" /><el-option label="举证中" :value="1" />
+            <el-option label="平台处理中" :value="2" /><el-option label="已裁决" :value="3" />
+            <el-option label="已关闭" :value="4" />
+          </el-select>
+          <el-select v-model="filterApplyType" placeholder="发起方" clearable class="admin-status-select" @change="loadData">
+            <el-option label="用户" :value="1" /><el-option label="商家" :value="2" /><el-option label="平台" :value="3" />
+          </el-select>
+          <el-button type="primary" @click="loadData">搜索</el-button>
+          <el-button plain @click="loadData">刷新</el-button>
+        </div>
+        <div class="admin-table-wrap">
+          <el-table :data="tableData" stripe v-loading="loading" class="admin-table admin-table-row-tall" style="width:100%">
+            <template #empty><el-empty description="暂无纠纷数据" /></template>
+            <el-table-column prop="disputeNo" label="纠纷单号" width="160" show-overflow-tooltip />
+            <el-table-column prop="orderId" label="订单ID" width="100" show-overflow-tooltip />
+            <el-table-column label="发起方" width="80">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="applyTypeClass(row.applyType)">{{ applyTypeMap[row.applyType] || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="纠纷状态" width="100">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="disputeStatusClass(row.disputeStatus)">{{ disputeStatusMap[row.disputeStatus] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="判责结果" width="90">
+              <template #default="{ row }">
+                <span v-if="row.judgeResult" class="admin-td-nowrap">{{ judgeResultMap[row.judgeResult] }}</span>
+                <span v-else style="color:var(--text-muted)">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="裁决金额" width="100">
+              <template #default="{ row }">
+                <span v-if="row.finalAmount" class="admin-table-price">¥{{ row.finalAmount }}</span>
+                <span v-else style="color:var(--text-muted)">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="创建时间" width="150" />
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="{ row }">
+                <div class="admin-table-actions">
+                  <button class="admin-action-btn" @click="handleDetail(row)">详情</button>
+                  <button v-if="row.disputeStatus !== 3 && row.disputeStatus !== 4" class="admin-action-btn" style="color:#1d4ed8;border-color:#bfdbfe" @click="handleJudge(row)">处理</button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="admin-pagination-bar">
+          <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+        </div>
       </div>
     </div>
 
@@ -93,10 +102,14 @@
           <el-descriptions-item label="售后单ID">{{ detailRow.afterSaleId || '-' }}</el-descriptions-item>
           <el-descriptions-item label="用户ID">{{ detailRow.userId }}</el-descriptions-item>
           <el-descriptions-item label="商户ID">{{ detailRow.merchantId }}</el-descriptions-item>
-          <el-descriptions-item label="发起方">{{ applyTypeMap[detailRow.applyType] || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="纠纷状态">{{ disputeStatusMap[detailRow.disputeStatus] }}</el-descriptions-item>
+          <el-descriptions-item label="发起方">
+            <span class="admin-status-tag" :class="applyTypeClass(detailRow.applyType)">{{ applyTypeMap[detailRow.applyType] || '-' }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="纠纷状态">
+            <span class="admin-status-tag" :class="disputeStatusClass(detailRow.disputeStatus)">{{ disputeStatusMap[detailRow.disputeStatus] }}</span>
+          </el-descriptions-item>
           <el-descriptions-item label="判责结果">{{ judgeResultMap[detailRow.judgeResult] || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="裁决金额"><span v-if="detailRow.finalAmount" style="color:#E60012;font-weight:600">¥{{ detailRow.finalAmount }}</span><span v-else>-</span></el-descriptions-item>
+          <el-descriptions-item label="裁决金额"><span v-if="detailRow.finalAmount" class="admin-table-price">¥{{ detailRow.finalAmount }}</span><span v-else>-</span></el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ detailRow.createTime }}</el-descriptions-item>
           <el-descriptions-item label="裁决时间">{{ detailRow.judgeTime || '-' }}</el-descriptions-item>
         </el-descriptions>
@@ -134,10 +147,18 @@ const detailVisible = ref(false)
 const detailRow = ref(null)
 
 const applyTypeMap = { 1: '用户', 2: '商家', 3: '平台' }
-const applyTypeTag = { 1: '', 2: 'warning', 3: 'info' }
 const disputeStatusMap = { 0: '待平台处理', 1: '举证中', 2: '平台处理中', 3: '已裁决', 4: '已关闭' }
-const disputeStatusTag = { 0: 'warning', 1: '', 2: '', 3: 'success', 4: 'info' }
 const judgeResultMap = { 1: '支持用户', 2: '支持商家', 3: '部分支持', 4: '协商关闭' }
+
+const applyTypeClass = (t) => {
+  const m = { 1: 'tag-primary', 2: 'tag-warning', 3: 'tag-info' }
+  return m[t] || 'tag-info'
+}
+
+const disputeStatusClass = (s) => {
+  const m = { 0: 'tag-warning', 1: 'tag-primary', 2: 'tag-primary', 3: 'tag-success', 4: 'tag-info' }
+  return m[s] || 'tag-info'
+}
 
 const loadData = async () => {
   loading.value = true
@@ -189,3 +210,6 @@ const submitJudge = async () => {
 
 onMounted(loadData)
 </script>
+<style scoped>
+.admin-order-page { color: var(--text-main); }
+</style>

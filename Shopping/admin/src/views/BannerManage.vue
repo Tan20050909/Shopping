@@ -1,133 +1,123 @@
 <template>
-  <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">轮播图管理</h2>
-        <p class="page-subtitle">管理各页面轮播图，支持定时上下架、排序和跳转配置</p>
+  <div class="admin-order-page">
+    <section class="admin-page-hero">
+      <div class="admin-page-container">
+        <div class="admin-page-hero-inner">
+          <span class="admin-page-kicker">BANNER MANAGEMENT</span>
+          <h1 class="admin-page-title">轮播图管理</h1>
+          <p class="admin-page-desc">管理各页面轮播图，支持定时上下架、排序和跳转配置</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px">
-        <el-button @click="openPreview">
-          <el-icon style="margin-right:4px"><View /></el-icon>预览效果
-        </el-button>
-        <el-button type="primary" @click="openForm()">
-          <el-icon style="margin-right:4px"><Plus /></el-icon>新增轮播图
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 筛选区 -->
-    <div class="content-card" style="margin-bottom:16px;padding:16px 20px">
-      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;color:var(--text-secondary);white-space:nowrap">展示位置</span>
-          <el-select v-model="filterPosition" @change="loadData" style="width:130px" size="default">
+    </section>
+    <div class="admin-page-container">
+      <div class="admin-panel">
+        <!-- 头部操作区 -->
+        <div class="admin-filter-bar" style="margin-bottom:16px">
+          <el-button @click="openPreview">
+            <el-icon style="margin-right:4px"><View /></el-icon>预览效果
+          </el-button>
+          <el-button type="primary" @click="openForm()">
+            <el-icon style="margin-right:4px"><Plus /></el-icon>新增轮播图
+          </el-button>
+          <div style="flex:1" />
+          <el-select v-model="filterPosition" @change="loadData" class="admin-status-select" placeholder="展示位置">
             <el-option label="全部位置" :value="null" />
             <el-option label="首页顶部" :value="1" />
             <el-option label="首页中部" :value="2" />
             <el-option label="活动页" :value="3" />
             <el-option label="分类页" :value="4" />
           </el-select>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;color:var(--text-secondary);white-space:nowrap">状态</span>
-          <el-select v-model="filterStatus" @change="loadData" style="width:110px" size="default">
+          <el-select v-model="filterStatus" @change="loadData" class="admin-status-select" placeholder="状态">
             <el-option label="全部" :value="null" />
             <el-option label="启用" :value="1" />
             <el-option label="禁用" :value="0" />
             <el-option label="待上架" :value="2" />
           </el-select>
         </div>
-        <div style="flex:1" />
-        <span style="font-size:13px;color:var(--text-muted)">共 {{ total }} 条</span>
-      </div>
-    </div>
 
-    <!-- 批量操作栏 -->
-    <div v-if="selectedIds.length" class="content-card" style="margin-bottom:16px;padding:12px 20px;background:var(--brand-red-light,#FFF1F0);border-color:#ffccc7">
-      <div style="display:flex;align-items:center;gap:16px">
-        <span style="font-size:13px;color:var(--brand-red,#E60012)">已选择 {{ selectedIds.length }} 项</span>
-        <el-button size="small" type="success" @click="handleBatchStatus(1)">批量启用</el-button>
-        <el-button size="small" @click="handleBatchStatus(0)">批量禁用</el-button>
-        <el-button size="small" type="danger" @click="handleBatchDelete">批量删除</el-button>
-        <el-button size="small" link @click="selectedIds = []">取消选择</el-button>
-      </div>
-    </div>
+        <!-- 批量操作栏 -->
+        <div v-if="selectedIds.length" style="display:flex;align-items:center;gap:12px;padding:10px 16px;margin-bottom:14px;background:var(--brand-red-light);border-radius:var(--radius-md);border:1px solid #ffccc7">
+          <span style="font-size:13px;color:var(--brand-red);font-weight:600">已选择 {{ selectedIds.length }} 项</span>
+          <button class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="handleBatchStatus(1)">批量启用</button>
+          <button class="admin-action-btn admin-action-warning" @click="handleBatchStatus(0)">批量禁用</button>
+          <button class="admin-action-btn admin-action-danger" @click="handleBatchDelete">批量删除</button>
+          <button class="admin-action-btn" @click="selectedIds = []">取消选择</button>
+        </div>
 
-    <!-- 列表 -->
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="45" />
-        <el-table-column prop="bannerId" label="ID" width="55" />
-        <el-table-column label="轮播图片" width="170">
-          <template #default="{ row }">
-            <el-image
-              v-if="row.imageUrl"
-              :src="row.imageUrl"
-              style="width:150px;height:60px;border-radius:6px"
-              fit="cover"
-              :preview-src-list="[row.imageUrl]"
-            />
-            <span v-else style="color:var(--text-muted)">暂无</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="标题" min-width="140">
-          <template #default="{ row }">
-            <span style="font-weight:500">{{ row.bannerTitle || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="展示位置" width="95">
-          <template #default="{ row }">
-            <el-tag size="small" :type="positionTagType(row.displayPosition)" effect="light" style="border-radius:999px">
-              {{ positionMap[row.displayPosition] || '未知' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="跳转" width="115">
-          <template #default="{ row }">
-            <template v-if="row.jumpType && row.jumpType !== 5">
-              <el-tag size="small" type="info" effect="plain" style="border-radius:4px;margin-right:3px">{{ jumpTypeMap[row.jumpType] }}</el-tag>
-              <span style="font-size:12px;color:var(--text-secondary);max-width:50px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle">{{ row.jumpValue }}</span>
-            </template>
-            <span v-else style="color:var(--text-muted);font-size:12px">无跳转</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sortNo" label="排序" width="60" align="center" />
-        <el-table-column label="状态" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small" effect="light" style="border-radius:999px">
-              {{ statusMap[row.status] || '未知' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="有效期" width="155">
-          <template #default="{ row }">
-            <div v-if="row.startTime || row.endTime" style="font-size:12px;color:var(--text-secondary);line-height:1.5">
-              <div v-if="row.startTime">{{ formatTime(row.startTime) }}</div>
-              <div v-if="row.endTime">至 {{ formatTime(row.endTime) }}</div>
-            </div>
-            <span v-else style="color:var(--text-muted);font-size:12px">永久有效</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="openForm(row)">编辑</el-button>
-            <el-button v-if="row.status===1" type="warning" link size="small" @click="handleStatus(row, 0)">禁用</el-button>
-            <el-button v-else type="success" link size="small" @click="handleStatus(row, 1)">启用</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top:20px;display:flex;justify-content:flex-end">
-        <el-pagination
-          v-model:current-page="current"
-          v-model:page-size="size"
-          :page-sizes="[10,20,50]"
-          :total="total"
-          layout="total, sizes, prev, pager, next"
-          @current-change="loadData"
-          @size-change="loadData"
-        />
+        <div class="admin-table-wrap">
+          <el-table :data="tableData" stripe v-loading="loading" class="admin-table" style="width:100%" @selection-change="handleSelectionChange">
+            <el-table-column type="selection" width="45" />
+            <el-table-column prop="bannerId" label="ID" width="55" />
+            <el-table-column label="轮播图片" width="170">
+              <template #default="{ row }">
+                <el-image
+                  v-if="row.imageUrl"
+                  :src="row.imageUrl"
+                  style="width:150px;height:60px;border-radius:6px"
+                  fit="cover"
+                  :preview-src-list="[row.imageUrl]"
+                />
+                <span v-else style="color:var(--text-muted)">暂无</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="标题" min-width="140">
+              <template #default="{ row }">
+                <span style="font-weight:600">{{ row.bannerTitle || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="展示位置" width="95">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="positionClass(row.displayPosition)">{{ positionMap[row.displayPosition] || '未知' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="跳转" width="115">
+              <template #default="{ row }">
+                <template v-if="row.jumpType && row.jumpType !== 5">
+                  <span class="admin-status-tag tag-info" style="padding:1px 6px;font-size:11px">{{ jumpTypeMap[row.jumpType] }}</span>
+                  <span style="font-size:12px;color:var(--text-secondary);max-width:50px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle">{{ row.jumpValue }}</span>
+                </template>
+                <span v-else style="color:var(--text-muted);font-size:12px">无跳转</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sortNo" label="排序" width="60" align="center" />
+            <el-table-column label="状态" width="80" align="center">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="statusClass(row.status)">{{ statusMap[row.status] || '未知' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="有效期" width="155">
+              <template #default="{ row }">
+                <div v-if="row.startTime || row.endTime" style="font-size:12px;color:var(--text-secondary);line-height:1.5">
+                  <div v-if="row.startTime">{{ formatTime(row.startTime) }}</div>
+                  <div v-if="row.endTime">至 {{ formatTime(row.endTime) }}</div>
+                </div>
+                <span v-else style="color:var(--text-muted);font-size:12px">永久有效</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <div class="admin-table-actions">
+                  <button class="admin-action-btn" @click="openForm(row)">编辑</button>
+                  <button v-if="row.status===1" class="admin-action-btn admin-action-warning" @click="handleStatus(row, 0)">禁用</button>
+                  <button v-else class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="handleStatus(row, 1)">启用</button>
+                  <button class="admin-action-btn admin-action-danger" @click="handleDelete(row)">删除</button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+          <span style="font-size:13px;color:var(--text-muted)">共 {{ total }} 条</span>
+          <el-pagination
+            v-model:current-page="current"
+            v-model:page-size="size"
+            :page-sizes="[10,20,50]"
+            :total="total"
+            layout="total, sizes, prev, pager, next"
+            @current-change="loadData"
+            @size-change="loadData"
+          />
+        </div>
       </div>
     </div>
 
@@ -245,8 +235,8 @@ const positionMap = { 1: '首页顶部', 2: '首页中部', 3: '活动页', 4: '
 const jumpTypeMap = { 1: '商品', 2: '分类', 3: 'URL', 4: '活动', 5: '无' }
 const statusMap = { 0: '禁用', 1: '启用', 2: '待上架' }
 
-const positionTagType = (p) => ({ 1: 'danger', 2: 'warning', 3: 'success', 4: 'info' }[p] || 'info')
-const statusTagType = (s) => ({ 0: 'info', 1: 'success', 2: 'warning' }[s] || 'info')
+const positionClass = (p) => ({ 1: 'tag-danger', 2: 'tag-warning', 3: 'tag-success', 4: 'tag-info' }[p] || 'tag-info')
+const statusClass = (s) => ({ 0: 'tag-info', 1: 'tag-success', 2: 'tag-warning' }[s] || 'tag-info')
 
 const tableData = ref([])
 const loading = ref(false)
@@ -424,6 +414,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+.admin-order-page { color: var(--text-main); }
 .carousel-preview {
   border-radius: 12px;
   overflow: hidden;
@@ -462,10 +453,6 @@ onMounted(loadData)
   letter-spacing: 1px;
 }
 </style>
-
-<!-- 全局样式：修复日期选择器弹出层被裁剪 -->
 <style>
-.range-date-popper {
-  z-index: 3000 !important;
-}
+.range-date-popper { z-index: 3000 !important; }
 </style>

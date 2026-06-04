@@ -6,60 +6,50 @@
         <p class="page-subtitle">管理商品评价与回复</p>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <el-input v-model="keyword" placeholder="搜索评论内容" clearable style="width:200px" @clear="loadData" @keyup.enter="loadData">
+        <el-input v-model="keyword" placeholder="搜索评论内容" clearable class="admin-search-input" style="width:200px" @clear="loadData" @keyup.enter="loadData">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <el-select v-model="statusFilter" placeholder="显示状态" clearable style="width:100px" @change="loadData">
+        <el-select v-model="statusFilter" placeholder="显示状态" clearable class="admin-status-select" style="width:100px" @change="loadData">
           <el-option label="显示" :value="0" />
           <el-option label="隐藏" :value="1" />
         </el-select>
         <el-button type="primary" @click="loadData">搜索</el-button>
+        <el-button plain @click="loadData">刷新</el-button>
       </div>
     </div>
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
+    <div class="admin-table-wrap">
+      <el-table :data="tableData" stripe v-loading="loading" class="admin-table" style="width:100%">
         <template #empty><el-empty description="暂无评论数据" /></template>
-        <el-table-column prop="reviewId" label="ID" width="70" />
-        <el-table-column label="商品评分" width="100">
+        <el-table-column prop="reviewId" label="ID" width="60" />
+        <el-table-column label="评分" width="100">
           <template #default="{ row }">
             <el-rate v-model="row.rating" disabled size="small" />
           </template>
         </el-table-column>
-        <el-table-column label="服务评分" width="90">
-          <template #default="{ row }">{{ row.serviceScore || '-' }}分</template>
-        </el-table-column>
-        <el-table-column label="物流评分" width="90">
-          <template #default="{ row }">{{ row.logisticsScore || '-' }}分</template>
-        </el-table-column>
-        <el-table-column prop="content" label="评论内容" min-width="200" show-overflow-tooltip />
-        <el-table-column label="图片" width="80">
+        <el-table-column prop="content" label="评论内容" min-width="220" show-overflow-tooltip />
+        <el-table-column label="状态" width="70">
           <template #default="{ row }">
-            <span v-if="row.images">有</span>
-            <span v-else>-</span>
+            <span class="admin-status-tag" :class="row.isHidden===1?'tag-info':'tag-success'">{{ row.isHidden===1?'隐藏':'显示' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }"><el-tag :type="row.isHidden===1?'info':'success'" size="small" effect="light" style="border-radius:999px">{{ row.isHidden===1?'隐藏':'显示' }}</el-tag></template>
+        <el-table-column label="置顶" width="55">
+          <template #default="{ row }"><span v-if="row.isTop===1" class="admin-status-tag tag-warning">置顶</span><span v-else style="color:var(--text-muted)">-</span></template>
         </el-table-column>
-        <el-table-column label="置顶" width="60">
-          <template #default="{ row }"><el-tag v-if="row.isTop===1" type="warning" size="small" effect="light">置顶</el-tag><span v-else>-</span></template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="评论时间" width="170" />
-        <el-table-column label="商家回复" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.merchantReply || '-' }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="createTime" label="评论时间" width="160" />
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="openReply(row)">回复</el-button>
-            <el-button v-if="row.isHidden===0" type="warning" link size="small" @click="toggleHide(row,1)">隐藏</el-button>
-            <el-button v-if="row.isHidden===1" type="success" link size="small" @click="toggleHide(row,0)">显示</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <div class="admin-table-actions">
+              <button class="admin-action-btn" @click="openReply(row)">回复</button>
+              <button v-if="row.isHidden===0" class="admin-action-btn admin-action-warning" @click="toggleHide(row,1)">隐藏</button>
+              <button v-if="row.isHidden===1" class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="toggleHide(row,0)">显示</button>
+              <button class="admin-action-btn admin-action-danger" @click="handleDelete(row)">删除</button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-      <div style="margin-top:24px;display:flex;justify-content:flex-end">
-        <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
-      </div>
+    </div>
+    <div class="admin-pagination-bar">
+      <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
     </div>
 
     <el-dialog v-model="detailVisible" title="评论详情" width="600px">
@@ -168,3 +158,10 @@ const handleDelete = async (row) => {
 
 onMounted(loadData)
 </script>
+<style scoped>
+.page-container { max-width: 1200px; margin: 0 auto; padding: 48px 24px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.section-title { font-size: 28px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 12px; }
+.section-title::before { content: ''; display: inline-block; width: 4px; height: 28px; background: var(--brand-red); border-radius: 2px; }
+.page-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+</style>

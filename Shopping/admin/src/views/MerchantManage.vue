@@ -1,57 +1,69 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="section-title">商户管理</h2>
-        <p class="page-subtitle">管理平台入驻商户</p>
+  <div class="admin-order-page">
+    <section class="admin-page-hero">
+      <div class="admin-page-container">
+        <div class="admin-page-hero-inner">
+          <span class="admin-page-kicker">MERCHANT MANAGEMENT</span>
+          <h1 class="admin-page-title">商户管理</h1>
+          <p class="admin-page-desc">审核与冻结平台入驻商户，确保合规运营</p>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <el-input v-model="keyword" placeholder="搜索商户名称" clearable style="width:200px" @clear="loadData" @keyup.enter="loadData">
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-select v-model="auditFilter" placeholder="审核状态" clearable style="width:120px" @change="loadData">
-          <el-option label="待审核" :value="0" /><el-option label="已通过" :value="1" /><el-option label="已拒绝" :value="2" />
-        </el-select>
-        <el-button type="primary" @click="loadData">搜索</el-button>
-      </div>
-    </div>
-    <div class="content-card">
-      <el-table :data="tableData" stripe v-loading="loading" style="width:100%">
-        <template #empty><el-empty description="暂无商户数据" /></template>
-        <el-table-column prop="merchantId" label="ID" width="70" />
-        <el-table-column label="商户" min-width="200">
-          <template #default="{ row }">
-            <div style="display:flex;align-items:center;gap:12px">
-              <el-avatar :size="40" :src="row.shopLogo" style="border-radius:8px;flex-shrink:0">{{ (row.merchantName||'')[0] }}</el-avatar>
-              <div>
-                <div style="font-weight:500">{{ row.merchantName }}</div>
-                <div style="font-size:12px;color:var(--text-muted)">{{ row.phone || '-' }}</div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="审核" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.auditStatus===1?'success':row.auditStatus===0?'warning':'danger'" size="small" effect="light" style="border-radius:999px">{{ ['待审核','已通过','已拒绝'][row.auditStatus] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }"><el-tag :type="row.status===1?'success':row.status===3?'danger':'info'" size="small" effect="light" style="border-radius:999px">{{ row.status===1?'营业':row.status===3?'平台冻结':'停业' }}</el-tag></template>
-        </el-table-column>
-        <el-table-column prop="registerTime" label="入驻时间" width="170" />
-        <el-table-column label="操作" width="260" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="showDetail(row)">详情</el-button>
-            <el-button v-if="row.auditStatus===0" type="success" link size="small" @click="handleAudit(row,1)">通过</el-button>
-            <el-button v-if="row.auditStatus===0" type="danger" link size="small" @click="handleReject(row)">拒绝</el-button>
-            <el-button v-if="row.status===1" type="warning" link size="small" @click="handleFreeze(row)">冻结</el-button>
-            <el-button v-if="row.status===3" type="success" link size="small" @click="handleUnfreeze(row)">解冻</el-button>
-            <el-button v-if="row.status===0&&row.auditStatus===1" type="success" link size="small" @click="toggleStatus(row,1)">恢复</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top:24px;display:flex;justify-content:flex-end">
-        <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+    </section>
+    <div class="admin-page-container">
+      <div class="admin-panel">
+        <div class="admin-filter-bar">
+          <el-input v-model="keyword" placeholder="搜索商户名称" clearable class="admin-search-input" @clear="loadData" @keyup.enter="loadData">
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-select v-model="auditFilter" placeholder="审核状态" clearable class="admin-status-select" @change="loadData">
+            <el-option label="待审核" :value="0" /><el-option label="已通过" :value="1" /><el-option label="已拒绝" :value="2" />
+          </el-select>
+          <el-button type="primary" @click="loadData">搜索</el-button>
+          <el-button plain @click="loadData">刷新</el-button>
+        </div>
+        <div class="admin-table-wrap">
+          <el-table :data="tableData" stripe v-loading="loading" class="admin-table" style="width:100%">
+            <template #empty><el-empty description="暂无商户数据" /></template>
+            <el-table-column prop="merchantId" label="ID" width="70" />
+            <el-table-column label="商户" min-width="200">
+              <template #default="{ row }">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <el-avatar :size="40" :src="row.shopLogo" style="border-radius:8px;flex-shrink:0">{{ (row.merchantName||'')[0] }}</el-avatar>
+                  <div>
+                    <div style="font-weight:600">{{ row.merchantName }}</div>
+                    <div style="font-size:12px;color:var(--text-muted)">{{ row.phone || '-' }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="审核" width="100">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="row.auditStatus===1?'tag-success':row.auditStatus===0?'tag-warning':'tag-danger'">{{ ['待审核','已通过','已拒绝'][row.auditStatus] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <span class="admin-status-tag" :class="row.status===1?'tag-success':row.status===3?'tag-danger':'tag-info'">{{ row.status===1?'营业':row.status===3?'平台冻结':'停业' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="registerTime" label="入驻时间" width="170" />
+            <el-table-column label="操作" width="300" fixed="right">
+              <template #default="{ row }">
+                <div class="admin-table-actions">
+                  <button class="admin-action-btn" @click="showDetail(row)">详情</button>
+                  <button v-if="row.auditStatus===0" class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="handleAudit(row,1)">通过</button>
+                  <button v-if="row.auditStatus===0" class="admin-action-btn admin-action-danger" @click="handleReject(row)">拒绝</button>
+                  <button v-if="row.status===1" class="admin-action-btn admin-action-warning" @click="handleFreeze(row)">冻结</button>
+                  <button v-if="row.status===3" class="admin-action-btn" style="color:#1d4ed8;border-color:#bfdbfe" @click="handleUnfreeze(row)">解冻</button>
+                  <button v-if="row.status===0&&row.auditStatus===1" class="admin-action-btn" style="color:#047857;border-color:#a7f3d0" @click="toggleStatus(row,1)">恢复</button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="admin-pagination-bar">
+          <el-pagination v-model:current-page="current" v-model:page-size="size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next" @current-change="loadData" @size-change="loadData" />
+        </div>
       </div>
     </div>
     <el-dialog v-model="detailVisible" title="商户详情" width="600px">
@@ -60,9 +72,12 @@
         <el-descriptions-item label="法人">{{ detail.legalPerson }}</el-descriptions-item>
         <el-descriptions-item label="电话">{{ detail.phone }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ detail.email || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="审核状态">{{ ['待审核','已通过','已拒绝'][detail.auditStatus] || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="营业状态">{{ detail.status===1?'营业':detail.status===3?'平台冻结':'停业' }}</el-descriptions-item>
-        <el-descriptions-item label="拒绝/冻结原因" :span="2" v-if="detail.auditRemark">{{ detail.auditRemark }}</el-descriptions-item>
+        <el-descriptions-item label="审核状态">
+          <span class="admin-status-tag" :class="detail.auditStatus===1?'tag-success':detail.auditStatus===0?'tag-warning':'tag-danger'">{{ ['待审核','已通过','已拒绝'][detail.auditStatus] || '-' }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="营业状态">
+          <span class="admin-status-tag" :class="detail.status===1?'tag-success':detail.status===3?'tag-danger':'tag-info'">{{ detail.status===1?'营业':detail.status===3?'平台冻结':'停业' }}</span>
+        </el-descriptions-item>
         <el-descriptions-item label="地址" :span="2">{{ detail.address || '-' }}</el-descriptions-item>
       </el-descriptions>
       <div v-if="detail.shopLogo" style="margin-top:16px"><span style="color:var(--text-muted);font-size:13px">Logo：</span><el-image :src="detail.shopLogo" style="width:80px;height:80px;border-radius:8px" fit="cover" /></div>
@@ -177,3 +192,6 @@ const toggleStatus = async (row, status) => {
 
 onMounted(loadData)
 </script>
+<style scoped>
+.admin-order-page { color: var(--text-main); }
+</style>

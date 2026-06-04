@@ -1583,6 +1583,131 @@ watch(quickExpanded, () => {
   gap: 28px;
 }
 
+/* 仅对齐 /chat 的左栏与中间聊天栏尺寸 */
+.platform-support-shell {
+  height: clamp(720px, calc(100vh - 150px), 860px);
+  min-height: 720px;
+  max-height: 860px;
+  grid-template-columns: 348px minmax(680px, 1fr) 332px;
+  gap: 24px;
+  overflow: hidden;
+}
+
+.platform-support-shell > .session-panel,
+.platform-support-shell > .conversation {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  border: 1px solid #eeeeee;
+  border-radius: 20px;
+  box-shadow: 0 14px 36px rgba(17, 17, 17, .05);
+  overflow: hidden;
+}
+
+.platform-support-shell > .session-panel {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 26px 22px;
+}
+
+.platform-support-shell .session-panel .panel-title,
+.platform-support-shell .session-panel .session-search,
+.platform-support-shell .session-panel .session-footer-btn {
+  margin: 0;
+}
+
+.platform-support-shell .session-search :deep(.el-input__wrapper) {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.platform-support-shell .session-list {
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.platform-support-shell .session-item {
+  grid-template-columns: 52px minmax(0, 1fr) 56px;
+  gap: 14px;
+  align-items: start;
+  min-height: 86px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.platform-support-shell .session-avatar {
+  width: 52px;
+  height: 52px;
+}
+
+.platform-support-shell .session-extra {
+  width: 56px;
+  justify-self: end;
+}
+
+.platform-support-shell .session-footer-btn {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.platform-support-shell > .conversation {
+  display: flex;
+  flex-direction: column;
+}
+
+.platform-support-shell .chat-head {
+  flex: 0 0 auto;
+  min-height: 94px;
+  margin: 20px 20px 0;
+  padding: 22px 26px;
+  border: 1px solid #eeeeee;
+  border-radius: 18px;
+}
+
+.platform-support-shell .chat-head-main {
+  gap: 20px;
+}
+
+.platform-support-shell .chat-head-logo {
+  width: 60px;
+  height: 60px;
+}
+
+.platform-support-shell .head-title {
+  font-size: 20px;
+}
+
+.platform-support-shell .head-sub {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.platform-support-shell .chat-actions :deep(.el-button) {
+  min-height: 41px;
+  padding: 0 20px;
+}
+
+.platform-support-shell .ps-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 26px 14px;
+}
+
+.platform-support-shell .ps-foot {
+  flex: 0 0 auto;
+  margin: 0 20px 20px;
+  padding: 16px 18px 18px;
+  border: 1px solid #eeeeee;
+  border-radius: 18px;
+}
+
+.platform-support-shell .ps-input :deep(.el-input__wrapper) {
+  min-height: 41px;
+}
+
 @media (max-width: 1200px) {
   .platform-support-shell {
     grid-template-columns: 300px minmax(560px, 1fr);

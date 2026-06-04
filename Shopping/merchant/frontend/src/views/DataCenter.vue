@@ -1,12 +1,12 @@
 <template>
-  <main class="page">
-    <div class="dc-page">
-      <div class="dc-head">
-        <div class="dc-title">
-          <div class="dc-main">数据中心</div>
-          <div class="dc-sub">营业额、订单与热销趋势分析</div>
-        </div>
-        <div class="dc-tools">
+  <main class="page data-center-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">DATA CENTER</span>
+          <h1 class="merchant-page-title">数据中心</h1>
+          <p class="merchant-page-desc">全面掌握店铺销售数据，驱动精细化运营增长</p>
+          <div class="merchant-page-actions dc-tools">
           <el-date-picker
             v-model="dateRange"
             class="dc-range"
@@ -24,33 +24,47 @@
             <div class="tab" :class="{ active: !hasCustomRange && days === 30 }" @click="setDays(30)">近30天</div>
           </div>
           <el-button size="small" plain :disabled="loading || !merchantId" @click="exportData">导出数据</el-button>
-          <el-button size="small" :loading="loading" @click="load">刷新</el-button>
+          <el-button type="primary" size="small" :loading="loading" @click="load">刷新</el-button>
+          </div>
         </div>
       </div>
+    </section>
 
+    <div class="dc-page">
       <el-empty v-if="!merchantId" description="仅商家账号可查看数据中心" />
 
       <template v-else>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-label">今日营业额</div>
+            <div class="kpi-icon">¥</div>
+            <div><div class="kpi-label">今日营业额</div>
             <div class="kpi-value">¥ {{ toMoney(kpi.turnoverToday) }}</div>
-            <div class="kpi-sub">累计：¥ {{ toMoney(kpi.turnoverTotal) }}</div>
+            <div class="kpi-sub">累计 ¥ {{ toMoney(kpi.turnoverTotal) }}</div></div>
           </div>
           <div class="kpi-card">
+            <div class="kpi-icon">单</div>
+            <div>
             <div class="kpi-label">今日支付订单</div>
             <div class="kpi-value">{{ Number(kpi.paidOrderToday || 0) }}</div>
-            <div class="kpi-sub">累计：{{ Number(kpi.paidOrderTotal || 0) }}</div>
+            <div class="kpi-sub">累计 {{ Number(kpi.paidOrderTotal || 0) }}</div></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">待发货</div>
+            <div class="kpi-icon">运</div>
+            <div><div class="kpi-label">待发货订单</div>
             <div class="kpi-value">{{ Number(kpi.pendingShip || 0) }}</div>
-            <div class="kpi-sub">待收货：{{ Number(kpi.pendingReceive || 0) }}</div>
+            <div class="kpi-sub">待收货 {{ Number(kpi.pendingReceive || 0) }}</div></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">售后待处理</div>
+            <div class="kpi-icon">售</div>
+            <div><div class="kpi-label">售后待处理</div>
             <div class="kpi-value">{{ Number(kpi.pendingAfterSale || 0) }}</div>
-            <div class="kpi-sub">已完成订单：{{ Number(kpi.completed || 0) }}</div>
+            <div class="kpi-sub">已完成订单 {{ Number(kpi.completed || 0) }}</div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">✓</div>
+            <div><div class="kpi-label">已完成订单</div>
+            <div class="kpi-value">{{ Number(kpi.completed || 0) }}</div>
+            <div class="kpi-sub">累计支付 {{ Number(kpi.paidOrderTotal || 0) }}</div></div>
           </div>
         </div>
 
@@ -76,6 +90,11 @@
                 <g class="grid">
                   <line x1="36" y1="22" x2="36" y2="210" />
                   <line x1="36" y1="210" x2="704" y2="210" />
+                  <line v-for="tick in trendYTicks" :key="`grid-${tick.y}`" x1="36" :y1="tick.y" x2="704" :y2="tick.y" />
+                </g>
+                <g class="axis-labels">
+                  <text v-for="tick in trendYTicks" :key="`y-${tick.y}`" x="30" :y="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+                  <text v-for="tick in trendXLabels" :key="tick.key" :x="tick.x" y="232" text-anchor="middle">{{ tick.label }}</text>
                 </g>
 
                 <g class="dots">
@@ -86,8 +105,12 @@
 
             <div class="chart-foot">
               <div class="foot-item">
-                <div class="foot-label">峰值</div>
+                <div class="foot-label">最高值</div>
                 <div class="foot-value">¥ {{ toMoney(maxTurnover) }}</div>
+              </div>
+              <div class="foot-item">
+                <div class="foot-label">最低值</div>
+                <div class="foot-value">¥ {{ toMoney(minTurnover) }}</div>
               </div>
               <div class="foot-item">
                 <div class="foot-label">均值</div>
@@ -107,7 +130,7 @@
             </div>
 
             <div v-if="topGoods.length" class="top-list">
-              <div v-for="(g, idx) in topGoods" :key="String(g.goodsId || g.goods_id || idx)" class="top-row">
+              <div v-for="(g, idx) in topGoods.slice(0, 5)" :key="String(g.goodsId || g.goods_id || idx)" class="top-row">
                 <div class="rank">{{ idx + 1 }}</div>
                 <div class="name" :title="g.goodsName || g.goods_name || ''">{{ g.goodsName || g.goods_name || '商品' }}</div>
                 <div class="qty">{{ Number(g.quantity || 0) }}</div>
@@ -119,6 +142,7 @@
             </div>
             <el-empty v-else-if="!loading" description="暂无热销数据" />
             <div v-else class="loading-pad"></div>
+            <div v-if="topGoods.length" class="panel-link">查看全部 {{ Math.min(10, topGoods.length) }} 件商品 &gt;</div>
           </div>
         </div>
 
@@ -367,36 +391,29 @@
               </svg>
             </div>
           </div>
+
         </div>
 
-        <div class="panel-grid-2">
+        <div class="panel-grid-ops">
           <div class="panel">
             <div class="panel-head">
               <div class="panel-title">库存预警</div>
               <div class="panel-sub">阈值 {{ Number(stockSafe.warningStock || 0) }}</div>
             </div>
-
-            <div class="hbar-wrap">
-              <svg class="hbar" viewBox="0 0 360 220" preserveAspectRatio="none">
-                <g class="bar-grid">
-                  <line x1="120" y1="18" x2="120" y2="200" />
-                  <line x1="120" y1="200" x2="344" y2="200" />
-                </g>
-
-                <g class="hbar-items">
-                  <template v-for="b in stockBars" :key="b.key">
-                    <text class="hbar-label" :x="112" :y="b.ty" text-anchor="end">{{ b.label }}</text>
-                    <rect class="hbar-bar" :x="120" :y="b.y" :width="b.w" :height="b.h" rx="7" ry="7" />
-                    <text class="hbar-value" :x="120 + b.w + 6" :y="b.tv">{{ b.value }}</text>
-                  </template>
-                </g>
-              </svg>
+            <div v-if="stockItems.length" class="stock-list">
+              <div v-for="(item, idx) in stockItems.slice(0, 4)" :key="String(item?.skuId || item?.goodsId || idx)" class="stock-row">
+                <div class="stock-thumb">货</div>
+                <div class="stock-name">{{ item?.goodsName || '商品' }}<small>{{ item?.skuSpec || '默认规格' }}</small></div>
+                <div class="stock-value">库存 {{ Number(item?.available || 0) }}<strong>低于阈值</strong></div>
+              </div>
             </div>
+            <el-empty v-else-if="!loading" :image-size="54" description="暂无库存预警" />
+            <div class="panel-link">查看全部库存预警 &gt;</div>
           </div>
 
           <div class="panel">
             <div class="panel-head">
-              <div class="panel-title">运营预警</div>
+              <div class="panel-title">售后 / 退款风险</div>
               <div class="panel-sub">售后/差评风险</div>
             </div>
 
@@ -564,6 +581,7 @@ const safeTrend = computed(() => (Array.isArray(trend.value) ? trend.value : [])
 
 const turnovers = computed(() => safeTrend.value.map((x) => Number(x?.turnover ?? 0)).map((x) => (Number.isFinite(x) ? x : 0)))
 const maxTurnover = computed(() => (turnovers.value.length ? Math.max(...turnovers.value, 0) : 0))
+const minTurnover = computed(() => (turnovers.value.length ? Math.min(...turnovers.value) : 0))
 const avgTurnover = computed(() => {
   const list = turnovers.value
   if (!list.length) return 0
@@ -587,6 +605,25 @@ const chartGeometry = computed(() => {
   const count = Math.max(1, safeTrend.value.length)
   const step = count <= 1 ? 0 : innerW / (count - 1)
   return { w, h, left, right, top, bottom, innerW, innerH, step }
+})
+
+const trendYTicks = computed(() => {
+  const max = maxTurnover.value
+  return [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+    y: 210 - ratio * 188,
+    label: max <= 0 ? '0' : Math.round(max * ratio).toLocaleString()
+  }))
+})
+
+const trendXLabels = computed(() => {
+  const list = safeTrend.value
+  if (!list.length) return []
+  const keepEvery = list.length > 10 ? Math.ceil(list.length / 7) : 1
+  return list.map((it, idx) => ({
+    key: String(it?.date || idx),
+    x: chartGeometry.value.left + chartGeometry.value.step * idx,
+    label: String(it?.date || '').slice(5)
+  })).filter((_, idx) => idx % keepEvery === 0 || idx === list.length - 1)
 })
 
 const dotPoints = computed(() => {
@@ -1079,11 +1116,7 @@ onMounted(() => {
 
 <style scoped>
 .dc-page {
-  background: radial-gradient(1200px 500px at 30% 0%, rgba(230, 0, 18, 0.14), rgba(255, 255, 255, 0) 60%),
-    radial-gradient(900px 420px at 90% 20%, rgba(249, 115, 22, 0.08), rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(249, 250, 251, 0.9));
-  border-radius: 16px;
-  padding: 14px;
+  background: #fff;
   min-height: 520px;
 }
 
@@ -1886,5 +1919,111 @@ onMounted(() => {
   .gauge-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* 数据中心宽版经营看板 */
+.page { width: 100%; }
+.data-center-page { background:#fff; }
+:global(.data-center-shell .main-content) {
+  padding: 0 0 40px;
+}
+.dc-page {
+  width: calc(100% - 64px);
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 0 32px;
+  border-radius: 0;
+  background: #fff;
+}
+.dc-tools {
+  justify-content: flex-start;
+  width: 100%;
+}
+.dc-tools :deep(.el-button) { height: 34px; margin-left: 0; padding: 0 16px; border-radius: 999px; }
+.dc-tools :deep(.el-input__wrapper) { border-radius: 999px; background:#fff; box-shadow: 0 0 0 1px #eee inset; }
+.tab { padding: 8px 14px; background: #fff; border-color: #eee; font-size: 13px; }
+.tab.active { border-color: rgba(230,0,18,.35); background: #fff4f4; color: #e60012; }
+.kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+.kpi-card {
+  display: flex; align-items: center; gap: 12px; min-height: 92px; padding: 16px;
+  background: #fff; border: 1px solid #eee; border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(15,23,42,.055);
+}
+.kpi-icon {
+  width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center;
+  border-radius: 50%; background: #fff1f2; color: #e60012; font-size: 16px; font-weight: 900;
+}
+.kpi-card:nth-child(2) .kpi-icon { background:#fff6ed; color:#f97316; }
+.kpi-card:nth-child(3) .kpi-icon { background:#eef5ff; color:#3b82f6; }
+.kpi-card:nth-child(4) .kpi-icon { background:#f5f0ff; color:#8b5cf6; }
+.kpi-card:nth-child(5) .kpi-icon { background:#eefbf4; color:#22a06b; }
+.kpi-label { font-size: 13px; color: #525b6b; }
+.kpi-value { margin-top: 5px; font-size: 27px; line-height: 1.15; }
+.kpi-sub { margin-top: 6px; color: #8a94a4; }
+.panel-grid, .panel-grid-3, .panel-grid-ops { gap: 15px; margin-bottom: 15px; }
+.panel-grid { grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr); }
+.panel-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.panel-grid-ops { display:grid; grid-template-columns: .9fr 1.5fr; }
+.panel-grid-ops .gauge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.panel {
+  background:#fff; border:1px solid #eee; border-radius:18px; padding:16px;
+  box-shadow:0 12px 32px rgba(15,23,42,.055);
+}
+.panel-head { margin-bottom: 14px; }
+.panel-title { font-size: 14px; color:#172033; }
+.panel-sub { color:#8993a4; }
+.chart-wrap { height: 270px; background:#fff; }
+.chart { overflow:visible; }
+.grid line { stroke:#edf0f4; stroke-dasharray:4 4; }
+.axis-labels text { fill:#9aa3b2; font-size:9px; }
+.line { stroke:#e60012; stroke-width:2.5; }
+.dots circle { fill:#e60012; stroke:#fff; stroke-width:2; }
+.chart-foot { grid-template-columns:repeat(4,1fr); margin-top:12px; border:1px solid #eee; border-radius:14px; overflow:hidden; }
+.foot-item { border:0; border-right:1px solid #eee; border-radius:0; background:#fff; }
+.foot-item:last-child { border-right:0; }
+.top-list { min-height:270px; }
+.top-row { grid-template-columns:24px minmax(90px,1fr) 36px minmax(90px,1fr) 82px; gap:10px; padding:13px 0; }
+.rank { border:0; background:#fff1f2; color:#e60012; }
+.top-row:nth-child(n+4) .rank { background:#f5f6f8; color:#667085; }
+.bar { height:7px; background:#f0f2f5; }
+.bar-inner { background:linear-gradient(90deg,#e60012,#ff7a45); }
+.panel-link { margin-top:12px; padding-top:12px; border-top:1px solid #f1f2f4; text-align:center; color:#667085; font-size:12px; }
+.bar-chart-wrap { height:230px; background:#fff; }
+.bar-chart { height:230px; }
+.bars rect { fill:#ef3340; }
+.bars.age rect { fill:#ff7043; }
+.bar-legend { gap:8px; }
+.bar-legend-item,.split-card { background:#fff; border:1px solid #eee; border-radius:13px; }
+.donut { min-height:220px; align-items:center; }
+.donut-chart { min-height:170px; }
+.donut-svg { width:160px; height:160px; }
+.donut-track { stroke:#f0f2f5; }
+.donut-legend-item { grid-template-columns:10px minmax(0,1fr) 44px; }
+.stackbar-inner { height:10px; }
+.stack.new { background:#e60012; } .stack.old { background:#ff8747; }
+.hbar { height:230px; }
+.hbar-bar.region { fill:#e60012; }
+.stock-list { display:flex; flex-direction:column; gap:9px; }
+.stock-row {
+  display:grid; grid-template-columns:38px minmax(0,1fr) auto; gap:9px; align-items:center;
+  padding:9px; border:1px solid #f0f1f3; border-radius:12px;
+}
+.stock-thumb { width:36px; height:36px; display:grid; place-items:center; border-radius:9px; background:#f5f6f8; color:#98a2b3; font-size:12px; }
+.stock-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#344054; font-size:12px; font-weight:700; }
+.stock-name small { display:block; margin-top:3px; color:#98a2b3; font-weight:400; }
+.stock-value { text-align:right; color:#667085; font-size:11px; }
+.stock-value strong { display:block; margin-top:4px; color:#e60012; }
+.gauge-grid { gap:10px; }
+.gauge-card { border-color:#eee; border-radius:14px; background:#fff; }
+.gauge-prog { stroke:#e60012; } .gauge-prog.warn { stroke:#ff5a36; } .gauge-prog.ok { stroke:#ff8a3d; }
+
+@media (max-width: 1280px) {
+  .kpi-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 900px) {
+  .dc-page { width:calc(100% - 28px); padding:20px 0 24px; }
+  .dc-range { width:100%; }
+  .kpi-grid,.panel-grid,.panel-grid-3,.panel-grid-ops { grid-template-columns:1fr; }
+  .panel-grid-ops .gauge-grid { grid-template-columns:1fr; }
 }
 </style>

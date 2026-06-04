@@ -1,23 +1,49 @@
 <template>
-  <div class="ps-page">
-    <el-card shadow="never" class="ps-card">
-      <template #header>
-        <div class="ps-head">
-          <div class="ps-head-left">
-            <div class="ps-title">平台客服</div>
-            <div class="ps-sub">商家咨询/故障/结算等问题可在此沟通，复杂问题建议提交工单</div>
-          </div>
-          <div class="ps-head-right">
-            <el-button plain @click="contactsVisible = true">联系方式</el-button>
-            <el-button plain @click="openTicketList">我的工单</el-button>
-            <el-button type="primary" @click="openTicketCreate()">提交工单</el-button>
-            <el-button plain @click="reloadAll">刷新</el-button>
+  <main class="ps-page chat-page standalone shell standalone-shell-page">
+    <section class="chat-shell-breadcrumb">
+      <div class="chat-shell-breadcrumb-inner">
+        <button type="button" class="breadcrumb-link" @click="router.push('/dashboard')">商家中心</button>
+        <i>/</i>
+        <span>平台客服</span>
+      </div>
+    </section>
+
+    <section class="chat-shell platform-support-shell">
+      <aside class="session-panel allmart-chat-card">
+        <div class="panel-title">
+          <span>最近会话</span>
+          <small>1 个会话</small>
+        </div>
+        <el-input class="session-search" placeholder="搜索平台客服或工单" clearable />
+        <div class="session-list">
+          <div class="session-item active">
+            <div class="session-avatar">{{ botAvatarText }}</div>
+            <div class="session-copy">
+              <div class="session-name">平台客服</div>
+              <div class="session-sub">结算/故障/入驻/订单等问题咨询</div>
+            </div>
+            <div class="session-extra"><small>在线</small></div>
           </div>
         </div>
-      </template>
+        <button type="button" class="session-footer-btn" @click="reloadAll">查看全部会话</button>
+      </aside>
 
-      <div class="ps-shell">
-        <div ref="chatBodyRef" class="ps-body" @click="onBodyClick">
+      <section class="conversation allmart-chat-card">
+        <header class="chat-head allmart-chat-section">
+          <div class="chat-head-main">
+            <div class="chat-head-logo">{{ botAvatarText }}</div>
+            <div class="head-meta">
+              <div class="head-title">平台客服</div>
+              <div class="head-sub"><span class="online-dot"></span>在线 · 平台智能客服</div>
+            </div>
+          </div>
+          <div class="chat-actions">
+            <el-button plain @click="openTicketCreate()">提交工单</el-button>
+            <el-button plain @click="openTicketList">我的工单</el-button>
+          </div>
+        </header>
+
+        <div ref="chatBodyRef" class="ps-body messages" @click="onBodyClick">
           <div class="ps-top-tip">到啦啦，您新产生的消息，平台客服最多为您保留60天以内的消息记录。</div>
 
           <div v-for="m in messages" :key="m.id" class="ps-row" :class="m.from === 'merchant' ? 'me' : m.from === 'bot' ? 'bot' : 'sys'">
@@ -57,7 +83,7 @@
           </div>
         </div>
 
-        <div class="ps-foot">
+        <div class="ps-foot composer">
           <div class="ps-tools">
             <el-button plain @click="toggleQuick">快捷入口</el-button>
             <el-button plain @click="openTicketCreate()">提交工单</el-button>
@@ -73,8 +99,59 @@
             <el-button type="primary" class="ps-send" @click="sendText">发送</el-button>
           </div>
         </div>
+      </section>
+
+      <aside class="shop-side assistant-side">
+        <div class="side-card allmart-chat-card">
+          <div class="side-title">平台联系方式</div>
+          <div class="contact-summary">
+            <div><span>客服电话</span><strong>{{ platformPhone }}</strong></div>
+            <div><span>客服邮箱</span><strong>{{ platformEmail }}</strong></div>
+            <div><span>服务时间</span><strong>{{ serviceHours }}</strong></div>
+          </div>
+          <el-button plain class="side-wide-btn" @click="contactsVisible = true">联系方式</el-button>
+        </div>
+
+        <div class="side-card allmart-chat-card">
+          <div class="side-title">我的工单</div>
+          <div v-if="tickets.length" class="recent-ticket">
+            <strong>{{ tickets[0]?.subject || '工单' }}</strong>
+            <span>{{ tickets[0]?.status === 'closed' ? '已关闭' : '处理中' }}</span>
+          </div>
+          <div v-else class="side-empty">暂无工单</div>
+          <div class="side-actions">
+            <el-button plain @click="openTicketList">查看工单</el-button>
+            <el-button type="primary" @click="openTicketCreate()">提交工单</el-button>
+          </div>
+        </div>
+
+        <div class="side-card allmart-chat-card">
+          <div class="side-title">推荐快捷入口</div>
+          <div class="quick-grid">
+            <button v-for="a in quickActions.slice(0, 4)" :key="a.key" type="button" class="quick-btn" @click="onQuickAction(a)">
+              {{ a.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="side-card allmart-chat-card">
+          <div class="side-title">温馨提示</div>
+          <ul class="tips-list">
+            <li>平台客服会保留 60 天以内消息记录</li>
+            <li>复杂问题建议提交工单并附截图</li>
+            <li>涉及订单或金额请提供对应编号</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="chat-shell-footer">
+      <div class="chat-shell-footer-inner">
+        <span>AllMart 商家服务中心</span>
+        <span>客服电话：{{ platformPhone }}</span>
+        <span>服务时间：{{ serviceHours }}</span>
       </div>
-    </el-card>
+    </footer>
 
     <el-drawer v-model="contactsVisible" title="平台联系方式" size="420px">
       <div class="ps-contacts">
@@ -274,11 +351,12 @@
         </el-button>
       </template>
     </el-dialog>
-  </div>
+  </main>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { uploadApi } from '@/api'
 import { ensureMerchantUser, getMerchantId } from '@/utils/merchant'
@@ -286,6 +364,7 @@ import { ensureMerchantUser, getMerchantId } from '@/utils/merchant'
 const platformPhone = '400-800-1234'
 const platformEmail = 'support@allmart.example.com'
 const serviceHours = '周一至周日 09:00-21:00'
+const router = useRouter()
 
 const merchantId = computed(() => getMerchantId())
 const merchantName = computed(() => {
@@ -1130,9 +1209,405 @@ watch(quickExpanded, () => {
   max-width: 480px;
 }
 
+/* standalone shell 与商家消息中心保持同一套三栏结构 */
+.ps-page.standalone-shell-page {
+  display: block;
+  min-height: 100vh;
+  background: #f7f8fa;
+  color: #111827;
+}
+
+.chat-shell-breadcrumb {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.chat-shell-breadcrumb-inner,
+.chat-shell-footer-inner {
+  width: min(1680px, calc(100vw - 64px));
+  margin: 0 auto;
+}
+
+.chat-shell-breadcrumb-inner {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #98a2b3;
+  font-size: 13px;
+}
+
+.breadcrumb-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #667085;
+  cursor: pointer;
+}
+
+.breadcrumb-link:hover {
+  color: #e60012;
+}
+
+.platform-support-shell {
+  width: min(1680px, calc(100vw - 64px));
+  height: clamp(720px, calc(100vh - 150px), 860px);
+  min-height: 720px;
+  max-height: 860px;
+  margin: 24px auto;
+  display: grid;
+  grid-template-columns: 348px minmax(680px, 1fr) 332px;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.allmart-chat-card {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, .055);
+}
+
+.session-panel {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding: 18px 16px 14px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.panel-title small {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.session-search {
+  margin-bottom: 14px;
+}
+
+.session-search :deep(.el-input__wrapper) {
+  border-radius: 12px;
+  background: #f8f9fb;
+  box-shadow: 0 0 0 1px #edf0f3 inset;
+}
+
+.session-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.session-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 13px 11px;
+  border: 1px solid #ffe0e2;
+  border-radius: 14px;
+  background: #fff7f7;
+}
+
+.session-avatar,
+.chat-head-logo {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e60012, #ff5d68);
+  color: #fff;
+  font-weight: 800;
+}
+
+.session-avatar {
+  width: 46px;
+  height: 46px;
+}
+
+.session-copy {
+  min-width: 0;
+}
+
+.session-name {
+  color: #1d2939;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.session-sub {
+  margin-top: 5px;
+  overflow: hidden;
+  color: #98a2b3;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-extra {
+  align-self: start;
+  color: #12b76a;
+}
+
+.session-footer-btn {
+  height: 38px;
+  margin-top: 12px;
+  border: 1px solid #eee;
+  border-radius: 999px;
+  background: #fff;
+  color: #667085;
+  cursor: pointer;
+}
+
+.conversation {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-head {
+  flex: 0 0 auto;
+  min-height: 72px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.chat-head-main,
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.chat-head-logo {
+  width: 44px;
+  height: 44px;
+}
+
+.head-title {
+  color: #1d2939;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.head-sub {
+  margin-top: 4px;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.online-dot {
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #12b76a;
+}
+
+.conversation .ps-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px;
+  background: #fafbfc;
+}
+
+.conversation .ps-quick {
+  max-width: 520px;
+  margin-left: 52px;
+  border-color: #f2d9db;
+  background: #fff;
+}
+
+.conversation .ps-foot {
+  flex: 0 0 auto;
+  padding: 12px 16px 16px;
+  background: #fff;
+}
+
+.ps-tools :deep(.el-button),
+.chat-actions :deep(.el-button) {
+  margin-left: 0;
+  border-radius: 999px;
+}
+
+.ps-input :deep(.el-input__wrapper) {
+  min-height: 42px;
+  border-radius: 13px;
+  background: #fafafa;
+}
+
+.ps-send {
+  min-width: 78px;
+  border-radius: 999px;
+}
+
+.assistant-side {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 2px;
+}
+
+.side-card {
+  padding: 16px;
+}
+
+.side-title {
+  margin-bottom: 13px;
+  color: #1d2939;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.contact-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.contact-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.contact-summary span,
+.recent-ticket span,
+.side-empty {
+  color: #98a2b3;
+  font-size: 11px;
+}
+
+.contact-summary strong,
+.recent-ticket strong {
+  color: #475467;
+  font-size: 12px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.side-wide-btn {
+  width: 100%;
+  border-radius: 999px;
+}
+
+.recent-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px;
+  border: 1px solid #f0f1f3;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.side-empty {
+  padding: 16px 0;
+  text-align: center;
+}
+
+.side-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.side-actions :deep(.el-button) {
+  margin-left: 0;
+  border-radius: 999px;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quick-btn {
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid #f0f1f3;
+  border-radius: 12px;
+  background: #fff;
+  color: #475467;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.quick-btn:hover {
+  border-color: #ffc9cd;
+  background: #fff6f6;
+  color: #e60012;
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.chat-shell-footer {
+  padding: 2px 0 22px;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.chat-shell-footer-inner {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+
 @media (max-width: 1200px) {
-  .ps-shell {
-    height: calc(100vh - 300px);
+  .platform-support-shell {
+    grid-template-columns: 300px minmax(560px, 1fr);
+  }
+  .assistant-side {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .chat-shell-breadcrumb-inner,
+  .chat-shell-footer-inner,
+  .platform-support-shell {
+    width: calc(100vw - 28px);
+  }
+  .platform-support-shell {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+  .session-panel {
+    height: 280px;
+  }
+  .conversation {
+    height: 720px;
   }
 }
 </style>

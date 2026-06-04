@@ -3,7 +3,7 @@
     <router-view></router-view>
   </div>
 
-  <div v-else-if="layout === 'merchant'" class="merchant-portal" :class="{ 'dashboard-shell': route.path === '/dashboard', 'merchant-full-page': fullPageRoutes.includes(route.path), 'merchant-profile-shell': route.path === '/merchant' }">
+  <div v-else-if="layout === 'merchant'" class="merchant-portal" :class="{ 'dashboard-shell': route.path === '/dashboard', 'data-center-shell': route.path === '/data-center', 'merchant-full-page': fullPageRoutes.includes(route.path), 'merchant-profile-shell': route.path === '/merchant' }">
     <!-- 单层顶部栏 — 参考用户端 site-header 结构 -->
     <header class="merchant-site-header">
       <div class="merchant-header-inner">
@@ -746,6 +746,19 @@ html, body {
 .center-content {
   flex: 1;
   min-width: 0;
+}
+
+.data-center-shell .main-content {
+  max-width: none;
+  padding: 22px 32px 40px;
+}
+
+.data-center-shell .right-sidebar {
+  display: none;
+}
+
+.data-center-shell .center-content {
+  max-width: none;
 }
 
 .right-sidebar {

@@ -1,33 +1,33 @@
 <template>
   <div class="platform-dashboard">
-    <div class="dashboard-shell">
-      <section class="platform-hero platform-card">
-        <div class="hero-copy">
+      <section class="dashboard-hero platform-hero">
+        <img class="hero-slide-image" src="/brand-assets/admin.png" alt="AllMart 平台运营场景" />
+        <span class="hero-wash"></span>
+        <div class="dashboard-hero-container hero-copy">
           <span class="hero-kicker">ALLMART OPERATIONS</span>
           <h1>平台中心</h1>
-          <p class="hero-welcome">欢迎回来，AllMart 平台管理员</p>
-          <p class="hero-desc">统一掌握商家、订单与平台运营情况，提升管理效率</p>
+          <h2>欢迎回来，AllMart 平台管理员</h2>
+          <p>统一掌握商家、订单与平台运营情况，提升管理效率</p>
           <div class="hero-actions">
-            <button class="hero-primary" @click="router.push('/report')">查看数据中心</button>
-            <button class="hero-secondary" @click="router.push('/merchant')">管理商家</button>
+            <button class="hero-primary" type="button" @click="router.push('/report')">查看数据中心</button>
+            <button class="hero-secondary" type="button" @click="router.push('/merchant')">管理商家</button>
           </div>
         </div>
-        <div class="hero-visual" aria-hidden="true">
-          <div class="hero-visual-head"><span>今日运营概览</span><span class="live-dot">实时</span></div>
-          <div class="hero-visual-value">¥{{ stats.todayGMV || 0 }}</div>
-          <div class="hero-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="hero-visual-foot"><span>支付订单 {{ stats.todayOrders || 0 }}</span><span>退款率 {{ stats.refundRate || 0 }}%</span></div>
+      </section>
+
+      <section class="stats-section">
+        <div class="dashboard-section-container">
+          <h2 class="brand-slogan">AllMart 平台运营 <span>全局掌控</span></h2>
+          <div class="metrics-grid" v-loading="statsLoading">
+            <article v-for="item in coreMetrics" :key="item.label" class="metric-card" @click="router.push(item.path)">
+              <el-icon class="metric-icon"><component :is="item.icon" /></el-icon><span class="metric-label">{{ item.label }}</span>
+              <strong>{{ item.value }}</strong><span class="metric-note">{{ item.note }}</span>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section class="metrics-grid" v-loading="statsLoading">
-        <article v-for="item in coreMetrics" :key="item.label" class="metric-card" @click="router.push(item.path)">
-          <div class="metric-top"><span class="metric-label">{{ item.label }}</span><span class="metric-mark"></span></div>
-          <strong>{{ item.value }}</strong><span class="metric-note">{{ item.note }}</span>
-        </article>
-      </section>
-
-      <section class="chart-grid">
+      <section class="dashboard-content-band section-soft"><div class="dashboard-section-container chart-grid">
         <article class="platform-card chart-card trend-card">
           <div class="section-head"><div><h2>平台交易趋势</h2><p>订单数量与销售额走势</p></div><div class="period-switch"><button :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadTrend()">近7天</button><button :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadTrend()">近30天</button></div></div>
           <div ref="orderChartRef" class="chart-canvas" v-loading="trendLoading"></div>
@@ -36,9 +36,9 @@
           <div class="section-head"><div><h2>订单状态分布</h2><p>当前订单结构占比</p></div></div>
           <div ref="pieChartRef" class="chart-canvas" v-loading="trendLoading"></div>
         </article>
-      </section>
+      </div></section>
 
-      <section class="dual-grid">
+      <section class="dashboard-content-band"><div class="dashboard-section-container dual-grid">
         <article class="platform-card list-card">
           <div class="section-head"><div><h2>待处理事项</h2><p>优先处理平台运营任务</p></div><button class="text-button" @click="router.push('/notification')">查看通知</button></div>
           <div class="pending-grid"><button v-for="item in allPendingItems" :key="item.label" @click="router.push(item.path)"><span>{{ item.label }}</span><strong :class="{ alert: item.count > 0 }">{{ item.count }}</strong><el-icon><ArrowRight /></el-icon></button></div>
@@ -47,9 +47,9 @@
           <div class="section-head"><div><h2>风险预警</h2><p>关注临期与异常运营事项</p></div><button class="text-button" @click="router.push('/abnormal')">风险管理</button></div>
           <div class="risk-list"><button v-for="item in slaItems" :key="item.label" @click="router.push(item.path)"><span class="risk-dot" :class="{ alert: item.count > 0 }"></span><span class="risk-copy"><b>{{ item.label }}</b><small>{{ item.desc }}</small></span><strong>{{ item.count }}</strong></button></div>
         </article>
-      </section>
+      </div></section>
 
-      <section class="bottom-grid">
+      <section class="dashboard-content-band section-soft"><div class="dashboard-section-container bottom-grid">
         <article class="platform-card insight-panel">
           <div class="section-head"><div><h2>智能洞察 / 运营公告</h2><p>基于平台数据生成的运营提示</p></div></div>
           <div v-if="insights.length" class="insight-list"><div v-for="ins in insights" :key="ins.insightId" class="insight-item"><span class="insight-level" :class="'level-' + ins.severity">{{ severityMap[ins.severity]?.label || '提示' }}</span><div><b>{{ ins.title }}</b><p>{{ ins.content }}</p></div></div></div>
@@ -59,8 +59,7 @@
           <div class="section-head"><div><h2>快捷入口</h2><p>快速进入常用平台服务</p></div></div>
           <div class="quick-grid"><button v-for="item in quickEntries" :key="item.label" @click="router.push(item.path)"><span class="quick-icon"><el-icon><component :is="item.icon" /></el-icon></span><span>{{ item.label }}</span><el-icon class="quick-arrow"><ArrowRight /></el-icon></button></div>
         </article>
-      </section>
-    </div>
+      </div></section>
   </div>
 </template>
 
@@ -173,11 +172,11 @@ const adminStats = computed(() => [
 ])
 
 const coreMetrics = computed(() => [
-  { label: '平台 GMV', value: '¥' + (stats.value.todayGMV || 0), note: '今日成交总额', path: '/report' },
-  { label: '支付订单数', value: stats.value.todayOrders || 0, note: '今日支付订单', path: '/order' },
-  { label: '活跃商家', value: stats.value.merchantTotal || stats.value.merchantPendingAudit || 0, note: '平台商户规模', path: '/merchant' },
-  { label: '活跃用户', value: stats.value.userTotal || 0, note: '平台注册用户', path: '/user' },
-  { label: '退款率', value: (stats.value.refundRate || 0) + '%', note: '平台退款占比', path: '/after-sale' },
+  { label: '平台 GMV', value: '¥' + (stats.value.todayGMV || 0), note: '今日成交总额', path: '/report', icon: 'Money' },
+  { label: '支付订单数', value: stats.value.todayOrders || 0, note: '今日支付订单', path: '/order', icon: 'List' },
+  { label: '活跃商家', value: stats.value.merchantTotal || stats.value.merchantPendingAudit || 0, note: '平台商户规模', path: '/merchant', icon: 'Shop' },
+  { label: '活跃用户', value: stats.value.userTotal || 0, note: '平台注册用户', path: '/user', icon: 'User' },
+  { label: '退款率', value: (stats.value.refundRate || 0) + '%', note: '平台退款占比', path: '/after-sale', icon: 'RefreshRight' },
 ])
 
 const quickEntries = [
@@ -197,11 +196,10 @@ const allPendingItems = computed(() => [
 ])
 
 const slaItems = computed(() => [
-  { label: '售后超48小时', count: stats.value.afterSaleOverdue || 0, path: '/after-sale', desc: '需优先处理，避免用户投诉升级' },
-  { label: '售后36小时预警', count: stats.value.afterSaleDueSoon || 0, path: '/after-sale', desc: '即将触达48小时处理线' },
-  { label: '纠纷超72小时', count: stats.value.disputeOverdue || 0, path: '/dispute', desc: '建议尽快仲裁或给出处理结论' },
+  { label: '售后超时', count: stats.value.afterSaleOverdue || 0, path: '/after-sale', desc: '需优先处理，避免用户投诉升级' },
+  { label: '纠纷超时', count: stats.value.disputeOverdue || 0, path: '/dispute', desc: '建议尽快仲裁或给出处理结论' },
   { label: '低库存商品', count: stats.value.lowStockGoods || 0, path: '/goods', desc: '库存≤50，需提醒商家补货' },
-  { label: '平台冻结商户', count: stats.value.frozenMerchants || 0, path: '/merchant', desc: 'status=3，需关注并决定是否解冻' },
+  { label: '冻结商户', count: stats.value.frozenMerchants || 0, path: '/merchant', desc: '需关注并决定是否解冻' },
   { label: '临期优惠券', count: stats.value.expiringCoupons || 0, path: '/coupon', desc: '7天内到期，需调整营销策略' },
 ])
 
@@ -389,5 +387,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.platform-dashboard{background:#f7f7f7;padding:32px 24px 64px;min-height:100vh}.dashboard-shell{max-width:1280px;margin:0 auto;display:grid;gap:20px}.platform-card{background:#fff;border:1px solid #eee;border-radius:20px;box-shadow:0 8px 26px rgba(0,0,0,.035)}.platform-hero{min-height:270px;padding:42px 48px;display:flex;align-items:center;justify-content:space-between;gap:48px;overflow:hidden}.hero-copy{max-width:620px}.hero-kicker{font-size:11px;font-weight:700;letter-spacing:2px;color:#e60012}.hero-copy h1{font-size:38px;line-height:1.2;margin:12px 0 8px;color:#111}.hero-welcome{font-size:18px;font-weight:600;color:#333;margin-bottom:8px}.hero-desc{font-size:14px;color:#888}.hero-actions{display:flex;gap:10px;margin-top:26px}.hero-actions button,.period-switch button,.text-button{border:0;cursor:pointer}.hero-primary,.hero-secondary{height:40px;padding:0 20px;border-radius:999px;font-weight:600}.hero-primary{background:#e60012;color:#fff}.hero-secondary{background:#f7f7f7;color:#333}.hero-visual{width:360px;padding:24px;border:1px solid #eee;border-radius:18px;background:#fafafa}.hero-visual-head,.hero-visual-foot{display:flex;justify-content:space-between;color:#888;font-size:12px}.live-dot{color:#e60012;background:#ffe8ea;padding:2px 8px;border-radius:999px}.hero-visual-value{font-size:30px;font-weight:750;margin:14px 0;color:#111}.hero-bars{height:66px;display:flex;align-items:flex-end;gap:9px;margin-bottom:14px}.hero-bars i{flex:1;background:#dedede;border-radius:4px 4px 1px 1px}.hero-bars i:nth-child(1){height:30%}.hero-bars i:nth-child(2){height:48%}.hero-bars i:nth-child(3){height:40%}.hero-bars i:nth-child(4){height:70%;background:#e60012}.hero-bars i:nth-child(5){height:58%}.hero-bars i:nth-child(6){height:84%;background:#333}.hero-bars i:nth-child(7){height:72%;background:#e60012}.metrics-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}.metric-card{background:#fff;border:1px solid #eee;border-radius:16px;padding:20px;cursor:pointer;transition:.2s}.metric-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.06)}.metric-top{display:flex;justify-content:space-between}.metric-label,.metric-note{font-size:12px;color:#999}.metric-mark{width:7px;height:7px;border-radius:50%;background:#e60012}.metric-card strong{display:block;font-size:25px;color:#111;margin:13px 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chart-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px}.chart-card,.list-card,.insight-panel,.quick-panel{padding:24px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.section-head h2{font-size:17px;color:#111;margin:0}.section-head p{font-size:12px;color:#999;margin-top:3px}.period-switch{display:flex;background:#f7f7f7;padding:3px;border-radius:999px}.period-switch button{background:transparent;color:#888;padding:6px 12px;border-radius:999px;font-size:12px}.period-switch button.active{background:#fff;color:#e60012;box-shadow:0 2px 7px rgba(0,0,0,.08)}.chart-canvas{height:310px}.dual-grid,.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.text-button{background:transparent;color:#e60012;font-size:12px}.pending-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.pending-grid button,.risk-list button,.quick-grid button{border:1px solid #eee;background:#fff;cursor:pointer}.pending-grid button{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:14px;border-radius:12px;text-align:left;color:#555}.pending-grid strong{font-size:18px;color:#333}.pending-grid strong.alert,.risk-list strong{color:#e60012}.risk-list{display:grid;gap:9px;max-height:230px;overflow:auto}.risk-list button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;text-align:left}.risk-dot{width:7px;height:7px;background:#ccc;border-radius:50%;flex:none}.risk-dot.alert{background:#e60012}.risk-copy{display:grid;gap:2px;flex:1}.risk-copy b{font-size:13px;color:#333}.risk-copy small{font-size:11px;color:#aaa}.risk-list strong{font-size:17px}.bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr)}.insight-list{display:grid;gap:10px}.insight-item{display:flex;gap:12px;padding:13px;background:#fafafa;border-radius:12px}.insight-level{height:24px;padding:3px 9px;border-radius:999px;font-size:11px;color:#666;background:#eee;white-space:nowrap}.insight-level.level-2,.insight-level.level-3{color:#e60012;background:#ffe8ea}.insight-item b{font-size:13px;color:#333}.insight-item p{font-size:12px;color:#999;margin-top:3px}.empty-state{height:150px;border:1px dashed #ddd;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#777}.empty-state small{color:#aaa;margin-top:4px}.quick-grid{display:grid;gap:9px}.quick-grid button{display:flex;align-items:center;gap:12px;padding:11px;border-radius:12px;color:#444;text-align:left}.quick-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#f7f7f7;color:#e60012}.quick-arrow{margin-left:auto;color:#bbb}@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}.platform-hero{padding:34px}.hero-visual{width:320px}}@media(max-width:900px){.platform-hero{align-items:flex-start}.hero-visual{display:none}.chart-grid,.dual-grid,.bottom-grid{grid-template-columns:1fr}.metrics-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.platform-dashboard{padding:18px 12px 42px}.platform-hero{min-height:auto;padding:26px}.hero-copy h1{font-size:30px}.hero-actions{flex-wrap:wrap}.metrics-grid{grid-template-columns:1fr}.pending-grid{grid-template-columns:1fr}.chart-card,.list-card,.insight-panel,.quick-panel{padding:18px}.chart-canvas{height:270px}.section-head{flex-wrap:wrap}}
+.platform-dashboard,.platform-dashboard *{box-sizing:border-box}.platform-dashboard{width:100%;background:#fff;color:#111}.dashboard-hero-container{width:min(1220px,calc(100vw - 64px));margin:0 auto}.dashboard-section-container{width:min(1172px,calc(100vw - 64px));margin:0 auto}.dashboard-hero{position:relative;width:100%;height:520px;overflow:hidden;background:#f2f2f2}.hero-slide-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:right center}.hero-wash{position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.74) 34%,rgba(255,255,255,.08) 76%)}.hero-copy{position:relative;z-index:2;display:grid;align-content:center;justify-items:start;gap:20px;height:100%}.hero-kicker{color:#e60012;font-size:13px;font-weight:900;letter-spacing:.08em}.hero-copy h1{max-width:560px;margin:0;color:#050505;font-size:56px;font-weight:900;line-height:1.05}.hero-copy h2{margin:0;color:#111;font-size:24px;font-weight:800}.hero-copy p{max-width:500px;margin:0;color:#555;font-size:17px;line-height:1.8}.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}.hero-actions button,.period-switch button,.text-button{border:0;cursor:pointer}.hero-actions button{min-width:118px;height:42px;border-radius:999px;font-weight:800}.hero-primary{background:#e60012;color:#fff}.hero-secondary{border:1px solid rgba(230,0,18,.55)!important;background:rgba(255,255,255,.92);color:#e60012}.hero-indicators{position:absolute;z-index:3;bottom:22px;left:50%;display:flex;gap:8px;transform:translateX(-50%)}.hero-indicators i{width:26px;height:3px;border-radius:999px;background:rgba(120,120,120,.42)}.hero-indicators i.active{background:#e60012}.stats-section{width:100%;padding:38px 0 42px;background:#fff}.brand-slogan{margin:0 0 28px;text-align:center;font-size:30px;font-weight:900}.brand-slogan span{color:#e60012}.metrics-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px}.metric-card{display:grid;justify-items:center;gap:12px;min-width:0;padding:0 8px;text-align:center;cursor:pointer}.metric-mark{width:34px;height:34px;border-radius:50%;background:#fff1f2;box-shadow:inset 0 0 0 8px #fff8f8}.metric-label{color:#555;font-size:14px}.metric-note{color:#999;font-size:12px;font-weight:700}.metric-card strong{max-width:100%;overflow:hidden;color:#e60012;font-size:24px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.dashboard-content-band{width:100%;padding:52px 0;background:#fff}.section-soft{background:#f7f7f7}.dashboard-section-container{display:grid;gap:22px}.platform-card{min-width:0;padding:24px;background:#fff;border:1px solid #eee;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.035)}.chart-grid{grid-template-columns:minmax(0,2fr) minmax(320px,1fr)}.dual-grid{grid-template-columns:1fr 1fr}.bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr)}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.section-head h2{margin:0;color:#111;font-size:18px;font-weight:900}.section-head p{margin-top:4px;color:#999;font-size:12px}.period-switch{display:flex;padding:3px;border-radius:999px;background:#f7f7f7}.period-switch button{padding:6px 12px;border-radius:999px;background:transparent;color:#888;font-size:12px}.period-switch button.active{background:#fff;color:#e60012;box-shadow:0 2px 7px rgba(0,0,0,.08)}.chart-canvas{height:310px}.text-button{background:transparent;color:#e60012;font-size:12px}.pending-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.pending-grid button,.risk-list button,.quick-grid button{border:1px solid #eee;background:#fff;cursor:pointer}.pending-grid button{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:14px;border-radius:12px;text-align:left;color:#555}.pending-grid strong{font-size:18px;color:#333}.pending-grid strong.alert,.risk-list strong{color:#e60012}.risk-list{display:grid;gap:9px;max-height:230px;overflow:auto}.risk-list button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;text-align:left}.risk-dot{width:7px;height:7px;border-radius:50%;background:#ccc}.risk-dot.alert{background:#e60012}.risk-copy{display:grid;gap:2px;flex:1}.risk-copy b{font-size:13px;color:#333}.risk-copy small{font-size:11px;color:#aaa}.risk-list strong{font-size:17px}.insight-list,.quick-grid{display:grid;gap:10px}.insight-item{display:flex;gap:12px;padding:13px;border-radius:12px;background:#fafafa}.insight-level{height:24px;padding:3px 9px;border-radius:999px;background:#eee;color:#666;font-size:11px;white-space:nowrap}.insight-level.level-2,.insight-level.level-3{color:#e60012;background:#ffe8ea}.insight-item b{font-size:13px;color:#333}.insight-item p{margin-top:3px;color:#999;font-size:12px}.empty-state{height:150px;border:1px dashed #ddd;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#777}.empty-state small{margin-top:4px;color:#aaa}.quick-grid button{display:flex;align-items:center;gap:12px;padding:11px;border-radius:12px;color:#444;text-align:left}.quick-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#f7f7f7;color:#e60012}.quick-arrow{margin-left:auto;color:#bbb}@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:900px){.chart-grid,.dual-grid,.bottom-grid{grid-template-columns:1fr}.metrics-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.dashboard-hero{height:440px}.hero-slide-image{object-position:66% center}.hero-copy{padding:42px 24px}.hero-copy h1{font-size:42px}.hero-copy h2{font-size:20px}.dashboard-hero-container,.dashboard-section-container{width:calc(100vw - 32px)}.metrics-grid{grid-template-columns:1fr}.pending-grid{grid-template-columns:1fr}.dashboard-content-band{padding:40px 0}}
+.platform-dashboard { font-weight: 500; }
+.hero-copy h2 { font-weight: 900; }
+.hero-copy p,
+.metric-note,
+.section-head p,
+.risk-copy small,
+.insight-item p { font-weight: 400; }
+.metric-icon { color: #777; font-size: 30px; }
+.metric-label { font-weight: 700; }
+.metric-card strong { font-weight: 900; }
+.pending-grid button,
+.risk-list button,
+.quick-grid button { font-weight: 600; }
 </style>

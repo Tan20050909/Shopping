@@ -6,6 +6,7 @@
         <!-- Logo -->
         <div class="header-logo" @click="router.push('/dashboard')">
           <img src="/brand-assets/allmart-logo-full.png" alt="AllMart" class="logo-image" />
+          <span class="header-platform-name">平台中心</span>
         </div>
 
         <!-- Nav - 分组下拉式导航 -->
@@ -41,10 +42,11 @@
 
         <!-- Right -->
         <div class="header-right">
-          <div class="header-search" :class="{ expanded: searchExpanded }">
-            <el-icon :size="16" @click="searchExpanded = !searchExpanded"><Search /></el-icon>
-            <input v-if="searchExpanded" v-model="searchKeyword" placeholder="搜索..." class="search-input" @blur="searchExpanded = false" @keyup.enter="handleSearch" />
+          <div class="header-search">
+            <el-icon :size="15"><Search /></el-icon>
+            <input v-model="searchKeyword" placeholder="搜索商家/订单" class="search-input" @keyup.enter="handleSearch" />
           </div>
+          <button type="button" class="header-search-btn" aria-label="搜索" @click="handleSearch"><el-icon :size="16"><Search /></el-icon></button>
           <el-badge :value="unreadCount" :hidden="unreadCount===0" :max="99">
             <div class="header-icon-btn" @click="router.push('/notification')">
               <el-icon :size="18"><Bell /></el-icon>
@@ -325,6 +327,24 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .logo-image { display: block; width: 138px; height: auto; }
+.header-platform-name {
+  position: relative;
+  padding-left: 10px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.header-platform-name::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 14px;
+  background: #eee;
+  transform: translateY(-50%);
+}
 
 /* Nav */
 .header-nav {
@@ -342,6 +362,7 @@ onUnmounted(() => {
   white-space: nowrap;
   display: flex;
   align-items: center;
+  font-weight: 600;
 }
 .nav-item:hover {
   color: var(--brand-red);
@@ -413,21 +434,17 @@ onUnmounted(() => {
 .header-search {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 0.25s;
-  background: transparent;
+  gap: 8px;
+  width: 190px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #eee;
+  border-radius: 999px;
+  color: #999;
+  background: #fafafa;
 }
 .header-search:hover {
-  background: var(--bg-soft);
-  color: var(--brand-red);
-}
-.header-search.expanded {
-  background: var(--bg-soft);
-  width: 200px;
+  border-color: #ddd;
 }
 .search-input {
   border: none;
@@ -436,9 +453,26 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-main);
   width: 100%;
+  font-weight: 500;
 }
 .search-input::placeholder {
   color: var(--text-muted);
+}
+.header-search-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f7f7f7;
+  color: #222;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.header-search-btn:hover {
+  background: #fff5f5;
+  color: #e60012;
 }
 .header-icon-btn {
   width: 36px;

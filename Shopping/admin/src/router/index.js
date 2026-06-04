@@ -35,6 +35,7 @@ const routes = [
       { path: 'config', name: 'Config', component: () => import('../views/SystemConfig.vue'), meta: { title: '系统设置', permission: 'SYSTEM_CONFIG' } },
       { path: 'ai-assistant', name: 'AiAssistant', component: () => import('../views/AiAssistant.vue'), meta: { title: 'AI助手' } },
       { path: 'notification', name: 'Notification', component: () => import('../views/NotificationCenter.vue'), meta: { title: '通知中心' } },
+      { path: 'profile', name: 'Profile', component: () => import('../views/Profile.vue'), meta: { title: '个人中心' } },
       { path: 'report', name: 'Report', component: () => import('../views/ReportCenter.vue'), meta: { title: '数据报表', permission: 'DATA_MGMT' } },
     ]
   }

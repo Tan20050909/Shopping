@@ -46,6 +46,7 @@ const relatedProductsLoaded = ref(false)
 const relatedProducts = ref([])
 const defaultUserAvatar = DEFAULT_USER_AVATAR
 const defaultShopAvatar = resolveLogo('')
+const sessionAvatarCache = ref({})
 const brandLogo = '/brand-assets/allmart-logo-full.png'
 const emojis = [
   '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎', '🤔', '😅',
@@ -239,6 +240,13 @@ const currentMerchantAvatar = computed(() => (
   ) || defaultShopAvatar
 ))
 
+const currentSessionAvatar = computed(() => {
+  if (currentSession.value) {
+    return sessionAvatar(currentSession.value)
+  }
+  return currentMerchantAvatar.value || defaultShopAvatar
+})
+
 function logoOf(item) {
   return merchantAvatarUrl(item) || defaultShopAvatar
 }
@@ -328,7 +336,15 @@ async function consultProduct(product) {
 }
 
 function sessionAvatar(session) {
-  return merchantAvatarUrl(session) || defaultShopAvatar
+  const raw = merchantAvatarUrl(session)
+  if (raw && raw !== defaultShopAvatar) return raw
+  const sid = sessionIdOf(session)
+  if (sid && sessionAvatarCache.value[sid]) return sessionAvatarCache.value[sid]
+  if (Number(sid) === Number(activeSessionId.value)) {
+    const activeAvatar = currentMerchantAvatar.value
+    if (activeAvatar && activeAvatar !== defaultShopAvatar) return activeAvatar
+  }
+  return defaultShopAvatar
 }
 
 function sessionInitial(session) {
@@ -399,7 +415,7 @@ function avatarUrlFor(message) {
     return url || defaultUserAvatar
   }
   if (cls === 'merchant') {
-    return currentMerchantAvatar.value || defaultShopAvatar
+    return currentSessionAvatar.value || defaultShopAvatar
   }
   return ''
 }
@@ -526,7 +542,12 @@ function unreadCount(session) {
 }
 
 async function loadSessions() {
-  sessions.value = await api('/api/user/chat/sessions')
+  const list = await api('/api/user/chat/sessions')
+  sessions.value = list.map((s) => {
+    const sid = Number(sessionIdOf(s))
+    const cached = sessionAvatarCache.value[sid]
+    return cached ? { ...s, merchantAvatar: cached, shopLogo: cached, merchantLogo: cached } : s
+  })
 }
 
 async function loadDetail() {
@@ -540,6 +561,21 @@ async function loadDetail() {
   loading.value = true
   try {
     detail.value = await api(`/api/user/chat/sessions/${id}`)
+    const avatar = merchantAvatarUrl(
+      detail.value,
+      currentSession.value,
+      orderPayload.value,
+      orderPayload.value?.merchant,
+      orderPayload.value?.shop
+    )
+    const sid = Number(activeSessionId.value)
+    if (avatar && avatar !== defaultShopAvatar && sid) {
+      sessionAvatarCache.value = { ...sessionAvatarCache.value, [sid]: avatar }
+      sessions.value = sessions.value.map((s) => {
+        if (Number(sessionIdOf(s)) !== sid) return s
+        return { ...s, merchantAvatar: avatar, shopLogo: avatar, merchantLogo: avatar }
+      })
+    }
     await loadSessions()
     await nextTick()
     if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight
@@ -848,7 +884,7 @@ onBeforeUnmount(() => {
             @click="openSession(session)"
           >
             <div class="session-avatar">
-              <img v-if="sessionAvatar(session)" :src="sessionAvatar(session)" :alt="session.merchantName" />
+              <img v-if="sessionAvatar(session)" :src="sessionAvatar(session)" :alt="session.merchantName" @error="(e) => onAvatarImgError('merchant', e)" />
               <span v-else>{{ sessionInitial(session) }}</span>
             </div>
             <span class="session-copy">
@@ -867,7 +903,7 @@ onBeforeUnmount(() => {
       <section v-if="detail" v-loading="loading" class="conversation allmart-chat-card">
         <header class="chat-head allmart-chat-section">
           <div class="chat-head-main">
-            <img class="chat-head-logo" :src="currentMerchantAvatar" :alt="detail.merchantName" />
+            <img class="chat-head-logo" :src="currentSessionAvatar" :alt="detail.merchantName" @error="(e) => onAvatarImgError('merchant', e)" />
             <div class="chat-title">
               <h1>{{ detail.merchantName }}</h1>
               <p><span class="online-dot"></span>在线</p>

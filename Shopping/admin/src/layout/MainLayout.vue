@@ -52,23 +52,13 @@
               <el-icon :size="18"><Bell /></el-icon>
             </div>
           </el-badge>
-          <el-dropdown trigger="click" @command="handleCommand">
-            <div class="header-user">
-              <el-avatar :size="32" :src="adminAvatar" style="background:#E60012;font-weight:700;font-size:14px">
-                {{ (adminInfo.realName || adminInfo.username || 'A')[0] }}
-              </el-avatar>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="dashboard"><el-icon><DataAnalysis /></el-icon>仪表盘</el-dropdown-item>
-                <el-dropdown-item command="ai"><el-icon><MagicStick /></el-icon>AI助手</el-dropdown-item>
-                <el-dropdown-item command="notification"><el-icon><Bell /></el-icon>通知中心</el-dropdown-item>
-                <el-dropdown-item v-if="hasPermission('ADMIN_MGMT')" command="admin"><el-icon><User /></el-icon>员工身份</el-dropdown-item>
-
-                <el-dropdown-item divided command="logout"><el-icon><SwitchButton /></el-icon>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <button class="header-user" type="button" @click="router.push('/profile')">
+            <el-avatar :size="32" :src="adminAvatar" style="background:#E60012;font-weight:700;font-size:14px;flex-shrink:0">
+              {{ (adminInfo.realName || adminInfo.username || 'A')[0] }}
+            </el-avatar>
+            <span class="header-user-name">{{ adminInfo.realName || adminInfo.username || '平台管理员' }}</span>
+          </button>
+          <button class="header-logout-btn" type="button" @click="handleLogout">退出</button>
         </div>
       </div>
     </header>
@@ -196,7 +186,6 @@ const allNavItems = [
   { label: '评论', path: '/review', permission: 'REVIEW_MGMT' },
   { label: '数据中心', path: '/report', permission: 'DATA_MGMT' },
   { label: '日志', path: '/log', permission: 'LOG_VIEW' },
-  { label: '系统', path: '/admin', permission: 'ADMIN_MGMT' },
 ]
 
 // 过滤后的导航项（按权限）
@@ -217,13 +206,15 @@ const navGroups = computed(() => {
   const orderItems = items.filter(i => !isTop(i.path) && ['/after-sale','/dispute','/abnormal'].includes(i.path))
   // 运营相关
   const opsItems = items.filter(i => !isTop(i.path) && ['/chat','/coupon','/banner','/review'].includes(i.path))
-  // 系统相关
-  const sysItems = items.filter(i => !isTop(i.path) && ['/report','/log','/admin'].includes(i.path))
+  // 系统 / 更多相关
+  const sysItems = items.filter(i => !isTop(i.path) && ['/report','/log'].includes(i.path))
+  // AI助手始终可见，放在"更多"最后
+  const moreItems = [...sysItems, { label: 'AI助手', path: '/ai-assistant' }]
 
   return [
     ...(orderItems.length ? [{ label: '交易', items: orderItems, active: orderItems.some(i => isActive(i.path)) }] : []),
     ...(opsItems.length ? [{ label: '运营', items: opsItems, active: opsItems.some(i => isActive(i.path)) }] : []),
-    ...(sysItems.length ? [{ label: '更多', items: sysItems, active: sysItems.some(i => isActive(i.path)) }] : []),
+    ...(moreItems.length ? [{ label: '更多', items: moreItems, active: moreItems.some(i => isActive(i.path)) }] : []),
   ]
 })
 
@@ -247,20 +238,10 @@ const handleSearch = () => {
   }
 }
 
-const handleCommand = (cmd) => {
-  if (cmd === 'logout') {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_info')
-    router.push('/login')
-  } else if (cmd === 'ai') {
-    router.push('/ai-assistant')
-  } else if (cmd === 'notification') {
-    router.push('/notification')
-  } else if (cmd === 'dashboard') {
-    router.push('/dashboard')
-  } else if (cmd === 'admin') {
-    router.push('/admin')
-  }
+const handleLogout = () => {
+  localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_info')
+  router.push('/login')
 }
 
 
@@ -459,8 +440,8 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 .header-search-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -489,16 +470,50 @@ onUnmounted(() => {
   background: var(--brand-red-light);
   color: var(--brand-red);
 }
+
+/* 用户胶囊 — 参考商家端 merchant-user-chip */
 .header-user {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 3px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid #eee;
   cursor: pointer;
-  padding: 2px;
-  border-radius: 50%;
   transition: all 0.2s;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-main);
+  white-space: nowrap;
 }
 .header-user:hover {
-  box-shadow: 0 0 0 2px var(--brand-red-light);
+  border-color: #e60012;
+  background: #fff7f8;
+}
+.header-user-name {
+  font-weight: 600;
+  color: #333;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 退出按钮 */
+.header-logout-btn {
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+.header-logout-btn:hover {
+  color: #e60012;
 }
 
 /* Mobile menu */

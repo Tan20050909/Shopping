@@ -3,7 +3,7 @@
     ref="pageRef"
     class="cs-page chat-page"
     :class="{ standalone: isStandalone, embedded: isEmbedded, shell: isShell, 'standalone-shell-page': isStandaloneShell }"
-    :style="{ height: pageHeight ? `${pageHeight}px` : '', '--ww-scale': String(shellScale) }"
+    :style="{ height: !isStandaloneShell && pageHeight ? `${pageHeight}px` : '' }"
   >
     <section v-if="isStandaloneShell" class="chat-shell-breadcrumb">
       <div class="chat-shell-breadcrumb-inner">
@@ -13,7 +13,7 @@
       </div>
     </section>
 
-    <el-card class="cs-card" shadow="never">
+    <component :is="isStandaloneShell ? 'div' : ElCard" class="cs-card" shadow="never">
       <template #header v-if="!(isEmbedded || isShell)">
         <div class="card-header">
           <span>客服管理</span>
@@ -291,7 +291,7 @@
           </div>
         </aside>
       </div>
-    </el-card>
+    </component>
 
     <footer v-if="isStandaloneShell" class="chat-shell-footer">
       <div class="chat-shell-footer-inner">
@@ -353,7 +353,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { chatApi, couponApi, orderApi, uploadApi } from '@/api'
-import { ElMessage } from 'element-plus'
+import { ElCard, ElMessage } from 'element-plus'
 import { getMerchantId } from '@/utils/merchant'
 import { DEFAULT_USER_AVATAR, defaultAvatarByIndex, resolveAvatar as resolveUserAvatar } from '@/utils/avatar'
 
@@ -380,7 +380,6 @@ const isEmbedded = ref(false)
 const isStandalone = computed(() => String(route.query?.standalone || '') === '1')
 const isShell = computed(() => String(route.query?.shell || '') === '1')
 const isStandaloneShell = computed(() => isStandalone.value && isShell.value)
-const shellScale = ref(1)
 const brandLogo = '/brand-assets/allmart-logo-full.png'
 
 const merchantName = computed(() => {
@@ -1274,36 +1273,18 @@ const calcPageHeight = () => {
   pageHeight.value = Math.max(min, Math.floor(h))
 }
 
-const calcShellScale = () => {
-  if (!isShell.value) {
-    shellScale.value = 1
-    return
-  }
-  const baseW = 1528
-  const baseH = 676
-  const vw = Math.max(0, window.innerWidth)
-  const vh = Math.max(0, window.innerHeight)
-  const marginW = 140
-  const marginH = 84
-  const s = Math.min(1, Math.max(0, (vw - marginW) / baseW), Math.max(0, (vh - marginH) / baseH))
-  shellScale.value = s > 0 ? s : 1
-}
-
 onMounted(() => {
   try {
-    isEmbedded.value = isShell.value || !!window.frameElement
+    isEmbedded.value = !!window.frameElement
   } catch (e) {
     isEmbedded.value = false
   }
   calcPageHeight()
-  calcShellScale()
   window.addEventListener('resize', calcPageHeight)
-  window.addEventListener('resize', calcShellScale)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', calcPageHeight)
-  window.removeEventListener('resize', calcShellScale)
 })
 
 const openShop = () => {
@@ -1333,33 +1314,6 @@ const openShop = () => {
   max-height: calc(100vh - 36px);
   border-radius: 14px;
   overflow: hidden;
-}
-
-.cs-page.standalone.shell {
-  position: fixed;
-  inset: 0;
-  height: 100vh;
-  padding: 0;
-  overflow: hidden;
-  background: radial-gradient(1200px 700px at 20% 10%, rgba(0, 0, 0, 0.06), transparent 60%),
-    radial-gradient(900px 600px at 80% 40%, rgba(0, 0, 0, 0.05), transparent 60%),
-    #f3f4f6;
-}
-
-.cs-page.standalone.shell .cs-card {
-  width: 1528px;
-  height: 676px;
-  max-width: none;
-  max-height: none;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.14);
-  transform: scale(var(--ww-scale, 1));
-  transform-origin: center center;
-}
-
-.cs-page.standalone.shell :deep(.el-card__body) {
-  padding: 14px 16px;
 }
 
 .cs-page.standalone.embedded {
@@ -2298,10 +2252,9 @@ const openShop = () => {
   position: static;
   inset: auto;
   min-height: 100vh;
-  height: auto;
+  height: 100vh;
   padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -2309,8 +2262,7 @@ const openShop = () => {
 }
 
 .chat-shell-breadcrumb-inner,
-.chat-shell-footer-inner,
-.cs-page.standalone.shell .cs-card {
+.chat-shell-footer-inner {
   width: min(1680px, calc(100vw - 64px));
   margin-right: auto;
   margin-left: auto;
@@ -2342,29 +2294,25 @@ const openShop = () => {
 }
 
 .cs-page.standalone.shell .cs-card {
+  display: contents;
+}
+
+.cs-page.standalone.shell .cs-layout.chat-shell {
+  width: min(1680px, calc(100vw - 64px));
   height: clamp(720px, calc(100vh - 150px), 860px);
   min-height: 720px;
   max-height: 860px;
+  margin-right: auto;
+  margin-left: auto;
   max-width: none;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  transform: none;
-}
-
-.cs-page.standalone.shell .cs-card :deep(.el-card__body) {
-  height: 100%;
-  padding: 0;
-}
-
-.cs-layout.chat-shell {
+  flex: 1 1 auto;
   grid-template-columns: 348px minmax(680px, 1fr) 332px;
   gap: 24px;
-  height: 100%;
-  overflow: visible;
-  background: transparent;
 }
 
 .cs-page.standalone.shell.embedded .cs-layout.chat-shell {
@@ -2386,6 +2334,12 @@ const openShop = () => {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 16px;
   height: 100%;
+  padding: 26px 22px;
+  border-right: 1px solid #eeeeee;
+}
+
+.cs-page.standalone.shell .session-panel {
+  gap: 16px;
   padding: 26px 22px;
   border-right: 1px solid #eeeeee;
 }
@@ -2441,6 +2395,14 @@ const openShop = () => {
   background: #fff;
 }
 
+.cs-page.standalone.shell .cs-item.session-item {
+  grid-template-columns: 52px minmax(0, 1fr) 56px;
+  gap: 14px;
+  min-height: 86px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
 .cs-item.session-item.active,
 .cs-item.session-item:hover {
   border-color: rgba(230, 0, 18, 0.12);
@@ -2456,6 +2418,12 @@ const openShop = () => {
   border-radius: 50%;
   color: #e60012;
   background: #fff6f6;
+}
+
+.cs-page.standalone.shell .session-avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 14px;
 }
 
 .session-copy {
@@ -2503,18 +2471,35 @@ const openShop = () => {
 }
 
 .conversation {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #fff;
 }
 
+.cs-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
 .chat-head.allmart-chat-section {
+  flex: 0 0 auto;
   min-height: 94px;
   margin: 20px 20px 0;
   padding: 22px 26px;
   border: 1px solid #eeeeee;
   border-radius: 18px;
   background: #fff;
+}
+
+.cs-page.standalone.shell .chat-head.allmart-chat-section {
+  padding: 22px 26px;
+  border-bottom: 1px solid #eeeeee;
 }
 
 .chat-head-main {
@@ -2527,6 +2512,12 @@ const openShop = () => {
   height: 60px;
 }
 
+.cs-page.standalone.shell .head-avatar.chat-head-logo {
+  width: 60px;
+  height: 60px;
+  font-size: 16px;
+}
+
 .head-title {
   color: #111;
   font-size: 20px;
@@ -2536,6 +2527,11 @@ const openShop = () => {
 .head-sub {
   margin-top: 8px;
   color: #555;
+  font-size: 14px;
+}
+
+.cs-page.standalone.shell .head-sub {
+  margin-top: 8px;
   font-size: 14px;
 }
 
@@ -2556,6 +2552,10 @@ const openShop = () => {
 }
 
 .cs-chat-body.messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   gap: 18px;
   padding: 18px 26px 14px;
   background: linear-gradient(180deg, #ffffff 0%, #fdfdfd 100%);
@@ -2594,6 +2594,7 @@ const openShop = () => {
 .composer {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   gap: 10px;
   margin: 0 20px 20px;
   padding: 16px 18px 18px;
@@ -2725,7 +2726,7 @@ const openShop = () => {
 
 .chat-shell-footer {
   flex: 0 0 auto;
-  margin-top: 32px;
+  margin-top: 16px;
   border-top: 1px solid rgba(17, 17, 17, 0.05);
   background: #fff;
 }
@@ -2735,7 +2736,7 @@ const openShop = () => {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 20px;
-  min-height: 98px;
+  min-height: 72px;
 }
 
 .shell-footer-brand img {
@@ -2771,11 +2772,59 @@ const openShop = () => {
     width: min(100vw - 24px, 1680px);
   }
 
+  .cs-page.standalone.shell .cs-layout.chat-shell,
   .cs-page.standalone.shell.embedded .cs-layout.chat-shell {
     grid-template-columns: 300px minmax(0, 1fr);
   }
 
   .assistant-side {
+    display: none;
+  }
+}
+
+@media (max-height: 900px) {
+  .chat-shell-breadcrumb {
+    padding: 10px 0;
+  }
+
+  .cs-page.standalone.shell .cs-layout.chat-shell {
+    height: auto;
+    min-height: 0;
+  }
+
+  .chat-shell-footer {
+    margin-top: 8px;
+  }
+
+  .chat-shell-footer-inner {
+    min-height: 56px;
+  }
+}
+
+@media (max-width: 720px) {
+  .chat-shell-breadcrumb-inner,
+  .chat-shell-footer-inner,
+  .cs-page.standalone.shell .cs-layout.chat-shell {
+    width: calc(100vw - 16px);
+  }
+
+  .cs-page.standalone.shell .cs-layout.chat-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .session-panel,
+  .assistant-side {
+    display: none;
+  }
+
+  .chat-shell-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .shell-footer-links {
     display: none;
   }
 }

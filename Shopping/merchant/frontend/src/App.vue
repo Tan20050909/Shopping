@@ -793,13 +793,19 @@ html, body {
 
 .dashboard-shell .main-content {
   width: 100%;
-  max-width: 1280px;
-  padding: 24px 0 0;
+  max-width: none;
+  padding: 0;
+  margin: 0;
   box-sizing: border-box;
 }
 
 .dashboard-shell .content-wrapper {
   display: block;
+  width: 100%;
+}
+
+.dashboard-shell .center-content {
+  width: 100%;
 }
 
 .dashboard-shell .right-sidebar {
@@ -1027,7 +1033,7 @@ html, body {
   }
 
   .dashboard-shell .main-content {
-    padding: 18px 16px 0;
+    padding: 0;
   }
 
   .right-sidebar {

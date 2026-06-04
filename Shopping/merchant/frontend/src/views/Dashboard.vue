@@ -1,7 +1,9 @@
 <template>
   <div class="merchant-dashboard">
     <section class="dashboard-hero">
-      <div class="hero-copy">
+      <img class="hero-slide-image" src="/brand-assets/merchant.png" alt="AllMart 商家运营场景" />
+      <span class="hero-wash"></span>
+      <div class="dashboard-hero-container hero-copy">
         <span class="hero-kicker">ALLMART MERCHANT</span>
         <h1>商家中心</h1>
         <h2>欢迎回来，{{ displayMerchantName }}</h2>
@@ -11,6 +13,11 @@
           <button class="hero-secondary" type="button" @click="goTo('/goods')">发布商品</button>
         </div>
       </div>
+      <div class="hero-indicators" aria-hidden="true">
+        <i class="active"></i>
+        <i></i>
+        <i></i>
+      </div>
     </section>
 
     <div class="status-alerts">
@@ -19,19 +26,24 @@
       <el-alert v-if="merchantAuditStatus === 2" title="审核未通过" :description="'原因：' + (merchantAuditRemark || '未知')" type="error" show-icon :closable="false" />
     </div>
 
-    <section class="metric-grid">
-      <article v-for="item in metricCards" :key="item.label" class="metric-card">
-        <div class="metric-icon">
-          <el-icon><component :is="item.icon" /></el-icon>
+    <section class="dashboard-stats-band stats-section">
+      <div class="dashboard-section-container">
+        <h2 class="brand-slogan">AllMart 商家经营 <span>轻松管理</span></h2>
+        <div class="metric-grid stats-grid">
+          <article v-for="item in metricCards" :key="item.label" class="metric-card stat-card">
+            <div class="metric-icon">
+              <el-icon><component :is="item.icon" /></el-icon>
+            </div>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small :class="item.changeClass">{{ item.changeText }}</small>
+          </article>
         </div>
-        <span>{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-        <small :class="item.changeClass">{{ item.changeText }}</small>
-      </article>
+      </div>
     </section>
 
-    <section class="dashboard-section section-soft">
-      <div class="chart-grid">
+    <section class="dashboard-content-band section-soft">
+      <div class="dashboard-section-container chart-grid">
         <article class="dashboard-card chart-card">
           <CardHead title="营业额趋势" action="更多" @click="goTo('/data-center')" />
         <div v-if="salesTrendHasEnoughData" class="line-chart">
@@ -94,7 +106,8 @@
       </div>
     </section>
 
-    <section class="dashboard-section section-soft operations-grid">
+    <section class="dashboard-content-band">
+      <div class="dashboard-section-container operations-grid">
       <article class="dashboard-card order-card">
         <CardHead title="待处理订单" action="查看全部" @click="goTo('/order')" />
         <div class="light-tabs" aria-label="订单筛选">
@@ -137,9 +150,11 @@
         </div>
         <EmptyMini v-else text="暂无库存预警" />
       </article>
+      </div>
     </section>
 
-    <section class="dashboard-section analysis-grid">
+    <section class="dashboard-content-band section-soft">
+      <div class="dashboard-section-container analysis-grid">
       <article class="dashboard-card">
         <CardHead title="运营预警" action="更多" @click="goTo('/data-center')" />
         <div class="warning-list">
@@ -200,9 +215,11 @@
           </div>
         </div>
       </article>
+      </div>
     </section>
 
-    <section class="dashboard-section section-soft bottom-grid">
+    <section class="dashboard-content-band">
+      <div class="dashboard-section-container bottom-grid">
       <article class="dashboard-card">
         <CardHead title="客服消息" action="更多" @click="goTo('/chat')" />
         <div v-if="customerMessages.length" class="message-list">
@@ -234,6 +251,7 @@
         </div>
         <EmptyMini v-else text="暂无热销商品数据" />
       </article>
+      </div>
     </section>
 
     <footer class="dashboard-footer">
@@ -755,8 +773,9 @@ onMounted(() => {
 .merchant-dashboard {
   display: grid;
   width: 100%;
-  gap: 38px;
+  gap: 0;
   color: var(--text-main);
+  background: #fff;
 }
 
 .merchant-dashboard,
@@ -764,29 +783,38 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-.dashboard-hero {
-  position: relative;
-  min-height: clamp(370px, 33vw, 430px);
-  overflow: hidden;
-  border-radius: 0;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 31%, rgba(255, 255, 255, 0.72) 48%, rgba(255, 255, 255, 0.1) 70%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 76%, rgba(255, 255, 255, 0.72) 100%),
-    url("/brand-assets/merchant.png");
-  background-size: cover;
-  background-position: center right;
-  box-shadow: none;
+.dashboard-hero-container {
+  width: min(1220px, calc(100vw - 64px));
+  margin: 0 auto;
 }
 
-.dashboard-hero::after {
-  content: "";
+.dashboard-section-container {
+  width: min(1172px, calc(100vw - 64px));
+  margin: 0 auto;
+}
+
+.dashboard-hero {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  border-radius: 0;
+  overflow: hidden;
+  background: #f2f2f2;
+}
+
+.hero-slide-image {
   position: absolute;
   inset: 0;
+  width: 100%;
   height: 100%;
-  background:
-    radial-gradient(circle at 18% 35%, rgba(255, 255, 255, 0.74), transparent 34%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.82) 0%, transparent 58%);
-  pointer-events: none;
+  object-fit: cover;
+  object-position: center right;
+}
+
+.hero-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,.94) 0%, rgba(255,255,255,.74) 34%, rgba(255,255,255,.08) 76%);
 }
 
 .hero-copy {
@@ -795,10 +823,8 @@ onMounted(() => {
   display: grid;
   align-content: center;
   justify-items: start;
-  max-width: 560px;
-  min-height: clamp(370px, 33vw, 430px);
-  gap: 14px;
-  padding: 78px 0 74px 64px;
+  gap: 20px;
+  height: 100%;
 }
 
 .hero-kicker {
@@ -810,24 +836,26 @@ onMounted(() => {
 }
 
 .hero-copy h1 {
+  max-width: 560px;
   margin: 0;
   color: #050505;
-  font-size: clamp(50px, 4.6vw, 64px);
+  font-size: 56px;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.05;
 }
 
 .hero-copy h2 {
   margin: 0;
   color: #111;
-  font-size: clamp(22px, 2vw, 28px);
+  font-size: 24px;
   font-weight: 800;
 }
 
 .hero-copy p {
+  max-width: 500px;
   margin: 0;
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.8;
 }
 
@@ -863,85 +891,110 @@ onMounted(() => {
   color: var(--brand-red);
 }
 
+.hero-indicators {
+  position: absolute;
+  z-index: 3;
+  bottom: 22px;
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.hero-indicators i {
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(120, 120, 120, 0.42);
+}
+
+.hero-indicators i.active {
+  background: var(--brand-red);
+}
+
 .status-alerts {
   display: grid;
   gap: 10px;
+  width: calc(100% - 48px);
+  max-width: 1172px;
+  margin: 24px auto 0;
 }
 
-.dashboard-section {
+.dashboard-content-band {
+  width: 100%;
+  padding: 52px 0;
+  background: #fff;
+}
+
+.dashboard-section-container {
   display: grid;
   gap: 22px;
 }
 
 .section-soft {
-  position: relative;
-  margin-inline: 0;
-  padding: 34px 24px;
   background: #f7f7f7;
 }
 
-.section-soft::before,
-.section-soft::after {
-  content: "";
-  position: absolute;
-  left: 24px;
-  right: 24px;
-  height: 1px;
-  background: rgba(238, 238, 238, 0.72);
+.stats-section {
+  width: 100%;
+  padding: 38px 0 42px;
+  background: #fff;
 }
 
-.section-soft::before {
-  top: 0;
+.brand-slogan {
+  margin: 0 0 28px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
 }
 
-.section-soft::after {
-  bottom: 0;
+.brand-slogan span {
+  color: var(--brand-red);
 }
 
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 22px;
-  padding: 2px 0 4px;
+  gap: 28px;
 }
 
-.metric-card,
 .dashboard-card {
   background: #fff;
   border: 1px solid var(--border-light);
-  border-radius: 22px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.035);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.035);
 }
 
 .metric-card {
   display: grid;
-  align-content: center;
+  justify-items: center;
   gap: 12px;
-  min-height: 154px;
-  padding: 24px 25px 22px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.028);
+  min-width: 0;
+  padding: 0 8px;
+  text-align: center;
 }
 
 .metric-icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  color: var(--brand-red);
-  font-size: 28px;
+  color: #777;
+  font-size: 34px;
 }
 
 .metric-card span {
   color: var(--text-secondary);
   font-size: 14px;
-  font-weight: 700;
 }
 
 .metric-card strong {
-  color: #111;
-  font-size: clamp(24px, 2.1vw, 32px);
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--brand-red);
+  font-size: 24px;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card small {
@@ -1685,15 +1738,17 @@ onMounted(() => {
 }
 
 @media (max-width: 1180px) {
-  .metric-grid,
   .chart-grid,
   .analysis-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .metric-grid .metric-card:last-child,
   .analysis-grid .dashboard-card:last-child {
     grid-column: 1 / -1;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .operations-grid,
@@ -1701,23 +1756,25 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-hero {
-    background-position: center right 20%;
+  .metric-grid .metric-card:nth-child(n + 4) {
+    margin-top: 18px;
   }
 }
 
 @media (max-width: 760px) {
-  .merchant-dashboard {
-    gap: 18px;
+  .dashboard-hero {
+    height: 440px;
   }
 
-  .dashboard-hero {
-    min-height: 360px;
-    background-position: center right 34%;
+  .hero-slide-image {
+    object-position: 66% center;
+  }
+
+  .hero-wash {
+    background: linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.84) 58%, rgba(255,255,255,.18) 100%);
   }
 
   .hero-copy {
-    min-height: 360px;
     padding: 42px 24px;
   }
 
@@ -1729,9 +1786,18 @@ onMounted(() => {
     font-size: 20px;
   }
 
-  .section-soft {
-    margin-inline: -16px;
-    padding-inline: 16px;
+  .stats-section {
+    padding: 44px 0 48px;
+  }
+
+  .brand-slogan {
+    margin-bottom: 32px;
+    font-size: 26px;
+  }
+
+  .dashboard-hero-container,
+  .dashboard-section-container {
+    width: calc(100vw - 32px);
   }
 
   .metric-grid,
@@ -1739,6 +1805,14 @@ onMounted(() => {
   .analysis-grid,
   .hot-grid {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid {
+    gap: 28px;
+  }
+
+  .metric-grid .metric-card:nth-child(n + 4) {
+    margin-top: 0;
   }
 
   .order-row {

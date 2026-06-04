@@ -1,5 +1,14 @@
 <template>
   <div class="stock-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">STOCK MANAGEMENT</span>
+          <h1 class="merchant-page-title">库存管理</h1>
+          <p class="merchant-page-desc">集中维护商品规格库存、价格与预警阈值，及时掌握库存变化</p>
+        </div>
+      </div>
+    </section>
     <el-card>
       <template #header>
         <div class="head">

@@ -1,30 +1,30 @@
 <template>
   <div class="goods-page">
     <!-- 全宽 Hero — 参考用户端 /products -->
-    <section class="goods-hero">
-      <div class="goods-container">
-        <div class="goods-hero-inner">
-          <span class="goods-kicker">MERCHANT GOODS</span>
-          <h1 class="goods-hero-title">商品管理</h1>
-          <p class="goods-hero-desc">发布、编辑和管理店铺商品，实时掌握上架、审核与销售状态</p>
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">MERCHANT GOODS</span>
+          <h1 class="merchant-page-title">商品管理</h1>
+          <p class="merchant-page-desc">发布、编辑和管理店铺商品，实时掌握上架、审核与销售状态</p>
           <div v-if="queryKeyword" class="hero-search-tip">
             当前搜索：{{ queryKeyword }}
             <el-button text class="hero-clear" @click.stop="clearKeyword">清除</el-button>
           </div>
-          <div class="goods-hero-actions">
-            <div class="goods-chip-tabs" aria-label="商品状态筛选">
+          <div class="merchant-page-actions">
+            <div class="merchant-chip-tabs" aria-label="商品状态筛选">
               <button
                 v-for="tab in statusTabs"
                 :key="tab.key"
                 type="button"
-                class="goods-chip"
+                class="merchant-chip"
                 :class="{ active: goodsStatusFilter === tab.key }"
                 @click="goodsStatusFilter = tab.key"
               >
                 {{ tab.label }} <span class="chip-count">{{ tab.count }}</span>
               </button>
             </div>
-            <el-button type="primary" size="large" class="hero-publish-btn" @click="goCreate">
+            <el-button type="primary" size="large" class="merchant-primary-action" @click="goCreate">
               发布商品
             </el-button>
           </div>
@@ -492,70 +492,6 @@ watch(
   padding: 0 24px;
 }
 
-/* ============ Hero — 全宽淡红色页头 ============ */
-.goods-hero {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 82% 28%, rgba(230, 0, 18, 0.12), transparent 30%),
-    linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
-}
-
-.goods-hero::after {
-  content: "";
-  position: absolute;
-  top: 38px;
-  right: max(24px, calc((100vw - 1220px) / 2 + 24px));
-  width: min(34vw, 430px);
-  height: min(34vw, 430px);
-  pointer-events: none;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(230, 0, 18, 0.1), rgba(230, 0, 18, 0.03) 42%, transparent 70%);
-  filter: blur(4px);
-}
-
-.goods-hero .goods-container {
-  position: relative;
-  z-index: 1;
-}
-
-.goods-hero-inner {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-  min-height: 280px;
-  padding: 42px 0 36px;
-}
-
-.goods-kicker {
-  width: fit-content;
-  color: var(--brand-red);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.goods-hero-title {
-  max-width: 640px;
-  margin: 0;
-  color: var(--text-main);
-  font-size: clamp(40px, 4.1vw, 48px);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-}
-
-.goods-hero-desc {
-  max-width: 560px;
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 15px;
-  line-height: 1.8;
-}
-
 .hero-search-tip {
   color: var(--text-secondary);
   font-size: 13px;
@@ -570,63 +506,10 @@ watch(
   height: 22px;
 }
 
-.goods-hero-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-/* ============ Chips ============ */
-.goods-chip-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: center;
-}
-
-.goods-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 20px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.028);
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  font-family: inherit;
-}
-
-.goods-chip:hover,
-.goods-chip.active {
-  border-color: var(--brand-red);
-  background: rgba(255, 232, 234, 0.72);
-  color: var(--brand-red);
-  box-shadow: 0 8px 18px rgba(230, 0, 18, 0.06);
-}
-
 .chip-count {
   margin-left: 4px;
   color: inherit;
   font-size: 12px;
-}
-
-/* ============ 发布商品按钮 ============ */
-.hero-publish-btn {
-  flex-shrink: 0;
-  height: 40px;
-  padding: 0 28px;
-  border-radius: var(--radius-pill);
-  font-weight: 800;
-  font-size: 14px;
 }
 
 /* ============ 热销榜 TOP3 ============ */
@@ -1024,20 +907,6 @@ watch(
 }
 
 @media (max-width: 760px) {
-  .goods-hero-inner {
-    min-height: auto;
-    padding: 32px 0 28px;
-  }
-
-  .goods-hero-actions {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero-publish-btn {
-    width: 100%;
-  }
-
   .top-grid,
   .goods-grid {
     grid-template-columns: 1fr;

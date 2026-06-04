@@ -1,5 +1,14 @@
 ﻿<template>
   <div class="coupon-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">COUPON CENTER</span>
+          <h1 class="merchant-page-title">优惠券管理</h1>
+          <p class="merchant-page-desc">创建和管理店铺优惠券，灵活配置发放方式、范围与有效期</p>
+        </div>
+      </div>
+    </section>
     <el-card style="margin-bottom: 20px">
       <template #header>
         <div class="card-header">

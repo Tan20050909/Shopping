@@ -1,5 +1,14 @@
 <template>
-  <div>
+  <div class="finance-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">FINANCE CENTER</span>
+          <h1 class="merchant-page-title">财务中心</h1>
+          <p class="merchant-page-desc">查看店铺资产、资金流水与提现记录，掌握经营资金动态</p>
+        </div>
+      </div>
+    </section>
     <el-card style="margin-bottom: 20px">
       <template #header><span>财务概览</span></template>
       <el-descriptions :column="2" border>

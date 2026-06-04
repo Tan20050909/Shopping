@@ -1,5 +1,14 @@
 <template>
   <div class="appeal-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">REVIEW APPEAL</span>
+          <h1 class="merchant-page-title">评价申诉</h1>
+          <p class="merchant-page-desc">查看违规评价判定结果，提交证据并跟进申诉处理状态</p>
+        </div>
+      </div>
+    </section>
     <el-card shadow="never" class="page-card">
       <template #header>
         <div class="head">

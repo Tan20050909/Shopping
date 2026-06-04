@@ -1,5 +1,14 @@
 <template>
   <div class="after-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">AFTER SALE</span>
+          <h1 class="merchant-page-title">售后管理</h1>
+          <p class="merchant-page-desc">统一查看和处理退款售后申请，及时跟进买家服务进度</p>
+        </div>
+      </div>
+    </section>
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title">售后管理</div>

@@ -1,5 +1,14 @@
 <template>
-  <div>
+  <div class="live-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">LIVE MANAGEMENT</span>
+          <h1 class="merchant-page-title">直播管理</h1>
+          <p class="merchant-page-desc">创建直播场次、管理直播商品，并实时跟进直播状态</p>
+        </div>
+      </div>
+    </section>
     <el-card style="margin-bottom: 20px">
       <template #header>
         <div class="card-header">

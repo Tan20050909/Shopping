@@ -1,5 +1,14 @@
 <template>
   <div class="order-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">ORDER MANAGEMENT</span>
+          <h1 class="merchant-page-title">订单管理</h1>
+          <p class="merchant-page-desc">集中处理店铺订单、发货与售后状态，清晰跟进履约进度</p>
+        </div>
+      </div>
+    </section>
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title">订单管理</div>

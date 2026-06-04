@@ -1,5 +1,14 @@
 <template>
-  <div>
+  <div class="merchant-setting-page">
+    <section class="merchant-page-hero">
+      <div class="merchant-page-container">
+        <div class="merchant-page-hero-inner">
+          <span class="merchant-page-kicker">MERCHANT SETTINGS</span>
+          <h1 class="merchant-page-title">店铺设置</h1>
+          <p class="merchant-page-desc">维护营业时间、客服响应、售后规则与店铺展示配置</p>
+        </div>
+      </div>
+    </section>
     <el-card>
       <template #header><span>店铺基础设置</span></template>
       <el-form :model="form" label-width="120px">

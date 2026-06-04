@@ -3,7 +3,7 @@
     <router-view></router-view>
   </div>
 
-  <div v-else-if="layout === 'merchant'" class="merchant-portal" :class="{ 'dashboard-shell': route.path === '/dashboard', 'goods-inner-page': route.path === '/goods' }">
+  <div v-else-if="layout === 'merchant'" class="merchant-portal" :class="{ 'dashboard-shell': route.path === '/dashboard', 'merchant-full-page': fullPageRoutes.includes(route.path), 'merchant-profile-shell': route.path === '/merchant' }">
     <!-- 单层顶部栏 — 参考用户端 site-header 结构 -->
     <header class="merchant-site-header">
       <div class="merchant-header-inner">
@@ -84,23 +84,13 @@
             </button>
           </div>
 
-          <el-dropdown trigger="click" @command="handleUserMenuCommand">
-            <button class="merchant-user-chip" type="button">
-              <template v-if="currentAvatar">
-                <img class="merchant-user-avatar" :src="currentAvatar" alt="" />
-              </template>
-              <span v-else class="merchant-user-avatar merchant-avatar-fallback">{{ shopAvatar }}</span>
-              <span class="merchant-user-name">{{ currentUser?.merchantName || currentUser?.username || '商家店铺' }}</span>
-              <span class="user-caret">▾</span>
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu class="merchant-user-menu">
-                <el-dropdown-item command="setting">店铺设置</el-dropdown-item>
-                <el-dropdown-item command="audit">入驻审核</el-dropdown-item>
-                <el-dropdown-item command="profile">账号资料</el-dropdown-item>
-              </el-dropdown-menu>
+          <button class="merchant-user-chip" type="button" @click="router.push('/merchant')">
+            <template v-if="currentAvatar">
+              <img class="merchant-user-avatar" :src="currentAvatar" alt="" />
             </template>
-          </el-dropdown>
+            <span v-else class="merchant-user-avatar merchant-avatar-fallback">{{ shopAvatar }}</span>
+            <span class="merchant-user-name">{{ currentUser?.merchantName || currentUser?.username || '商家店铺' }}</span>
+          </button>
 
           <button class="merchant-logout-link" type="button" @click="logoutMerchant">退出</button>
         </div>
@@ -136,27 +126,6 @@
       </div>
     </main>
 
-    <el-dialog v-model="avatarDialogVisible" title="设置头像" width="720px">
-      <div class="avatar-panel">
-        <div class="avatar-grid">
-          <div
-            v-for="url in avatarCandidates"
-            :key="url"
-            class="avatar-item"
-            :class="{ active: url === selectedAvatar }"
-            @click="selectAvatar(url)"
-          >
-            <img :src="url" alt="" />
-          </div>
-        </div>
-        <div class="avatar-actions">
-          <el-upload action="" :http-request="uploadAvatar" :show-file-list="false" accept="image/*">
-            <el-button>上传头像</el-button>
-          </el-upload>
-          <el-button type="primary" :disabled="!selectedAvatar" @click="applyAvatar">保存</el-button>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 
   <div v-else>
@@ -168,10 +137,10 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { merchantApi, orderApi, uploadApi } from '@/api'
+import { merchantApi, orderApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { ensureMerchantUser, getMerchantId } from '@/utils/merchant'
-import { DEFAULT_AVATARS, DEFAULT_USER_AVATAR, resolveAvatar } from '@/utils/avatar'
+import { DEFAULT_USER_AVATAR, resolveAvatar } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -179,6 +148,7 @@ const brandLogo = '/brand-assets/allmart-logo-full.png'
 
 const layout = computed(() => String(route.meta?.layout || 'user'))
 const isStandalonePage = computed(() => layout.value === 'merchant' && String(route.query?.standalone || '') === '1')
+const fullPageRoutes = ['/goods', '/stock', '/comment-appeal', '/order', '/after-sale', '/coupon', '/merchant-live', '/finance', '/merchant-setting']
 
 const currentUser = ref(null)
 const searchText = ref('')
@@ -264,54 +234,8 @@ const shopScore = computed(() => {
 })
 const shopAvatar = computed(() => (currentUser.value?.merchantName || currentUser.value?.username || '商')[0])
 const currentAvatar = computed(() => {
-  return resolveAvatar(currentUser.value?.avatarUrl, DEFAULT_USER_AVATAR)
+  return resolveAvatar(currentUser.value?.shopLogo || currentUser.value?.shop_logo || currentUser.value?.avatarUrl, DEFAULT_USER_AVATAR)
 })
-
-const avatarDialogVisible = ref(false)
-const avatarCandidates = ref(DEFAULT_AVATARS)
-const selectedAvatar = ref('')
-
-const openAvatarDialog = () => {
-  selectedAvatar.value = currentAvatar.value || avatarCandidates.value[0] || ''
-  avatarDialogVisible.value = true
-}
-
-const selectAvatar = (url) => { selectedAvatar.value = url }
-
-const persistMerchantUser = (patch) => {
-  const raw = localStorage.getItem('merchantUser')
-  const parsed = raw ? JSON.parse(raw) : {}
-  const merged = { ...(parsed || {}), ...(patch || {}) }
-  localStorage.setItem('merchantUser', JSON.stringify(merged))
-  currentUser.value = merged
-}
-
-const applyAvatar = async () => {
-  if (!selectedAvatar.value) return
-  const url = selectedAvatar.value
-  persistMerchantUser({ avatarUrl: url })
-  avatarDialogVisible.value = false
-  ElMessage.success('已保存')
-}
-
-const uploadAvatar = async (options) => {
-  try {
-    const res = await uploadApi.uploadImage(options.file)
-    const url = res?.data?.url || ''
-    if (url) {
-      selectedAvatar.value = url
-      persistMerchantUser({ avatarUrl: url })
-      avatarDialogVisible.value = false
-      ElMessage.success('上传成功')
-    } else {
-      ElMessage.error('上传失败')
-    }
-    options?.onSuccess?.(res?.data, options.file)
-  } catch (error) {
-    options?.onError?.(error)
-    ElMessage.error('上传失败')
-  }
-}
 
 const loadHeaderCounters = async () => {
   try {
@@ -367,12 +291,6 @@ const openPlatformSupportWindow = () => {
   const href = router.resolve({ path: '/platform-support', query: { standalone: '1', shell: '1' } }).href
   const w = window.open(href, '_blank')
   if (!w) router.push('/platform-support')
-}
-
-const handleUserMenuCommand = (command) => {
-  if (command === 'setting') { router.push('/merchant-setting'); return }
-  if (command === 'audit') { router.push('/merchant'); return }
-  if (command === 'profile') { openAvatarDialog() }
 }
 
 watch(() => route.path, () => {
@@ -888,38 +806,187 @@ html, body {
   display: none;
 }
 
-.goods-inner-page .content-wrapper {
+.merchant-full-page .content-wrapper {
   display: block;
 }
 
-.goods-inner-page .right-sidebar {
+.merchant-full-page .right-sidebar {
   display: none;
 }
 
-.goods-inner-page .main-content {
+.merchant-full-page .main-content {
   width: 100%;
   max-width: 100%;
   padding: 0;
 }
 
-/* 用户菜单下拉 */
-.merchant-user-menu .el-dropdown-menu__item {
-  color: var(--text-secondary);
-  font-weight: 700;
+.merchant-full-page .center-content > div > :not(.merchant-page-hero) {
+  width: calc(100% - 48px);
+  max-width: 1172px;
+  margin-right: auto;
+  margin-left: auto;
 }
 
-.merchant-user-menu .el-dropdown-menu__item:hover {
+.merchant-full-page .center-content > div > .merchant-page-hero {
+  width: 100%;
+  max-width: none;
+}
+
+.merchant-full-page .center-content > .goods-page > :not(.merchant-page-hero) {
+  width: 100%;
+  max-width: none;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.merchant-full-page .center-content > .goods-page > .merchant-page-hero + * {
+  margin-top: 0;
+}
+
+/* 商家普通管理页通用 Hero，直接复用商品管理页视觉规则 */
+.merchant-page-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 28%, rgba(230, 0, 18, 0.12), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+}
+
+.merchant-page-hero::after {
+  content: "";
+  position: absolute;
+  top: 38px;
+  right: max(24px, calc((100vw - 1220px) / 2 + 24px));
+  width: min(34vw, 430px);
+  height: min(34vw, 430px);
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 0, 18, 0.1), rgba(230, 0, 18, 0.03) 42%, transparent 70%);
+  filter: blur(4px);
+}
+
+.merchant-page-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.merchant-page-hero-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 42px 0 36px;
+  box-sizing: border-box;
+}
+
+.merchant-page-kicker {
+  width: fit-content;
   color: var(--brand-red);
-  background: #fff7f8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
-/* 头像弹窗 */
-.avatar-panel { display: flex; flex-direction: column; gap: 14px; }
-.avatar-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
-.avatar-item { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #f8fafc; }
-.avatar-item.active { border-color: #e60012; box-shadow: 0 0 0 3px rgba(230, 0, 18, 0.15); }
-.avatar-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.avatar-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.merchant-page-title {
+  max-width: 640px;
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(40px, 4.1vw, 48px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.merchant-page-desc {
+  max-width: 560px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.merchant-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.merchant-chip-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.merchant-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 20px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.028);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.merchant-chip:hover,
+.merchant-chip.active {
+  border-color: var(--brand-red);
+  background: rgba(255, 232, 234, 0.72);
+  color: var(--brand-red);
+  box-shadow: 0 8px 18px rgba(230, 0, 18, 0.06);
+}
+
+.merchant-primary-action {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 28px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.merchant-full-page .center-content > div > :not(.merchant-page-hero):first-of-type,
+.merchant-full-page .center-content > div > .merchant-page-hero + * {
+  margin-top: 24px;
+}
+
+.merchant-full-page .center-content > div > :not(.merchant-page-hero):last-child {
+  margin-bottom: 48px;
+}
+
+.merchant-profile-shell .main-content {
+  width: 100%;
+  max-width: 1220px;
+  padding: 30px 24px 48px;
+  box-sizing: border-box;
+}
+
+.merchant-profile-shell .content-wrapper {
+  display: block;
+}
+
+.merchant-profile-shell .right-sidebar {
+  display: none;
+}
 
 /* 响应式 */
 @media (max-width: 900px) {
@@ -965,6 +1032,22 @@ html, body {
 
   .right-sidebar {
     display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .merchant-page-hero-inner {
+    min-height: auto;
+    padding: 32px 0 28px;
+  }
+
+  .merchant-page-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .merchant-primary-action {
+    width: 100%;
   }
 }
 </style>

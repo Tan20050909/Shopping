@@ -198,7 +198,7 @@ onMounted(async () => {
   <main class="page stack shop-page">
     <section v-if="shop" class="shop-hero">
       <div class="container shop-hero-inner">
-        <img class="shop-logo" :src="shopLogo()" :alt="shop.merchantName" />
+        <img class="shop-logo" :src="shopLogo()" :alt="shop.merchantName" @error="(e) => (e.target.src = resolveLogo(''))" />
         <div class="stack">
           <span class="muted">AllMart</span>
           <h1>{{ shop.merchantName }}</h1>

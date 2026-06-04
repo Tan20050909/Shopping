@@ -284,7 +284,7 @@ public class ShoppingService {
 
    public Map<String, Object> goodsDetail(long goodsId, Integer sourceType) {
       Map<String, Object> detail = this.one(
-         "SELECT g.*, c.cate_name, m.merchant_name\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE g.goods_id = ? AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0 AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\n",
+         "SELECT g.*, c.cate_name, m.merchant_name, m.shop_logo\nFROM tb_goods g\nLEFT JOIN tb_category c ON c.cate_id = g.cate_id\nLEFT JOIN tb_merchant m ON m.merchant_id = g.merchant_id\nWHERE g.goods_id = ? AND g.status = 1 AND g.audit_status = 1 AND g.is_deleted = 0 AND m.audit_status = 1 AND m.status = 1 AND m.is_deleted = 0\n",
          goodsId
       );
       if (detail == null) {

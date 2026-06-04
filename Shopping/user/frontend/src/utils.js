@@ -5,6 +5,8 @@ export function shopLogo(logo) {
   const fallback = '/brand-assets/avatars/default-avatar-01.png'
   if (!value || value.startsWith('/default/')) return fallback
   if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:')) return value
+  if (value.startsWith('/brand-assets/')) return value
+  if (value.startsWith('brand-assets/')) return `/${value}`
   if (value.startsWith('/shop/')) return `${merchantBase}/uploads${value}`
   if (value.startsWith('shop/')) return `${merchantBase}/uploads/${value}`
   if (value.startsWith('/uploads/')) return `${merchantBase}${value}`

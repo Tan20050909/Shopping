@@ -120,7 +120,7 @@ function pictureOf(pic) {
 }
 
 function shopLogo() {
-  return resolveLogo(detail.value?.merchantLogo || '')
+  return resolveLogo(detail.value?.shopLogo || detail.value?.shop_logo || detail.value?.merchantLogo || '')
 }
 
 function fallbackDetailImage() {

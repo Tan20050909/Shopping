@@ -1,5 +1,5 @@
 <template>
-  <div
+  <main
     ref="pageRef"
     class="cs-page chat-page"
     :class="{ standalone: isStandalone, embedded: isEmbedded, shell: isShell, 'standalone-shell-page': isStandaloneShell }"
@@ -13,7 +13,7 @@
       </div>
     </section>
 
-    <component :is="isStandaloneShell ? 'div' : ElCard" class="cs-card" shadow="never">
+    <component :is="isStandaloneShell ? 'section' : ElCard" :class="{ 'cs-card': !isStandaloneShell }" shadow="never">
       <template #header v-if="!(isEmbedded || isShell)">
         <div class="card-header">
           <span>客服管理</span>
@@ -21,14 +21,14 @@
         </div>
       </template>
 
-      <div class="cs-layout chat-shell">
-        <aside class="cs-left session-panel allmart-chat-card">
+      <section :class="isStandaloneShell ? 'chat-shell' : 'cs-layout'">
+        <aside :class="['session-panel', 'allmart-chat-card', { 'cs-left': !isStandaloneShell }]">
           <div class="panel-title">
             <span>最近会话</span>
             <small>{{ contacts.length }} 个会话</small>
           </div>
           <el-input v-model="keyword" class="session-search" placeholder="搜索昵称或用户ID" clearable />
-          <div class="cs-list session-list">
+          <div :class="['session-list', { 'cs-list': !isStandaloneShell }]">
             <div v-if="!filteredContacts.length" class="session-empty">
               <strong>暂无会话</strong>
               <span>用户消息会显示在这里。</span>
@@ -36,33 +36,32 @@
             <div
               v-for="c in filteredContacts"
               :key="c.key"
-              class="cs-item session-item"
-              :class="{ active: c.key === activeKey }"
+              :class="['session-item', { 'cs-item': !isStandaloneShell, active: c.key === activeKey }]"
               @click="selectContact(c)"
             >
-              <div class="cs-item-avatar session-avatar">
+              <div :class="['session-avatar', { 'cs-item-avatar': !isStandaloneShell }]">
                 <img v-if="avatarUrl(c)" class="avatar-img" :src="avatarUrl(c)" alt="" @error="() => markAvatarBroken(c?.avatar)" />
                 <span v-else>{{ avatarText(c) }}</span>
               </div>
-              <div class="cs-item-main session-copy">
-                <div class="cs-item-title">
+              <div :class="['session-copy', { 'cs-item-main': !isStandaloneShell }]">
+                <div :class="{ 'cs-item-title': !isStandaloneShell }">
                   <span class="nick">{{ c.nick }}</span>
                 </div>
-                <div class="cs-item-sub">{{ c.sub }}</div>
+                <div :class="{ 'cs-item-sub': !isStandaloneShell }">{{ c.sub }}</div>
               </div>
               <div class="session-extra">
                 <small>{{ c.key.replace('u:', 'ID ') }}</small>
               </div>
             </div>
           </div>
-          <button type="button" class="session-footer-btn" @click="loadContacts">刷新会话</button>
+          <button type="button" class="session-footer-btn" @click="loadContacts">查看全部会话</button>
         </aside>
 
-        <section class="cs-center conversation allmart-chat-card">
-          <div v-if="activeContact" class="cs-chat">
-            <div class="cs-chat-head chat-head allmart-chat-section">
+        <section :class="['conversation', 'allmart-chat-card', { 'cs-center': !isStandaloneShell }]">
+          <div v-if="activeContact" :class="isStandaloneShell ? 'conversation-body' : 'cs-chat'">
+            <header :class="['chat-head', 'allmart-chat-section', { 'cs-chat-head': !isStandaloneShell }]">
               <div class="head-left chat-head-main">
-                <div class="head-avatar chat-head-logo">
+                <div :class="['chat-head-logo', { 'head-avatar': !isStandaloneShell }]">
                   <img
                     v-if="avatarUrl(activeContact)"
                     class="avatar-img"
@@ -81,9 +80,9 @@
                 <el-button class="chat-action-btn" plain @click="openFaqDialog">快捷问答</el-button>
                 <el-button class="chat-action-btn" plain @click="openNewPage(activeContact)">新页打开</el-button>
               </div>
-            </div>
+            </header>
 
-            <div ref="chatBodyRef" class="cs-chat-body messages" @click="onChatAreaClick">
+            <div ref="chatBodyRef" :class="['messages', { 'cs-chat-body': !isStandaloneShell }]" @click="onChatAreaClick">
               <div class="order-strip" v-if="unfinishedOrders.length" @click.stop>
                 <div class="strip-title">最近未完成订单</div>
                 <div class="strip-list">
@@ -187,7 +186,7 @@
               </div>
             </div>
 
-            <div class="cs-chat-foot composer">
+            <div :class="['composer', { 'cs-chat-foot': !isStandaloneShell }]">
               <div class="tool-row composer-tools">
                 <el-popover placement="top-start" width="280" trigger="click">
                   <template #reference>
@@ -237,7 +236,7 @@
           <el-empty v-else description="请选择一个用户开始聊天" />
         </section>
 
-        <aside class="cs-side assistant-side" v-if="isStandalone">
+        <aside :class="isStandaloneShell ? 'shop-side' : 'cs-side'" v-if="isStandalone">
           <div class="side-card side-block allmart-chat-card">
             <div class="side-head">
               <div class="side-title">用户订单</div>
@@ -290,7 +289,7 @@
             </ul>
           </div>
         </aside>
-      </div>
+      </section>
     </component>
 
     <footer v-if="isStandaloneShell" class="chat-shell-footer">
@@ -346,7 +345,7 @@
         </div>
       </div>
     </el-dialog>
-  </div>
+  </main>
 </template>
 
 <script setup>
@@ -1491,7 +1490,8 @@ const openShop = () => {
   font-size: 11px;
 }
 
-.cs-chat {
+.cs-chat,
+.conversation-body {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2252,9 +2252,10 @@ const openShop = () => {
   position: static;
   inset: auto;
   min-height: 100vh;
-  height: 100vh;
+  height: auto;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -2293,11 +2294,7 @@ const openShop = () => {
   color: #e60012;
 }
 
-.cs-page.standalone.shell .cs-card {
-  display: contents;
-}
-
-.cs-page.standalone.shell .cs-layout.chat-shell {
+.chat-page.standalone.shell .chat-shell {
   width: min(1680px, calc(100vw - 64px));
   height: clamp(720px, calc(100vh - 150px), 860px);
   min-height: 720px;
@@ -2310,12 +2307,14 @@ const openShop = () => {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  display: grid;
   grid-template-columns: 348px minmax(680px, 1fr) 332px;
   gap: 24px;
+  align-items: stretch;
 }
 
-.cs-page.standalone.shell.embedded .cs-layout.chat-shell {
+.chat-page.standalone.shell.embedded .chat-shell {
   grid-template-columns: minmax(280px, 348px) minmax(520px, 1fr) minmax(300px, 332px);
   gap: 24px;
 }
@@ -2334,7 +2333,10 @@ const openShop = () => {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 16px;
   height: 100%;
+  min-height: 0;
   padding: 26px 22px;
+  box-sizing: border-box;
+  overflow: hidden;
   border-right: 1px solid #eeeeee;
 }
 
@@ -2383,7 +2385,7 @@ const openShop = () => {
   text-align: center;
 }
 
-.cs-item.session-item {
+.session-item {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 56px;
   gap: 14px;
@@ -2393,9 +2395,10 @@ const openShop = () => {
   border: 1px solid #eeeeee;
   border-radius: 16px;
   background: #fff;
+  cursor: pointer;
 }
 
-.cs-page.standalone.shell .cs-item.session-item {
+.cs-page.standalone.shell .session-item {
   grid-template-columns: 52px minmax(0, 1fr) 56px;
   gap: 14px;
   min-height: 86px;
@@ -2403,8 +2406,8 @@ const openShop = () => {
   border-radius: 16px;
 }
 
-.cs-item.session-item.active,
-.cs-item.session-item:hover {
+.session-item.active,
+.session-item:hover {
   border-color: rgba(230, 0, 18, 0.12);
   background: #fff3f4;
   box-shadow: 0 10px 24px rgba(230, 0, 18, 0.05);
@@ -2440,7 +2443,7 @@ const openShop = () => {
   white-space: nowrap;
 }
 
-.session-copy .cs-item-sub {
+.session-copy > div:last-child {
   display: -webkit-box;
   margin-top: 6px;
   overflow: hidden;
@@ -2460,6 +2463,7 @@ const openShop = () => {
 }
 
 .session-footer-btn {
+  flex-shrink: 0;
   min-height: 44px;
   border: 1px solid #eeeeee;
   border-radius: 999px;
@@ -2476,6 +2480,7 @@ const openShop = () => {
   min-width: 0;
   height: 100%;
   min-height: 0;
+  box-sizing: border-box;
   overflow: hidden;
   background: #fff;
 }
@@ -2488,6 +2493,10 @@ const openShop = () => {
 }
 
 .chat-head.allmart-chat-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
   flex: 0 0 auto;
   min-height: 94px;
   margin: 20px 20px 0;
@@ -2503,7 +2512,10 @@ const openShop = () => {
 }
 
 .chat-head-main {
+  display: flex;
+  align-items: center;
   gap: 20px;
+  min-width: 0;
 }
 
 .chat-head-logo,
@@ -2551,8 +2563,16 @@ const openShop = () => {
   border-radius: 999px;
 }
 
-.cs-chat-body.messages {
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.messages {
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2617,10 +2637,11 @@ const openShop = () => {
   border-radius: 14px;
 }
 
-.assistant-side {
+.shop-side {
   display: grid;
   align-content: start;
   gap: 18px;
+  height: 100%;
   min-height: 0;
   padding-left: 0;
   overflow-y: auto;
@@ -2767,17 +2788,16 @@ const openShop = () => {
 
 @media (max-width: 1180px) {
   .chat-shell-breadcrumb-inner,
-  .chat-shell-footer-inner,
-  .cs-page.standalone.shell .cs-card {
+  .chat-shell-footer-inner {
     width: min(100vw - 24px, 1680px);
   }
 
-  .cs-page.standalone.shell .cs-layout.chat-shell,
-  .cs-page.standalone.shell.embedded .cs-layout.chat-shell {
+  .chat-page.standalone.shell .chat-shell,
+  .chat-page.standalone.shell.embedded .chat-shell {
     grid-template-columns: 300px minmax(0, 1fr);
   }
 
-  .assistant-side {
+  .shop-side {
     display: none;
   }
 }
@@ -2787,9 +2807,10 @@ const openShop = () => {
     padding: 10px 0;
   }
 
-  .cs-page.standalone.shell .cs-layout.chat-shell {
-    height: auto;
-    min-height: 0;
+  .chat-page.standalone.shell .chat-shell {
+    height: max(600px, calc(100vh - 110px));
+    min-height: 600px;
+    max-height: 790px;
   }
 
   .chat-shell-footer {
@@ -2804,17 +2825,17 @@ const openShop = () => {
 @media (max-width: 720px) {
   .chat-shell-breadcrumb-inner,
   .chat-shell-footer-inner,
-  .cs-page.standalone.shell .cs-layout.chat-shell {
+  .chat-page.standalone.shell .chat-shell {
     width: calc(100vw - 16px);
   }
 
-  .cs-page.standalone.shell .cs-layout.chat-shell {
+  .chat-page.standalone.shell .chat-shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
 
   .session-panel,
-  .assistant-side {
+  .shop-side {
     display: none;
   }
 

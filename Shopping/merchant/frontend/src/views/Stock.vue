@@ -9,7 +9,7 @@
         </div>
       </div>
     </section>
-    <el-card>
+    <el-card shadow="never" class="merchant-content-card">
       <template #header>
         <div class="head">
           <span>库存管理</span>

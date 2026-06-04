@@ -9,7 +9,7 @@
         </div>
       </div>
     </section>
-    <el-card style="margin-bottom: 20px">
+    <el-card shadow="never" class="merchant-content-card">
       <template #header><span>财务概览</span></template>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="可用余额">¥ {{ toMoney(finance?.balance) }}</el-descriptions-item>
@@ -21,7 +21,7 @@
       </el-descriptions>
     </el-card>
 
-    <el-card style="margin-bottom: 20px">
+    <el-card shadow="never" class="merchant-content-card">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <span>金额来源/支出明细（资金流水）</span>
@@ -53,7 +53,7 @@
       </el-table>
     </el-card>
 
-    <el-card style="margin-bottom: 20px">
+    <el-card shadow="never" class="merchant-content-card">
       <template #header>
         <span>提现申请</span>
       </template>
@@ -79,7 +79,7 @@
       </el-form>
     </el-card>
 
-    <el-card>
+    <el-card shadow="never" class="merchant-content-card">
       <template #header><span>提现记录</span></template>
       <el-table :data="withdrawList" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />

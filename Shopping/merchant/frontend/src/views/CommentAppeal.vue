@@ -9,7 +9,7 @@
         </div>
       </div>
     </section>
-    <el-card shadow="never" class="page-card">
+    <el-card shadow="never" class="merchant-content-card">
       <template #header>
         <div class="head">
           <div>
@@ -370,10 +370,6 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.page-card :deep(.el-card__header) {
-  padding: 14px 16px;
 }
 
 .head {

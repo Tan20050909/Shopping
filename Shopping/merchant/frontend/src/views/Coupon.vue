@@ -9,7 +9,7 @@
         </div>
       </div>
     </section>
-    <el-card style="margin-bottom: 20px">
+    <el-card shadow="never" class="merchant-content-card">
       <template #header>
         <div class="card-header">
           <span>优惠券管理</span>

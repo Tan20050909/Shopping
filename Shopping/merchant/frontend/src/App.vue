@@ -970,6 +970,25 @@ html, body {
   font-weight: 800;
 }
 
+.merchant-content-card {
+  width: min(1180px, calc(100vw - 64px));
+  margin: 0 auto 56px;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(17, 17, 17, 0.035);
+  overflow: hidden;
+}
+
+.merchant-content-card .el-card__header {
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.merchant-content-card .el-card__body {
+  padding: 20px 22px 24px;
+}
+
 .merchant-full-page .center-content > div > :not(.merchant-page-hero):first-of-type,
 .merchant-full-page .center-content > div > .merchant-page-hero + * {
   margin-top: 24px;
@@ -977,6 +996,18 @@ html, body {
 
 .merchant-full-page .center-content > div > :not(.merchant-page-hero):last-child {
   margin-bottom: 48px;
+}
+
+.merchant-full-page .center-content > div > .merchant-content-card {
+  width: min(1180px, calc(100vw - 64px));
+  max-width: none;
+  margin-right: auto;
+  margin-bottom: 56px;
+  margin-left: auto;
+}
+
+.merchant-full-page .center-content > div > .merchant-content-card:last-child {
+  margin-bottom: 56px;
 }
 
 .merchant-profile-shell .main-content {

@@ -1,441 +1,69 @@
 <template>
-  <div class="workspace-page">
-    <!-- 通用Banner轮播 -->
-    <section class="banner-section">
-      <div class="banner-slider" @mouseenter="pauseBanner" @mouseleave="resumeBanner">
-        <div class="banner-slide"
-             v-for="(slide, idx) in roleBanners" :key="idx"
-             :class="{ active: currentBanner === idx }"
-             :style="{ background: slide.bg }"
-             @click="router.push(slide.link)">
-          <div class="banner-inner">
-            <div class="banner-content">
-              <div class="banner-tag">{{ slide.tag }}</div>
-              <h1 class="banner-title">{{ slide.title }}</h1>
-              <p class="banner-desc">{{ slide.desc }}</p>
-            </div>
-            <div class="banner-visual">
-              <div class="banner-visual-circle"></div>
-              <span class="banner-icon-text">{{ slide.icon }}</span>
-            </div>
+  <div class="platform-dashboard">
+    <div class="dashboard-shell">
+      <section class="platform-hero platform-card">
+        <div class="hero-copy">
+          <span class="hero-kicker">ALLMART OPERATIONS</span>
+          <h1>平台中心</h1>
+          <p class="hero-welcome">欢迎回来，AllMart 平台管理员</p>
+          <p class="hero-desc">统一掌握商家、订单与平台运营情况，提升管理效率</p>
+          <div class="hero-actions">
+            <button class="hero-primary" @click="router.push('/report')">查看数据中心</button>
+            <button class="hero-secondary" @click="router.push('/merchant')">管理商家</button>
           </div>
-          <div class="banner-click-hint">点击进入 →</div>
         </div>
-      </div>
-      <div class="banner-dots">
-        <span v-for="(_, idx) in roleBanners" :key="idx"
-              :class="{ active: currentBanner === idx }"
-              @click="currentBanner = idx"></span>
-      </div>
-    </section>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="hero-visual-head"><span>今日运营概览</span><span class="live-dot">实时</span></div>
+          <div class="hero-visual-value">¥{{ stats.todayGMV || 0 }}</div>
+          <div class="hero-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="hero-visual-foot"><span>支付订单 {{ stats.todayOrders || 0 }}</span><span>退款率 {{ stats.refundRate || 0 }}%</span></div>
+        </div>
+      </section>
 
-    <!-- ==================== 超级管理员工作台 ==================== -->
-    <template v-if="currentRole === 'SUPER_ADMIN'">
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>平台运营<span>总览</span></h2><p>全局视角掌控平台关键指标</p></div>
-          <div class="stat-grid stat-grid-5" v-loading="statsLoading">
-            <div class="stat-card" v-for="item in adminStats" :key="item.label" @click="router.push(item.path)">
-              <div class="stat-icon" :style="{ background: item.iconBg }"><el-icon :size="24"><component :is="item.icon" /></el-icon></div>
-              <div class="stat-info"><div class="stat-label">{{ item.label }}</div><div class="stat-value" :style="{ color: item.color || '#E60012' }">{{ item.value }}</div></div>
-            </div>
-          </div>
-        </div>
+      <section class="metrics-grid" v-loading="statsLoading">
+        <article v-for="item in coreMetrics" :key="item.label" class="metric-card" @click="router.push(item.path)">
+          <div class="metric-top"><span class="metric-label">{{ item.label }}</span><span class="metric-mark"></span></div>
+          <strong>{{ item.value }}</strong><span class="metric-note">{{ item.note }}</span>
+        </article>
       </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-row">
-            <div class="ws-col-8">
-              <div class="ws-header"><h2>订单趋势</h2>
-                <div class="trend-tabs"><span :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadTrend()">近7天</span><span :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadTrend()">近30天</span></div>
-              </div>
-              <div class="chart-box"><div ref="orderChartRef" style="height:340px"></div></div>
-            </div>
-            <div class="ws-col-4">
-              <div class="ws-header"><h2>订单状态</h2></div>
-              <div class="chart-box"><div ref="pieChartRef" style="height:280px"></div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>待处理<span>紧急事项</span></h2></div>
-          <div class="action-grid">
-            <div class="action-card" v-for="item in allPendingItems" :key="item.label" @click="router.push(item.path)">
-              <div class="action-num" :class="{ danger: item.count > 0 }">{{ item.count }}</div>
-              <div class="action-label">{{ item.label }}</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>SLA<span>风险预警</span></h2></div>
-          <div class="sla-grid">
-            <div v-for="item in slaItems" :key="item.label" class="sla-card" @click="router.push(item.path)">
-              <div class="sla-title">{{ item.label }}</div>
-              <div class="sla-value" :class="{ danger: item.count > 0 }">{{ item.count }}</div>
-              <div class="sla-desc">{{ item.desc }}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section" v-if="insights.length">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>智能<span>洞察</span></h2></div>
-          <div class="insight-list">
-            <div v-for="ins in insights" :key="ins.insightId" class="insight-card">
-              <span class="insight-icon">{{ severityMap[ins.severity]?.icon || '💡' }}</span>
-              <div class="insight-body">
-                <div class="insight-top"><el-tag :type="ins.severity===3?'danger':ins.severity===2?'warning':'info'" size="small" effect="dark" round>{{ severityMap[ins.severity]?.label }}</el-tag><span class="insight-title">{{ ins.title }}</span></div>
-                <div class="insight-text">{{ ins.content }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
 
-    <!-- ==================== 运营专员工作台 ==================== -->
-    <template v-if="currentRole === 'OPERATOR'">
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>运营<span>核心指标</span></h2><p>今日运营数据一目了然</p></div>
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-card" v-for="item in operatorStats" :key="item.label">
-              <div class="stat-icon" :style="{ background: item.iconBg }"><el-icon :size="24"><component :is="item.icon" /></el-icon></div>
-              <div class="stat-info"><div class="stat-label">{{ item.label }}</div><div class="stat-value" :style="{ color: item.color }">{{ item.value }}</div></div>
-            </div>
-          </div>
-        </div>
+      <section class="chart-grid">
+        <article class="platform-card chart-card trend-card">
+          <div class="section-head"><div><h2>平台交易趋势</h2><p>订单数量与销售额走势</p></div><div class="period-switch"><button :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadTrend()">近7天</button><button :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadTrend()">近30天</button></div></div>
+          <div ref="orderChartRef" class="chart-canvas" v-loading="trendLoading"></div>
+        </article>
+        <article class="platform-card chart-card status-card">
+          <div class="section-head"><div><h2>订单状态分布</h2><p>当前订单结构占比</p></div></div>
+          <div ref="pieChartRef" class="chart-canvas" v-loading="trendLoading"></div>
+        </article>
       </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>审核<span>队列</span></h2><p>待审核商户与商品，优先处理</p></div>
-          <div class="queue-row">
-            <div class="queue-card queue-merchant" @click="router.push('/merchant')">
-              <div class="queue-badge">待审核</div>
-              <div class="queue-num">{{ stats.merchantPendingAudit || 0 }}</div>
-              <div class="queue-label">商户入驻申请</div>
-              <div class="queue-action">立即审核 →</div>
-            </div>
-            <div class="queue-card queue-goods" @click="router.push('/goods')">
-              <div class="queue-badge">待审核</div>
-              <div class="queue-num">{{ stats.goodsPendingAudit || 0 }}</div>
-              <div class="queue-label">商品上架申请</div>
-              <div class="queue-action">立即审核 →</div>
-            </div>
-            <div class="queue-card queue-coupon" @click="router.push('/coupon')">
-              <div class="queue-badge">管理</div>
-              <div class="queue-num">{{ stats.expiringCoupons || 0 }}</div>
-              <div class="queue-label">临期优惠券</div>
-              <div class="queue-action">去管理 →</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>营销<span>工作台</span></h2></div>
-          <div class="marketing-grid">
-            <div class="mk-card" v-for="card in marketingCards" :key="card.title" @click="router.push(card.path)">
-              <div class="mk-icon" :style="{ background: card.bg }">{{ card.emoji }}</div>
-              <div class="mk-info"><div class="mk-title">{{ card.title }}</div><div class="mk-desc">{{ card.desc }}</div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>运营<span>快捷入口</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in operatorQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
 
-    <!-- ==================== 客服专员工作台 ==================== -->
-    <template v-if="currentRole === 'SERVICE'">
-      <section class="ws-section service-hero">
-        <div class="ws-inner">
-          <div class="service-hero-grid">
-            <div class="sh-card sh-after-sale" @click="router.push('/after-sale')">
-              <div class="sh-emoji">🔄</div>
-              <div class="sh-num">{{ stats.afterSalePending || 0 }}</div>
-              <div class="sh-label">待处理售后</div>
-              <div class="sh-sub">需在48小时内响应</div>
-            </div>
-            <div class="sh-card sh-dispute" @click="router.push('/dispute')">
-              <div class="sh-emoji">⚖️</div>
-              <div class="sh-num">{{ stats.disputePending || 0 }}</div>
-              <div class="sh-label">待处理纠纷</div>
-              <div class="sh-sub">需在72小时内裁决</div>
-            </div>
-            <div class="sh-card sh-chat" @click="router.push('/chat')">
-              <div class="sh-emoji">💬</div>
-              <div class="sh-num">—</div>
-              <div class="sh-label">客服消息</div>
-              <div class="sh-sub">实时响应用户咨询</div>
-            </div>
-          </div>
-        </div>
+      <section class="dual-grid">
+        <article class="platform-card list-card">
+          <div class="section-head"><div><h2>待处理事项</h2><p>优先处理平台运营任务</p></div><button class="text-button" @click="router.push('/notification')">查看通知</button></div>
+          <div class="pending-grid"><button v-for="item in allPendingItems" :key="item.label" @click="router.push(item.path)"><span>{{ item.label }}</span><strong :class="{ alert: item.count > 0 }">{{ item.count }}</strong><el-icon><ArrowRight /></el-icon></button></div>
+        </article>
+        <article class="platform-card list-card">
+          <div class="section-head"><div><h2>风险预警</h2><p>关注临期与异常运营事项</p></div><button class="text-button" @click="router.push('/abnormal')">风险管理</button></div>
+          <div class="risk-list"><button v-for="item in slaItems" :key="item.label" @click="router.push(item.path)"><span class="risk-dot" :class="{ alert: item.count > 0 }"></span><span class="risk-copy"><b>{{ item.label }}</b><small>{{ item.desc }}</small></span><strong>{{ item.count }}</strong></button></div>
+        </article>
       </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>SLA<span>超时预警</span></h2><p>优先处理即将超时的工单</p></div>
-          <div class="sla-grid">
-            <div class="sla-card sla-urgent" @click="router.push('/after-sale')">
-              <div class="sla-title">售后超48小时</div>
-              <div class="sla-value danger">{{ stats.afterSaleOverdue || 0 }}</div>
-              <div class="sla-desc">已超时，用户可能投诉升级</div>
-            </div>
-            <div class="sla-card sla-warn" @click="router.push('/after-sale')">
-              <div class="sla-title">售后36小时预警</div>
-              <div class="sla-value" style="color:#E6A23C">{{ stats.afterSaleDueSoon || 0 }}</div>
-              <div class="sla-desc">即将触达48小时处理线</div>
-            </div>
-            <div class="sla-card sla-urgent" @click="router.push('/dispute')">
-              <div class="sla-title">纠纷超72小时</div>
-              <div class="sla-value danger">{{ stats.disputeOverdue || 0 }}</div>
-              <div class="sla-desc">建议尽快仲裁或给出结论</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>订单<span>催发货</span></h2><p>提醒商家及时发货</p></div>
-          <div class="remind-row">
-            <div class="remind-card" @click="router.push('/order')">
-              <div class="remind-icon">📦</div>
-              <div class="remind-info"><div class="remind-label">待发货订单</div><div class="remind-hint">前往订单管理提醒商家发货</div></div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>客服<span>快捷操作</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in serviceQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
 
-    <!-- ==================== 审核专员工作台 ==================== -->
-    <template v-if="currentRole === 'AUDITOR'">
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>审计<span>概览</span></h2><p>平台运营合规与数据审计</p></div>
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-card" v-for="item in auditorStats" :key="item.label" @click="router.push(item.path)">
-              <div class="stat-icon" :style="{ background: item.iconBg }"><el-icon :size="24"><component :is="item.icon" /></el-icon></div>
-              <div class="stat-info"><div class="stat-label">{{ item.label }}</div><div class="stat-value" :style="{ color: item.color }">{{ item.value }}</div></div>
-            </div>
-          </div>
-        </div>
+      <section class="bottom-grid">
+        <article class="platform-card insight-panel">
+          <div class="section-head"><div><h2>智能洞察 / 运营公告</h2><p>基于平台数据生成的运营提示</p></div></div>
+          <div v-if="insights.length" class="insight-list"><div v-for="ins in insights" :key="ins.insightId" class="insight-item"><span class="insight-level" :class="'level-' + ins.severity">{{ severityMap[ins.severity]?.label || '提示' }}</span><div><b>{{ ins.title }}</b><p>{{ ins.content }}</p></div></div></div>
+          <div v-else class="empty-state"><span>暂无新的运营洞察</span><small>平台运行平稳，后续提示将在这里展示</small></div>
+        </article>
+        <article class="platform-card quick-panel">
+          <div class="section-head"><div><h2>快捷入口</h2><p>快速进入常用平台服务</p></div></div>
+          <div class="quick-grid"><button v-for="item in quickEntries" :key="item.label" @click="router.push(item.path)"><span class="quick-icon"><el-icon><component :is="item.icon" /></el-icon></span><span>{{ item.label }}</span><el-icon class="quick-arrow"><ArrowRight /></el-icon></button></div>
+        </article>
       </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-row">
-            <div class="ws-col-6">
-              <div class="ws-header"><h2>销售额趋势</h2>
-                <div class="trend-tabs"><span :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadTrend()">7天</span><span :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadTrend()">30天</span></div>
-              </div>
-              <div class="chart-box"><div ref="orderChartRef" style="height:300px"></div></div>
-            </div>
-            <div class="ws-col-6">
-              <div class="ws-header"><h2>订单状态分布</h2></div>
-              <div class="chart-box"><div ref="pieChartRef" style="height:300px"></div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>审计<span>快捷入口</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in auditorQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-
-    <!-- ==================== 风控专员工作台 ==================== -->
-    <template v-if="currentRole === 'RISK_OFFICER'">
-      <section class="ws-section risk-hero">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>风控<span>态势感知</span></h2><p>实时监控平台风险指标</p></div>
-          <div class="risk-indicator-row">
-            <div class="ri-card" @click="router.push('/abnormal')">
-              <div class="ri-ring ri-danger"><div class="ri-ring-inner">{{ stats.abnormalPending || 0 }}</div></div>
-              <div class="ri-label">异常订单</div>
-            </div>
-            <div class="ri-card" @click="router.push('/merchant')">
-              <div class="ri-ring ri-warn"><div class="ri-ring-inner">{{ stats.frozenMerchants || 0 }}</div></div>
-              <div class="ri-label">平台冻结商户</div>
-            </div>
-            <div class="ri-card" @click="router.push('/goods')">
-              <div class="ri-ring ri-info"><div class="ri-ring-inner">{{ stats.lowStockGoods || 0 }}</div></div>
-              <div class="ri-label">低库存商品</div>
-            </div>
-            <div class="ri-card" @click="router.push('/user')">
-              <div class="ri-ring ri-warn"><div class="ri-ring-inner">—</div></div>
-              <div class="ri-label">风险标签用户</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>异常<span>订单队列</span></h2><p>需要重点关注和处理</p></div>
-          <div class="action-grid">
-            <div class="action-card" @click="router.push('/abnormal')">
-              <div class="action-num danger">{{ stats.abnormalPending || 0 }}</div>
-              <div class="action-label">待处理异常</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-            <div class="action-card" @click="router.push('/dispute')">
-              <div class="action-num danger">{{ stats.disputePending || 0 }}</div>
-              <div class="action-label">待处理纠纷</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-            <div class="action-card" @click="router.push('/after-sale')">
-              <div class="action-num">{{ stats.afterSaleOverdue || 0 }}</div>
-              <div class="action-label">售后超时</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>风控<span>快捷操作</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in riskQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-
-    <!-- ==================== 财务专员工作台 ==================== -->
-    <template v-if="currentRole === 'FINANCE_OFFICER'">
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>财务<span>总览</span></h2><p>平台资金与退款数据</p></div>
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-card" v-for="item in financeStats" :key="item.label">
-              <div class="stat-icon" :style="{ background: item.iconBg }"><el-icon :size="24"><component :is="item.icon" /></el-icon></div>
-              <div class="stat-info"><div class="stat-label">{{ item.label }}</div><div class="stat-value" :style="{ color: item.color }">{{ item.value }}</div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-row">
-            <div class="ws-col-8">
-              <div class="ws-header"><h2>销售额趋势</h2>
-                <div class="trend-tabs"><span :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadTrend()">7天</span><span :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadTrend()">30天</span></div>
-              </div>
-              <div class="chart-box"><div ref="orderChartRef" style="height:320px"></div></div>
-            </div>
-            <div class="ws-col-4">
-              <div class="ws-header"><h2>订单状态</h2></div>
-              <div class="chart-box"><div ref="pieChartRef" style="height:280px"></div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>退款<span>队列</span></h2></div>
-          <div class="action-grid">
-            <div class="action-card" @click="router.push('/after-sale')">
-              <div class="action-num danger">{{ stats.afterSalePending || 0 }}</div>
-              <div class="action-label">待处理售后</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-            <div class="action-card" @click="router.push('/order')">
-              <div class="action-num">{{ stats.refundRate || 0 }}%</div>
-              <div class="action-label">退款率</div>
-              <el-icon class="action-arrow"><ArrowRight /></el-icon>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>财务<span>快捷操作</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in financeQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-
-    <!-- ==================== 内容审核工作台 ==================== -->
-    <template v-if="currentRole === 'CONTENT_REVIEWER'">
-      <section class="ws-section">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>内容<span>审核中心</span></h2><p>商品与评论内容合规审查</p></div>
-          <div class="review-hero-row">
-            <div class="rh-card" @click="router.push('/goods')">
-              <div class="rh-emoji">🔍</div>
-              <div class="rh-num">{{ stats.goodsPendingAudit || 0 }}</div>
-              <div class="rh-label">待审核商品</div>
-              <div class="rh-action">去审核 →</div>
-            </div>
-            <div class="rh-card" @click="router.push('/review')">
-              <div class="rh-emoji">📝</div>
-              <div class="rh-num">—</div>
-              <div class="rh-label">待审核评论</div>
-              <div class="rh-action">去审核 →</div>
-            </div>
-            <div class="rh-card" @click="router.push('/merchant')">
-              <div class="rh-emoji">🏪</div>
-              <div class="rh-num">{{ stats.merchantPendingAudit || 0 }}</div>
-              <div class="rh-label">待审核商户</div>
-              <div class="rh-action">去审核 →</div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="ws-section ws-alt">
-        <div class="ws-inner">
-          <div class="ws-header"><h2>内容<span>快捷操作</span></h2></div>
-          <div class="quick-row">
-            <div class="quick-btn" v-for="q in contentQuick" :key="q.label" @click="router.push(q.path)">
-              <el-icon :size="20"><component :is="q.icon" /></el-icon>
-              <span>{{ q.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-
+    </div>
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
@@ -543,6 +171,22 @@ const adminStats = computed(() => [
   { label: '在售商品', value: (stats.value.goodsTotal || 0) + '+', icon: 'Goods', iconBg: '#F5F5FF', color: '#4527A0', path: '/goods' },
   { label: '退款率', value: (stats.value.refundRate || 0) + '%', icon: 'Warning', iconBg: '#FFF5F8', color: '#880E4F', path: '/after-sale' },
 ])
+
+const coreMetrics = computed(() => [
+  { label: '平台 GMV', value: '¥' + (stats.value.todayGMV || 0), note: '今日成交总额', path: '/report' },
+  { label: '支付订单数', value: stats.value.todayOrders || 0, note: '今日支付订单', path: '/order' },
+  { label: '活跃商家', value: stats.value.merchantTotal || stats.value.merchantPendingAudit || 0, note: '平台商户规模', path: '/merchant' },
+  { label: '活跃用户', value: stats.value.userTotal || 0, note: '平台注册用户', path: '/user' },
+  { label: '退款率', value: (stats.value.refundRate || 0) + '%', note: '平台退款占比', path: '/after-sale' },
+])
+
+const quickEntries = [
+  { label: '商家管理', icon: 'Shop', path: '/merchant' },
+  { label: '订单监督', icon: 'List', path: '/order' },
+  { label: '用户管理', icon: 'User', path: '/user' },
+  { label: '数据中心', icon: 'DataAnalysis', path: '/report' },
+  { label: '客服消息', icon: 'ChatDotRound', path: '/chat' },
+]
 
 const allPendingItems = computed(() => [
   { label: '待审核商户', count: stats.value.merchantPendingAudit || 0, path: '/merchant' },
@@ -729,13 +373,10 @@ const initCharts = () => {
 
 onMounted(async () => {
   await loadStats()
-  // 需要图表的角色
-  if (['SUPER_ADMIN', 'AUDITOR', 'FINANCE_OFFICER'].includes(currentRole.value)) {
-    setTimeout(async () => {
-      initCharts()
-      await loadTrend()
-    }, 100)
-  }
+  setTimeout(async () => {
+    initCharts()
+    await loadTrend()
+  }, 100)
   startBanner()
   window.addEventListener('resize', () => { orderChart?.resize(); pieChart?.resize() })
 })
@@ -748,429 +389,5 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.workspace-page { margin: 0; }
-
-/* ===== Banner ===== */
-.banner-section {
-  position: relative;
-  width: 100%;
-  height: 420px;
-  overflow: hidden;
-}
-.banner-slider {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-.banner-slide {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-  cursor: pointer;
-}
-.banner-slide.active { opacity: 1; }
-.banner-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.banner-content { max-width: 520px; color: #fff; }
-.banner-tag {
-  display: inline-block;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(10px);
-  padding: 6px 20px;
-  border-radius: 999px;
-  font-size: 13px;
-  margin-bottom: 20px;
-  letter-spacing: 1px;
-}
-.banner-title {
-  font-size: 44px;
-  font-weight: 800;
-  line-height: 1.25;
-  margin-bottom: 14px;
-  white-space: pre-line;
-}
-.banner-desc {
-  font-size: 16px;
-  opacity: 0.85;
-  line-height: 1.6;
-}
-.banner-visual {
-  position: relative;
-  width: 240px;
-  height: 240px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.banner-visual-circle {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-}
-.banner-visual-circle::before {
-  content: '';
-  position: absolute;
-  inset: 20px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-}
-.banner-icon-text {
-  font-size: 72px;
-  position: relative;
-  z-index: 1;
-}
-.banner-click-hint {
-  position: absolute;
-  bottom: 20px;
-  right: 32px;
-  color: rgba(255,255,255,0.6);
-  font-size: 13px;
-  letter-spacing: 1px;
-}
-.banner-slide:hover .banner-click-hint { color: #fff; }
-.banner-dots {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-}
-.banner-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.4);
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.banner-dots span.active {
-  background: #fff;
-  width: 28px;
-  border-radius: 5px;
-}
-
-/* ===== 通用区块 ===== */
-.ws-section { padding: 56px 0; background: #fff; }
-.ws-alt { background: #FAFAFA; }
-.ws-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-.ws-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
-.ws-header h2 { font-size: 24px; font-weight: 700; margin: 0; }
-.ws-header h2 span { color: #E60012; }
-.ws-header p { font-size: 14px; color: var(--text-muted, #999); margin: 0; }
-
-/* ===== 统计卡片 ===== */
-.stat-grid { display: grid; gap: 20px; }
-.stat-grid-5 { grid-template-columns: repeat(5, 1fr); }
-.stat-grid-4 { grid-template-columns: repeat(4, 1fr); }
-.stat-card {
-  background: #FAFAFA;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
-  transition: all 0.25s;
-  border: 1px solid transparent;
-}
-.stat-card:hover { background: #fff; border-color: #FFE8EA; box-shadow: 0 4px 16px rgba(230,0,18,0.08); transform: translateY(-2px); }
-.stat-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.stat-label { font-size: 13px; color: #999; margin-bottom: 6px; }
-.stat-value { font-size: 26px; font-weight: 700; }
-
-/* ===== 图表 ===== */
-.ws-row { display: flex; gap: 24px; }
-.ws-col-8 { flex: 2; }
-.ws-col-4 { flex: 1; }
-.ws-col-6 { flex: 1; }
-.chart-box {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid #f0f0f0;
-  padding: 20px;
-}
-.trend-tabs { display: flex; gap: 4px; background: #fff; border-radius: 999px; padding: 3px; border: 1px solid #f0f0f0; }
-.trend-tabs span { padding: 6px 18px; font-size: 13px; border-radius: 999px; cursor: pointer; color: #999; transition: all 0.2s; }
-.trend-tabs span.active { background: #E60012; color: #fff; font-weight: 600; }
-
-/* ===== 待处理卡片 ===== */
-.action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.action-card {
-  background: #FAFAFA;
-  border-radius: 14px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-.action-card:hover { background: #fff; border-color: #FFE8EA; box-shadow: 0 2px 12px rgba(230,0,18,0.06); transform: translateY(-2px); }
-.action-num { font-size: 28px; font-weight: 700; color: #333; }
-.action-num.danger { color: #E60012; }
-.action-label { font-size: 14px; color: #666; flex: 1; }
-.action-arrow { color: #ccc; transition: color 0.2s; }
-.action-card:hover .action-arrow { color: #E60012; }
-
-/* ===== SLA ===== */
-.sla-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.sla-card {
-  border: 1px solid #FFE8EA;
-  border-radius: 14px;
-  background: #FFF8F8;
-  padding: 18px 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.sla-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(230,0,18,0.06); background: #FFF5F5; }
-.sla-card.sla-urgent { border-color: #FFCDD2; background: #FFF5F5; }
-.sla-card.sla-warn { border-color: #FFE0B2; background: #FFF8F0; }
-.sla-title { font-size: 13px; color: #999; margin-bottom: 8px; }
-.sla-value { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 6px; }
-.sla-value.danger { color: #E60012; }
-.sla-desc { font-size: 12px; line-height: 1.5; color: #bbb; }
-
-/* ===== 洞察 ===== */
-.insight-list { display: flex; flex-direction: column; gap: 12px; }
-.insight-card {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 16px 18px;
-  background: #FFF8F8; border-radius: 14px; border: 1px solid #FFE8EA;
-  transition: all 0.2s;
-}
-.insight-card:hover { background: #FFF5F5; }
-.insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-.insight-body { flex: 1; }
-.insight-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.insight-title { font-weight: 600; font-size: 14px; }
-.insight-text { font-size: 13px; color: #999; line-height: 1.5; }
-
-/* ===== 审核队列（运营专员） ===== */
-.queue-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.queue-card {
-  border-radius: 20px;
-  padding: 32px 28px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-.queue-card::before {
-  content: '';
-  position: absolute;
-  top: -30px; right: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-}
-.queue-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
-.queue-merchant { background: linear-gradient(135deg, #FF6B35, #FF8C42); }
-.queue-goods { background: linear-gradient(135deg, #E65100, #FF6D00); }
-.queue-coupon { background: linear-gradient(135deg, #BF360C, #E65100); }
-.queue-badge {
-  display: inline-block;
-  background: rgba(255,255,255,0.25);
-  backdrop-filter: blur(8px);
-  padding: 4px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  margin-bottom: 16px;
-}
-.queue-num { font-size: 48px; font-weight: 800; margin-bottom: 8px; }
-.queue-label { font-size: 16px; opacity: 0.9; margin-bottom: 16px; }
-.queue-action {
-  display: inline-block;
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 999px;
-  padding: 8px 20px;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-.queue-card:hover .queue-action { background: #fff; color: #E60012; border-color: #fff; }
-
-/* ===== 营销卡片（运营专员） ===== */
-.marketing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.mk-card {
-  background: #FAFAFA;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
-  transition: all 0.25s;
-  border: 1px solid transparent;
-}
-.mk-card:hover { background: #fff; border-color: #FFE8EA; box-shadow: 0 4px 16px rgba(230,0,18,0.08); transform: translateY(-2px); }
-.mk-icon {
-  width: 56px; height: 56px;
-  border-radius: 16px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  flex-shrink: 0;
-}
-.mk-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-.mk-desc { font-size: 13px; color: #999; }
-
-/* ===== 客服Hero ===== */
-.service-hero { background: linear-gradient(135deg, #E3F2FD, #F5F5F5) !important; }
-.service-hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.sh-card {
-  background: #fff;
-  border-radius: 20px;
-  padding: 32px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid transparent;
-}
-.sh-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-.sh-after-sale:hover { border-color: #29B6F6; }
-.sh-dispute:hover { border-color: #0288D1; }
-.sh-chat:hover { border-color: #0277BD; }
-.sh-emoji { font-size: 40px; margin-bottom: 12px; }
-.sh-num { font-size: 42px; font-weight: 800; color: #E60012; margin-bottom: 8px; }
-.sh-label { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-.sh-sub { font-size: 13px; color: #999; }
-
-/* ===== 催发货 ===== */
-.remind-row { display: flex; flex-direction: column; gap: 12px; }
-.remind-card {
-  background: #FAFAFA;
-  border-radius: 14px;
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-.remind-card:hover { background: #fff; border-color: #FFE8EA; box-shadow: 0 2px 12px rgba(230,0,18,0.06); }
-.remind-icon { font-size: 32px; }
-.remind-info { flex: 1; }
-.remind-label { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-.remind-hint { font-size: 13px; color: #999; }
-
-/* ===== 风控Hero ===== */
-.risk-hero { background: linear-gradient(135deg, #FFEBEE, #F5F5F5) !important; }
-.risk-indicator-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.ri-card {
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.ri-card:hover { transform: translateY(-4px); }
-.ri-ring {
-  width: 110px; height: 110px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 12px;
-  position: relative;
-}
-.ri-ring::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 4px solid transparent;
-}
-.ri-danger { background: rgba(230,0,18,0.08); }
-.ri-danger::before { border-color: rgba(230,0,18,0.3); }
-.ri-warn { background: rgba(230,162,60,0.08); }
-.ri-warn::before { border-color: rgba(230,162,60,0.3); }
-.ri-info { background: rgba(69,39,160,0.08); }
-.ri-info::before { border-color: rgba(69,39,160,0.3); }
-.ri-ring-inner {
-  font-size: 32px;
-  font-weight: 800;
-  color: #333;
-}
-.ri-danger .ri-ring-inner { color: #E60012; }
-.ri-warn .ri-ring-inner { color: #E6A23C; }
-.ri-info .ri-ring-inner { color: #4527A0; }
-.ri-label { font-size: 14px; color: #666; font-weight: 500; }
-
-/* ===== 内容审核Hero ===== */
-.review-hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.rh-card {
-  background: #FAFAFA;
-  border-radius: 20px;
-  padding: 36px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid transparent;
-}
-.rh-card:hover { background: #fff; border-color: #FFE8EA; box-shadow: 0 4px 20px rgba(230,0,18,0.1); transform: translateY(-4px); }
-.rh-emoji { font-size: 44px; margin-bottom: 12px; }
-.rh-num { font-size: 40px; font-weight: 800; color: #E60012; margin-bottom: 8px; }
-.rh-label { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
-.rh-action { font-size: 14px; color: #E60012; font-weight: 500; }
-
-/* ===== 快捷按钮 ===== */
-.quick-row { display: flex; flex-wrap: wrap; gap: 12px; }
-.quick-btn {
-  display: flex; align-items: center; gap: 8px;
-  background: #FAFAFA;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.quick-btn:hover { background: #fff; border-color: #E60012; color: #E60012; box-shadow: 0 2px 8px rgba(230,0,18,0.08); }
-
-/* ===== 响应式 ===== */
-@media (max-width: 1024px) {
-  .banner-section { height: 340px; }
-  .banner-title { font-size: 32px; }
-  .banner-visual { width: 160px; height: 160px; }
-  .banner-icon-text { font-size: 48px; }
-  .stat-grid-5 { grid-template-columns: repeat(3, 1fr); }
-  .stat-grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .ws-row { flex-direction: column; }
-  .ws-col-4, .ws-col-6 { width: 100%; }
-  .sla-grid { grid-template-columns: repeat(2, 1fr); }
-  .queue-row { grid-template-columns: 1fr; }
-  .marketing-grid { grid-template-columns: repeat(2, 1fr); }
-  .service-hero-grid { grid-template-columns: 1fr; }
-  .risk-indicator-row { grid-template-columns: repeat(2, 1fr); }
-  .review-hero-row { grid-template-columns: 1fr; }
-}
-@media (max-width: 768px) {
-  .banner-section { height: 280px; }
-  .banner-inner { flex-direction: column; text-align: center; }
-  .banner-title { font-size: 24px; }
-  .banner-visual { display: none; }
-  .stat-grid-5 { grid-template-columns: repeat(2, 1fr); }
-  .stat-grid-4 { grid-template-columns: 1fr 1fr; }
-  .action-grid { grid-template-columns: repeat(2, 1fr); }
-  .sla-grid { grid-template-columns: 1fr; }
-  .ws-section { padding: 40px 0; }
-}
+.platform-dashboard{background:#f7f7f7;padding:32px 24px 64px;min-height:100vh}.dashboard-shell{max-width:1280px;margin:0 auto;display:grid;gap:20px}.platform-card{background:#fff;border:1px solid #eee;border-radius:20px;box-shadow:0 8px 26px rgba(0,0,0,.035)}.platform-hero{min-height:270px;padding:42px 48px;display:flex;align-items:center;justify-content:space-between;gap:48px;overflow:hidden}.hero-copy{max-width:620px}.hero-kicker{font-size:11px;font-weight:700;letter-spacing:2px;color:#e60012}.hero-copy h1{font-size:38px;line-height:1.2;margin:12px 0 8px;color:#111}.hero-welcome{font-size:18px;font-weight:600;color:#333;margin-bottom:8px}.hero-desc{font-size:14px;color:#888}.hero-actions{display:flex;gap:10px;margin-top:26px}.hero-actions button,.period-switch button,.text-button{border:0;cursor:pointer}.hero-primary,.hero-secondary{height:40px;padding:0 20px;border-radius:999px;font-weight:600}.hero-primary{background:#e60012;color:#fff}.hero-secondary{background:#f7f7f7;color:#333}.hero-visual{width:360px;padding:24px;border:1px solid #eee;border-radius:18px;background:#fafafa}.hero-visual-head,.hero-visual-foot{display:flex;justify-content:space-between;color:#888;font-size:12px}.live-dot{color:#e60012;background:#ffe8ea;padding:2px 8px;border-radius:999px}.hero-visual-value{font-size:30px;font-weight:750;margin:14px 0;color:#111}.hero-bars{height:66px;display:flex;align-items:flex-end;gap:9px;margin-bottom:14px}.hero-bars i{flex:1;background:#dedede;border-radius:4px 4px 1px 1px}.hero-bars i:nth-child(1){height:30%}.hero-bars i:nth-child(2){height:48%}.hero-bars i:nth-child(3){height:40%}.hero-bars i:nth-child(4){height:70%;background:#e60012}.hero-bars i:nth-child(5){height:58%}.hero-bars i:nth-child(6){height:84%;background:#333}.hero-bars i:nth-child(7){height:72%;background:#e60012}.metrics-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}.metric-card{background:#fff;border:1px solid #eee;border-radius:16px;padding:20px;cursor:pointer;transition:.2s}.metric-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.06)}.metric-top{display:flex;justify-content:space-between}.metric-label,.metric-note{font-size:12px;color:#999}.metric-mark{width:7px;height:7px;border-radius:50%;background:#e60012}.metric-card strong{display:block;font-size:25px;color:#111;margin:13px 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chart-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px}.chart-card,.list-card,.insight-panel,.quick-panel{padding:24px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.section-head h2{font-size:17px;color:#111;margin:0}.section-head p{font-size:12px;color:#999;margin-top:3px}.period-switch{display:flex;background:#f7f7f7;padding:3px;border-radius:999px}.period-switch button{background:transparent;color:#888;padding:6px 12px;border-radius:999px;font-size:12px}.period-switch button.active{background:#fff;color:#e60012;box-shadow:0 2px 7px rgba(0,0,0,.08)}.chart-canvas{height:310px}.dual-grid,.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.text-button{background:transparent;color:#e60012;font-size:12px}.pending-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.pending-grid button,.risk-list button,.quick-grid button{border:1px solid #eee;background:#fff;cursor:pointer}.pending-grid button{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:14px;border-radius:12px;text-align:left;color:#555}.pending-grid strong{font-size:18px;color:#333}.pending-grid strong.alert,.risk-list strong{color:#e60012}.risk-list{display:grid;gap:9px;max-height:230px;overflow:auto}.risk-list button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;text-align:left}.risk-dot{width:7px;height:7px;background:#ccc;border-radius:50%;flex:none}.risk-dot.alert{background:#e60012}.risk-copy{display:grid;gap:2px;flex:1}.risk-copy b{font-size:13px;color:#333}.risk-copy small{font-size:11px;color:#aaa}.risk-list strong{font-size:17px}.bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr)}.insight-list{display:grid;gap:10px}.insight-item{display:flex;gap:12px;padding:13px;background:#fafafa;border-radius:12px}.insight-level{height:24px;padding:3px 9px;border-radius:999px;font-size:11px;color:#666;background:#eee;white-space:nowrap}.insight-level.level-2,.insight-level.level-3{color:#e60012;background:#ffe8ea}.insight-item b{font-size:13px;color:#333}.insight-item p{font-size:12px;color:#999;margin-top:3px}.empty-state{height:150px;border:1px dashed #ddd;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#777}.empty-state small{color:#aaa;margin-top:4px}.quick-grid{display:grid;gap:9px}.quick-grid button{display:flex;align-items:center;gap:12px;padding:11px;border-radius:12px;color:#444;text-align:left}.quick-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#f7f7f7;color:#e60012}.quick-arrow{margin-left:auto;color:#bbb}@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}.platform-hero{padding:34px}.hero-visual{width:320px}}@media(max-width:900px){.platform-hero{align-items:flex-start}.hero-visual{display:none}.chart-grid,.dual-grid,.bottom-grid{grid-template-columns:1fr}.metrics-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.platform-dashboard{padding:18px 12px 42px}.platform-hero{min-height:auto;padding:26px}.hero-copy h1{font-size:30px}.hero-actions{flex-wrap:wrap}.metrics-grid{grid-template-columns:1fr}.pending-grid{grid-template-columns:1fr}.chart-card,.list-card,.insight-panel,.quick-panel{padding:18px}.chart-canvas{height:270px}.section-head{flex-wrap:wrap}}
 </style>

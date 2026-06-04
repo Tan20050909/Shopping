@@ -5,15 +5,7 @@
       <div class="header-inner">
         <!-- Logo -->
         <div class="header-logo" @click="router.push('/dashboard')">
-          <div class="logo-mark">
-            <svg viewBox="0 0 40 40" width="36" height="36">
-              <rect width="40" height="40" rx="8" fill="#E60012"/>
-              <path d="M12 12 C12 6 16 3 20 3 C24 3 28 6 28 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M9 14 L31 14 L28 32 L12 32 Z" fill="white" opacity="0.2"/>
-              <text x="20" y="28" text-anchor="middle" fill="white" font-size="16" font-weight="bold" font-family="Arial">A</text>
-            </svg>
-          </div>
-          <span class="logo-text"><span class="logo-all">All</span><span class="logo-mart">Mart</span></span>
+          <img src="/brand-assets/allmart-logo-full.png" alt="AllMart" class="logo-image" />
         </div>
 
         <!-- Nav - 分组下拉式导航 -->
@@ -109,13 +101,9 @@
         <div class="footer-top">
           <div class="footer-brand-col">
             <div class="footer-logo">
-              <svg viewBox="0 0 40 40" width="28" height="28">
-                <rect width="40" height="40" rx="8" fill="#E60012"/>
-                <text x="20" y="28" text-anchor="middle" fill="white" font-size="16" font-weight="bold" font-family="Arial">A</text>
-              </svg>
-              <span class="footer-logo-text"><span style="color:#1a1a1a">All</span><span style="color:#E60012">Mart</span></span>
+              <img src="/brand-assets/allmart-logo-full.png" alt="AllMart" class="footer-logo-image" />
             </div>
-            <p class="footer-desc">精选好物，点亮生活。<br/>年轻人的好物精选平台，好看、好买、好用。</p>
+            <p class="footer-desc">AllMart 平台运营中心<br/>统一服务商家、订单与平台治理。</p>
           </div>
           <div class="footer-links-group">
             <div class="footer-col">
@@ -126,14 +114,19 @@
               <a v-if="hasPermission('MARKETING_ACTIVITY')" @click="router.push('/activity')">营销活动</a>
             </div>
             <div class="footer-col">
-              <h4>运营管理</h4>
+              <h4>商家规则</h4>
               <a v-if="hasPermission('MERCHANT_MGMT')" @click="router.push('/merchant')">商户管理</a>
-              <a v-if="hasPermission('USER_MGMT')" @click="router.push('/user')">用户管理</a>
-              <a v-if="hasPermission('DISPUTE_MGMT')" @click="router.push('/dispute')">纠纷仲裁</a>
-              <a v-if="hasPermission('DATA_MGMT')" @click="router.push('/report')">数据报表</a>
+              <a v-if="hasPermission('GOODS_MGMT')" @click="router.push('/goods')">商品规范</a>
+              <a v-if="hasPermission('DISPUTE_MGMT')" @click="router.push('/dispute')">纠纷规则</a>
             </div>
             <div class="footer-col">
-              <h4>支持与帮助</h4>
+              <h4>运营管理</h4>
+              <a v-if="hasPermission('USER_MGMT')" @click="router.push('/user')">用户管理</a>
+              <a v-if="hasPermission('DATA_MGMT')" @click="router.push('/report')">数据报表</a>
+              <a v-if="hasPermission('MARKETING_MGMT')" @click="router.push('/coupon')">营销管理</a>
+            </div>
+            <div class="footer-col">
+              <h4>帮助中心</h4>
               <a>帮助中心</a>
               <a>服务条款</a>
               <a>隐私政策</a>
@@ -189,17 +182,17 @@ const hoverGroup = ref(null)
 const allNavItems = [
   { label: '首页', path: '/dashboard', permission: 'DASHBOARD_VIEW' },
   { label: '商品', path: '/goods', permission: 'GOODS_MGMT' },
-  { label: '订单', path: '/order', permission: 'ORDER_MGMT' },
-  { label: '商户', path: '/merchant', permission: 'MERCHANT_MGMT' },
-  { label: '用户', path: '/user', permission: 'USER_MGMT' },
+  { label: '订单监督', path: '/order', permission: 'ORDER_MGMT' },
+  { label: '商家管理', path: '/merchant', permission: 'MERCHANT_MGMT' },
+  { label: '用户管理', path: '/user', permission: 'USER_MGMT' },
   { label: '售后', path: '/after-sale', permission: 'AFTER_SALE_MGMT' },
   { label: '纠纷', path: '/dispute', permission: 'DISPUTE_MGMT' },
   { label: '异常', path: '/abnormal', permission: 'ORDER_ABNORMAL' },
-  { label: '客服', path: '/chat', permission: 'CHAT_MGMT' },
-  { label: '营销', path: '/coupon', permission: 'MARKETING_MGMT' },
+  { label: '服务市场', path: '/chat', permission: 'CHAT_MGMT' },
+  { label: '营销管理', path: '/coupon', permission: 'MARKETING_MGMT' },
   { label: '轮播', path: '/banner', permission: 'CONTENT_BANNER' },
   { label: '评论', path: '/review', permission: 'REVIEW_MGMT' },
-  { label: '数据', path: '/report', permission: 'DATA_MGMT' },
+  { label: '数据中心', path: '/report', permission: 'DATA_MGMT' },
   { label: '日志', path: '/log', permission: 'LOG_VIEW' },
   { label: '系统', path: '/admin', permission: 'ADMIN_MGMT' },
 ]
@@ -209,7 +202,7 @@ const filteredNavItems = computed(() => allNavItems.filter(item => hasPermission
 
 // 核心顶部导航 - 只显示最常用的4个
 const topNavItems = computed(() => {
-  const topPaths = ['/dashboard', '/goods', '/order', '/user']
+  const topPaths = ['/dashboard', '/merchant', '/order', '/user']
   return filteredNavItems.value.filter(item => topPaths.includes(item.path))
 })
 
@@ -232,7 +225,7 @@ const navGroups = computed(() => {
   ]
 })
 
-const topPaths = ['/dashboard', '/goods', '/order', '/user']
+const topPaths = ['/dashboard', '/merchant', '/order', '/user']
 
 
 const isActive = (path) => {
@@ -331,24 +324,7 @@ onUnmounted(() => {
   cursor: pointer;
   flex-shrink: 0;
 }
-.logo-mark {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-.logo-all {
-  color: #1a1a1a;
-}
-.logo-mart {
-  color: #E60012;
-}
+.logo-image { display: block; width: 138px; height: auto; }
 
 /* Nav */
 .header-nav {
@@ -576,6 +552,7 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 700;
 }
+.footer-logo-image { display: block; width: 126px; height: auto; }
 .footer-desc {
   font-size: 14px;
   color: var(--text-muted);

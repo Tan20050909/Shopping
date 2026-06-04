@@ -13,11 +13,6 @@
           <button class="hero-secondary" type="button" @click="goTo('/goods')">发布商品</button>
         </div>
       </div>
-      <div class="hero-indicators" aria-hidden="true">
-        <i class="active"></i>
-        <i></i>
-        <i></i>
-      </div>
     </section>
 
     <div class="status-alerts">
@@ -807,8 +802,8 @@ onMounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center right;
+  object-fit: contain;
+  object-position: right center;
 }
 
 .hero-wash {
@@ -889,27 +884,6 @@ onMounted(() => {
   border: 1px solid rgba(230, 0, 18, 0.55);
   background: rgba(255, 255, 255, 0.92);
   color: var(--brand-red);
-}
-
-.hero-indicators {
-  position: absolute;
-  z-index: 3;
-  bottom: 22px;
-  left: 50%;
-  display: flex;
-  gap: 8px;
-  transform: translateX(-50%);
-}
-
-.hero-indicators i {
-  width: 26px;
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(120, 120, 120, 0.42);
-}
-
-.hero-indicators i.active {
-  background: var(--brand-red);
 }
 
 .status-alerts {
@@ -1767,7 +1741,7 @@ onMounted(() => {
   }
 
   .hero-slide-image {
-    object-position: 66% center;
+    object-position: 72% center;
   }
 
   .hero-wash {

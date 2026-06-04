@@ -48,8 +48,7 @@ const navItems = computed(() => {
     ...base,
     { label: '购物车', to: '/cart' },
     { label: '我的订单', to: '/orders' },
-    { label: '我的售后', to: '/after-sales' },
-    { label: '个人中心', to: '/profile' }
+    { label: '我的售后', to: '/after-sales' }
   ]
 })
 

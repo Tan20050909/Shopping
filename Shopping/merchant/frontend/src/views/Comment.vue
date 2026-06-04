@@ -1,10 +1,18 @@
 <template>
   <div
     ref="pageRef"
-    class="cs-page"
-    :class="{ standalone: isStandalone, embedded: isEmbedded, shell: isShell }"
+    class="cs-page chat-page"
+    :class="{ standalone: isStandalone, embedded: isEmbedded, shell: isShell, 'standalone-shell-page': isStandaloneShell }"
     :style="{ height: pageHeight ? `${pageHeight}px` : '', '--ww-scale': String(shellScale) }"
   >
+    <section v-if="isStandaloneShell" class="chat-shell-breadcrumb">
+      <div class="chat-shell-breadcrumb-inner">
+        <button type="button" class="breadcrumb-link" @click="router.push('/dashboard')">商家中心</button>
+        <i>/</i>
+        <span>客服消息</span>
+      </div>
+    </section>
+
     <el-card class="cs-card" shadow="never">
       <template #header v-if="!(isEmbedded || isShell)">
         <div class="card-header">
@@ -13,37 +21,48 @@
         </div>
       </template>
 
-      <div class="cs-layout">
-        <div class="cs-left">
-          <el-input v-model="keyword" placeholder="搜索昵称/用户ID" clearable />
-          <div class="cs-list">
+      <div class="cs-layout chat-shell">
+        <aside class="cs-left session-panel allmart-chat-card">
+          <div class="panel-title">
+            <span>最近会话</span>
+            <small>{{ contacts.length }} 个会话</small>
+          </div>
+          <el-input v-model="keyword" class="session-search" placeholder="搜索昵称或用户ID" clearable />
+          <div class="cs-list session-list">
+            <div v-if="!filteredContacts.length" class="session-empty">
+              <strong>暂无会话</strong>
+              <span>用户消息会显示在这里。</span>
+            </div>
             <div
               v-for="c in filteredContacts"
               :key="c.key"
-              class="cs-item"
+              class="cs-item session-item"
               :class="{ active: c.key === activeKey }"
               @click="selectContact(c)"
             >
-              <div class="cs-item-avatar">
+              <div class="cs-item-avatar session-avatar">
                 <img v-if="avatarUrl(c)" class="avatar-img" :src="avatarUrl(c)" alt="" @error="() => markAvatarBroken(c?.avatar)" />
                 <span v-else>{{ avatarText(c) }}</span>
               </div>
-              <div class="cs-item-main">
+              <div class="cs-item-main session-copy">
                 <div class="cs-item-title">
                   <span class="nick">{{ c.nick }}</span>
-                  <el-button text size="small" class="open-btn" @click.stop="openNewPage(c)">新页</el-button>
                 </div>
                 <div class="cs-item-sub">{{ c.sub }}</div>
               </div>
+              <div class="session-extra">
+                <small>{{ c.key.replace('u:', 'ID ') }}</small>
+              </div>
             </div>
           </div>
-        </div>
+          <button type="button" class="session-footer-btn" @click="loadContacts">刷新会话</button>
+        </aside>
 
-        <div class="cs-center">
+        <section class="cs-center conversation allmart-chat-card">
           <div v-if="activeContact" class="cs-chat">
-            <div class="cs-chat-head">
-              <div class="head-left">
-                <div class="head-avatar">
+            <div class="cs-chat-head chat-head allmart-chat-section">
+              <div class="head-left chat-head-main">
+                <div class="head-avatar chat-head-logo">
                   <img
                     v-if="avatarUrl(activeContact)"
                     class="avatar-img"
@@ -55,16 +74,16 @@
                 </div>
                 <div class="head-meta">
                   <div class="head-title">{{ activeContact.nick }}</div>
-                  <div class="head-sub">{{ activeContact.sub }}</div>
+                  <div class="head-sub"><span class="online-dot"></span>{{ activeContact.sub }}</div>
                 </div>
               </div>
-              <div class="head-right">
-                <el-button plain @click="openFaqDialog">快捷问答</el-button>
-                <el-button plain @click="openNewPage(activeContact)">新页打开</el-button>
+              <div class="head-right chat-actions">
+                <el-button class="chat-action-btn" plain @click="openFaqDialog">快捷问答</el-button>
+                <el-button class="chat-action-btn" plain @click="openNewPage(activeContact)">新页打开</el-button>
               </div>
             </div>
 
-            <div ref="chatBodyRef" class="cs-chat-body" @click="onChatAreaClick">
+            <div ref="chatBodyRef" class="cs-chat-body messages" @click="onChatAreaClick">
               <div class="order-strip" v-if="unfinishedOrders.length" @click.stop>
                 <div class="strip-title">最近未完成订单</div>
                 <div class="strip-list">
@@ -168,11 +187,11 @@
               </div>
             </div>
 
-            <div class="cs-chat-foot">
-              <div class="tool-row">
+            <div class="cs-chat-foot composer">
+              <div class="tool-row composer-tools">
                 <el-popover placement="top-start" width="280" trigger="click">
                   <template #reference>
-                    <el-button plain class="tool-btn">表情</el-button>
+                  <el-button plain class="tool-btn">表情</el-button>
                   </template>
                   <div class="emoji-grid">
                     <span v-for="e in emojis" :key="e" class="emoji" @click="pickEmoji(e)">{{ e }}</span>
@@ -202,7 +221,7 @@
                 <el-button text size="small" @click="clearQuote">取消</el-button>
               </div>
 
-              <div class="input-row">
+              <div class="input-row composer-input">
                 <el-input
                   v-model="draft"
                   type="textarea"
@@ -210,22 +229,21 @@
                   placeholder="输入消息，Enter发送"
                   @keydown.enter.exact.prevent="send"
                 />
-                <el-button type="primary" class="send-btn" @click="send">发送</el-button>
+                <el-button type="primary" class="send-btn composer-send-btn" @click="send">发送</el-button>
               </div>
             </div>
           </div>
 
           <el-empty v-else description="请选择一个用户开始聊天" />
-        </div>
+        </section>
 
-        <div class="cs-side" v-if="isStandalone">
-          <div v-if="activeContact" class="side-card">
+        <aside class="cs-side assistant-side" v-if="isStandalone">
+          <div class="side-card side-block allmart-chat-card">
             <div class="side-head">
-              <div class="side-title">{{ merchantName }}</div>
-              <el-button size="small" plain @click="openShop">进入小店</el-button>
+              <div class="side-title">用户订单</div>
+              <el-button v-if="latestOrder" size="small" plain @click="openOrder(latestOrder)">查看订单</el-button>
             </div>
-            <div class="side-section">
-              <div class="side-label">我的订单</div>
+            <div v-if="activeContact" class="side-section">
               <div v-if="latestOrder" class="side-order" @click="openOrder(latestOrder)">
                 <div class="side-order-row">
                   <img class="side-order-pic" :src="resolveImg(orderThumb(latestOrder))" alt="" @error="onImgError" />
@@ -240,11 +258,54 @@
               </div>
               <el-empty v-else description="暂无订单" :image-size="72" />
             </div>
+            <el-empty v-else description="请选择用户" :image-size="64" />
           </div>
-          <el-empty v-else description="请选择用户" />
-        </div>
+
+          <div class="side-card side-block allmart-chat-card">
+            <div class="side-title">推荐快捷操作</div>
+            <div class="quick-grid">
+              <button type="button" class="quick-btn" @click="openFaqDialog">快捷问答</button>
+              <button type="button" class="quick-btn" :disabled="!activeContact" @click="openCouponDialog">发放优惠券</button>
+              <button type="button" class="quick-btn" :disabled="!latestOrder" @click="openOrder(latestOrder)">查看订单</button>
+              <button type="button" class="quick-btn" @click="openAfterSale">处理售后</button>
+            </div>
+          </div>
+
+          <div class="side-card side-block allmart-chat-card">
+            <div class="side-title">服务工具</div>
+            <div class="service-grid">
+              <button type="button" class="service-btn" :disabled="!activeContact" @click="openCouponDialog">发券</button>
+              <button type="button" class="service-btn" :disabled="!latestOrder" @click="openOrder(latestOrder)">订单详情</button>
+              <button type="button" class="service-btn" @click="openLatestGoods">商品详情</button>
+              <button type="button" class="service-btn" @click="openPlatformSupport">平台客服</button>
+            </div>
+          </div>
+
+          <div class="side-card side-block allmart-chat-card">
+            <div class="side-title">温馨提示</div>
+            <ul class="tips-list">
+              <li>商家在线时间：8:00 - 23:00</li>
+              <li>平均响应时间：1 分钟内</li>
+              <li>请文明沟通，避免发送违规内容</li>
+            </ul>
+          </div>
+        </aside>
       </div>
     </el-card>
+
+    <footer v-if="isStandaloneShell" class="chat-shell-footer">
+      <div class="chat-shell-footer-inner">
+        <div class="shell-footer-brand"><img :src="brandLogo" alt="AllMart" /></div>
+        <div class="shell-footer-links">
+          <span>客服电话：400-888-9999</span>
+          <button type="button">帮助中心</button>
+          <button type="button">关于我们</button>
+          <button type="button">隐私政策</button>
+          <button type="button">服务条款</button>
+        </div>
+        <div class="shell-footer-copy">© 2025 AllMart</div>
+      </div>
+    </footer>
 
     <el-dialog v-model="faqDialogVisible" title="快捷问答设置" width="720px">
       <div class="faq-editor">
@@ -318,7 +379,9 @@ const isEmbedded = ref(false)
 
 const isStandalone = computed(() => String(route.query?.standalone || '') === '1')
 const isShell = computed(() => String(route.query?.shell || '') === '1')
+const isStandaloneShell = computed(() => isStandalone.value && isShell.value)
 const shellScale = ref(1)
+const brandLogo = '/brand-assets/allmart-logo-full.png'
 
 const merchantName = computed(() => {
   try {
@@ -1061,6 +1124,24 @@ const openGoods = (m) => {
   const id = Number(m?.goodsId ?? m?.goods_id ?? m?.relatedId ?? m?.related_id ?? 0)
   if (!Number.isFinite(id) || id <= 0) return
   const href = router.resolve({ path: `/goods/${id}` }).href
+  window.open(href, '_blank')
+}
+
+const openLatestGoods = () => {
+  const message = (messages.value || []).slice().reverse().find(m => m?.type === 'goods_inquiry')
+  if (message) {
+    openGoods(message)
+    return
+  }
+  window.open(router.resolve('/goods').href, '_blank')
+}
+
+const openAfterSale = () => {
+  window.open(router.resolve('/after-sale').href, '_blank')
+}
+
+const openPlatformSupport = () => {
+  const href = router.resolve({ path: '/platform-support', query: { standalone: '1', shell: '1' } }).href
   window.open(href, '_blank')
 }
 
@@ -2173,6 +2254,529 @@ const openShop = () => {
   .cs-left {
     border-right: none;
     padding-right: 0;
+  }
+}
+
+/* 用户端消息中心同款三栏卡片骨架 */
+.chat-page {
+  overflow: visible;
+  color: #111;
+  font-size: 12px;
+  background: #fff;
+}
+
+.chat-page :deep(.el-button--primary) {
+  border-color: #e60012;
+  background: #e60012;
+}
+
+.chat-page :deep(.el-button--primary:hover),
+.chat-page :deep(.el-button--primary:focus) {
+  border-color: #c4000f;
+  background: #c4000f;
+}
+
+.chat-page :deep(.el-button.is-plain:hover),
+.chat-page :deep(.el-button--default:hover) {
+  border-color: rgba(230, 0, 18, 0.18);
+  color: #e60012;
+  background: #fff5f6;
+}
+
+.chat-page :deep(.el-input__wrapper),
+.chat-page :deep(.el-textarea__wrapper) {
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px #eeeeee inset;
+}
+
+.chat-page :deep(.el-input__wrapper.is-focus),
+.chat-page :deep(.el-textarea__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px rgba(230, 0, 18, 0.25) inset;
+}
+
+.cs-page.standalone.shell {
+  position: static;
+  inset: auto;
+  min-height: 100vh;
+  height: auto;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+}
+
+.chat-shell-breadcrumb-inner,
+.chat-shell-footer-inner,
+.cs-page.standalone.shell .cs-card {
+  width: min(1680px, calc(100vw - 64px));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.chat-shell-breadcrumb {
+  flex: 0 0 auto;
+  padding: 24px 0 16px;
+}
+
+.chat-shell-breadcrumb-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.breadcrumb-link {
+  padding: 0;
+  border: 0;
+  color: #555;
+  background: transparent;
+  cursor: pointer;
+}
+
+.breadcrumb-link:hover {
+  color: #e60012;
+}
+
+.cs-page.standalone.shell .cs-card {
+  height: clamp(720px, calc(100vh - 150px), 860px);
+  min-height: 720px;
+  max-height: 860px;
+  max-width: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.cs-page.standalone.shell .cs-card :deep(.el-card__body) {
+  height: 100%;
+  padding: 0;
+}
+
+.cs-layout.chat-shell {
+  grid-template-columns: 348px minmax(680px, 1fr) 332px;
+  gap: 24px;
+  height: 100%;
+  overflow: visible;
+  background: transparent;
+}
+
+.cs-page.standalone.shell.embedded .cs-layout.chat-shell {
+  grid-template-columns: minmax(280px, 348px) minmax(520px, 1fr) minmax(300px, 332px);
+  gap: 24px;
+}
+
+.allmart-chat-card {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #eeeeee;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.05);
+}
+
+.session-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 16px;
+  height: 100%;
+  padding: 26px 22px;
+  border-right: 1px solid #eeeeee;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #111;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.panel-title small {
+  color: #999;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.session-search :deep(.el-input__wrapper) {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.session-list {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.session-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 20px 12px;
+  color: #999;
+  text-align: center;
+}
+
+.cs-item.session-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 56px;
+  gap: 14px;
+  align-items: start;
+  min-height: 86px;
+  padding: 16px;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.cs-item.session-item.active,
+.cs-item.session-item:hover {
+  border-color: rgba(230, 0, 18, 0.12);
+  background: #fff3f4;
+  box-shadow: 0 10px 24px rgba(230, 0, 18, 0.05);
+}
+
+.session-avatar,
+.chat-head-logo {
+  width: 52px;
+  height: 52px;
+  border: 1px solid #eeeeee;
+  border-radius: 50%;
+  color: #e60012;
+  background: #fff6f6;
+}
+
+.session-copy {
+  min-width: 0;
+}
+
+.session-copy .nick {
+  display: block;
+  overflow: hidden;
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-copy .cs-item-sub {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.session-extra {
+  display: grid;
+  justify-items: end;
+  width: 56px;
+  color: #999;
+  font-size: 12px;
+}
+
+.session-footer-btn {
+  min-height: 44px;
+  border: 1px solid #eeeeee;
+  border-radius: 999px;
+  color: #111;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.conversation {
+  min-width: 0;
+  height: 100%;
+  background: #fff;
+}
+
+.chat-head.allmart-chat-section {
+  min-height: 94px;
+  margin: 20px 20px 0;
+  padding: 22px 26px;
+  border: 1px solid #eeeeee;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.chat-head-main {
+  gap: 20px;
+}
+
+.chat-head-logo,
+.chat-head-logo img {
+  width: 60px;
+  height: 60px;
+}
+
+.head-title {
+  color: #111;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.head-sub {
+  margin-top: 8px;
+  color: #555;
+  font-size: 14px;
+}
+
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #2db55d;
+  vertical-align: middle;
+}
+
+.chat-action-btn {
+  min-height: 41px;
+  padding: 0 20px;
+  border-radius: 999px;
+}
+
+.cs-chat-body.messages {
+  gap: 18px;
+  padding: 18px 26px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfdfd 100%);
+}
+
+.messages .msg-row {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.messages .msg-avatar {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #eeeeee;
+}
+
+.messages .msg-content {
+  max-width: min(700px, 82%);
+}
+
+.messages .msg-bubble {
+  padding: 14px 16px;
+  border: 1px solid #eeeeee;
+  border-radius: 18px;
+  color: #111;
+  background: #fff;
+  font-size: 15px;
+}
+
+.messages .msg-row.me .msg-bubble {
+  color: #7a0010;
+  border-color: #ffd9de;
+  background: #fff1f2;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 20px 20px;
+  padding: 16px 18px 18px;
+  border: 1px solid #eeeeee;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.composer-tools .tool-btn {
+  border-radius: 999px;
+}
+
+.composer-input {
+  align-items: stretch;
+}
+
+.composer-send-btn {
+  min-width: 92px;
+  height: auto;
+  border-radius: 14px;
+}
+
+.assistant-side {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-height: 0;
+  padding-left: 0;
+  overflow-y: auto;
+  border-left: 0;
+}
+
+.side-block {
+  height: auto;
+  padding: 20px;
+  overflow: visible;
+}
+
+.side-block .side-head {
+  padding: 0 0 14px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.side-title {
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.side-order {
+  border-color: #eeeeee;
+  border-radius: 14px;
+  background: #fafafa;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.quick-btn {
+  min-height: 42px;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  color: #333;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.quick-btn:hover {
+  color: #e60012;
+  background: #fff0f1;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.service-btn {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  color: #333;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.service-btn:hover {
+  color: #e60012;
+  background: #fff0f1;
+}
+
+.quick-btn:disabled,
+.service-btn:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.tips-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.5;
+  list-style: none;
+}
+
+.tips-list li {
+  display: flex;
+  gap: 10px;
+}
+
+.tips-list li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: #e60012;
+  flex: 0 0 auto;
+}
+
+.chat-shell-footer {
+  flex: 0 0 auto;
+  margin-top: 32px;
+  border-top: 1px solid rgba(17, 17, 17, 0.05);
+  background: #fff;
+}
+
+.chat-shell-footer-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 98px;
+}
+
+.shell-footer-brand img {
+  display: block;
+  height: 42px;
+}
+
+.shell-footer-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: #555;
+  font-size: 14px;
+}
+
+.shell-footer-links button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shell-footer-copy {
+  color: #999;
+  font-size: 14px;
+}
+
+@media (max-width: 1180px) {
+  .chat-shell-breadcrumb-inner,
+  .chat-shell-footer-inner,
+  .cs-page.standalone.shell .cs-card {
+    width: min(100vw - 24px, 1680px);
+  }
+
+  .cs-page.standalone.shell.embedded .cs-layout.chat-shell {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .assistant-side {
+    display: none;
   }
 }
 </style>
